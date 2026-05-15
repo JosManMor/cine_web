@@ -65,12 +65,12 @@ La documentación detallada del proyecto se encuentra en la carpeta `/docs`:
 
 ---
 
-## 5. Scripts de Automatización
+## 5. Scripts de Automatización (Planeado)
 
-El sistema incluye scripts de Bash para mantenimiento:
+Se tiene previsto incorporar scripts de Bash para mantenimiento; **actualmente no están incluidos en este repositorio**:
 
-- `watchdog.sh`: Monitorea y reinicia servicios (Apache/MySQL).
-- `backup.sh`: Realiza respaldos automáticos de la base de datos.
+- `watchdog.sh`: Monitoreo y reinicio de servicios (Apache/MySQL).
+- `backup.sh`: Respaldos automáticos de la base de datos.
 - `staff_creator.sh`: Gestión masiva de usuarios del sistema.
 
 ---
