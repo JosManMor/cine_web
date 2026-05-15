@@ -26,9 +26,9 @@ La documentación detallada del proyecto se encuentra en la carpeta `/docs`:
 
 ## 2. Tecnologías Principales
 
-- **Backend:** Laravel 12+ (PHP 8.3+)
+- **Backend:** Laravel 13.8+ (PHP 8.3+)
 - **Base de Datos:** MySQL 8
-- **Frontend:** React / Angular (Vanilla CSS)
+- **Frontend:** Vite + Tailwind CSS
 - **Servidor:** Apache2 sobre Ubuntu Server
 - **Automatización:** Scripts en Bash
 
