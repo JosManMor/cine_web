@@ -117,9 +117,9 @@ El frontend se comunicará con el backend a través de la API REST definida en l
 
 ---
 
-## 6. Tecnologías Recomendadas
+## 6. Tecnologías Seleccionadas
 
-- **Framework:** React 18+ o Angular 17+.
-- **Estilos:** Tailwind CSS forma parte de la stack actual del repositorio. También se pueden usar CSS Modules o Vanilla CSS en componentes o vistas que requieran estilos más encapsulados o personalizados. Si en el futuro se decide evitar Tailwind para ganar flexibilidad, deberá tratarse como una migración explícita y planificada, con pasos de transición definidos.
+- **Framework:** React 18+ (Vanilla JavaScript). Se ha seleccionado Vanilla JS para simplificar el desarrollo y mantener la flexibilidad sin la sobrecarga de tipos estáticos de TypeScript.
+- **Estilos:** Tailwind prioritariamente y css.
 - **Iconos:** Lucide React o FontAwesome.
 - **QR:** Librería cliente para renderizar el `ticket_code` como QR.
