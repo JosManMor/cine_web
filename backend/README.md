@@ -6,7 +6,7 @@ Este directorio contiene el código fuente del backend del sistema Cine Sendera.
 
 Para obtener información detallada sobre la arquitectura, estándares de código e instalación, por favor consulte el archivo principal:
 
-- [README Principal](../../README.md)
+- [README Principal](../README.md)
 - [Arquitectura del Backend](../docs/backend-architecture.md)
 
 ## Estándares de Código
