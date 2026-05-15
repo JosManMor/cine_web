@@ -46,9 +46,9 @@ La documentación detallada del proyecto se encuentra en la carpeta `/docs`:
 ## 4. Instalación Rápida (Desarrollo)
 
 1. Clonar el repositorio.
-2. Copiar `.env.example` a `.env` y configurar las credenciales.
+2. Copiar `backend/.env.example` a `backend/.env` y configurar ahí las credenciales del backend Laravel.
 3. Ejecutar `docker-compose up -d`.
-4. Entrar al contenedor de PHP y ejecutar:
+4. Entrar al contenedor de PHP (donde `./backend` está montado como `/var/www`) y ejecutar:
 
    ```bash
    composer install
