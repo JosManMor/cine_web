@@ -31,7 +31,7 @@ services:
       - "80:80"
 
     volumes:
-      - ./:/var/www
+      - ./backend:/var/www
       - ./docker/apache/000-default.conf:/usr/local/apache2/conf/httpd.conf
 
     depends_on:
