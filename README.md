@@ -52,8 +52,8 @@ La documentación detallada del proyecto se encuentra en la carpeta `/docs`:
 
    ```bash
    composer install
-   php artisan migrate --seed
    php artisan key:generate
+   php artisan migrate --seed
    ```
 
 5. Instalar dependencias del frontend (si aplica):
