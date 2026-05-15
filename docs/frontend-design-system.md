@@ -54,7 +54,7 @@ Se busca una estética moderna y cinematográfica (Dark Mode por defecto).
 
 - **Asiento Libre:** Borde verde, fondo transparente.
 - **Asiento Seleccionado:** Fondo verde, icono de check.
-- **Asiento Ocupado:** Fondo gris, icono de X.
+- **Asiento Ocupado:** Fondo rojo (#FF0000), icono de X.
 
 ---
 
