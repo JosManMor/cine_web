@@ -2,6 +2,19 @@
 
 ---
 
+# 0. Estándares del Proyecto
+
+## Idioma Oficial
+
+Para mantener la consistencia y profesionalismo en el desarrollo, se establecen los siguientes estándares de idioma:
+
+- **Código (Backend & Frontend):** Inglés (nombres de variables, funciones, clases, comentarios técnicos).
+- **Base de Datos:** Inglés (nombres de tablas, columnas, índices).
+- **Frontend (UI/UX):** Inglés (nombres de componentes, props, archivos). *Nota: El contenido visible para el usuario final será en Español.*
+- **Documentación:** Español (explicaciones, manuales, guías de arquitectura).
+
+---
+
 # 1. Objetivo del Sistema
 
 Desarrollar un sistema web para gestión y compra de boletos de cine utilizando arquitectura LAMP:
