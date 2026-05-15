@@ -1,4 +1,4 @@
-# Frontend Design System — Cine Web
+# Frontend Design System — Cine Sendera
 
 ---
 
