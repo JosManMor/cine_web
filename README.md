@@ -48,12 +48,24 @@ La documentación detallada del proyecto se encuentra en la carpeta `/docs`:
 1. Clonar el repositorio.
 2. Copiar `backend/.env.example` a `backend/.env` y configurar ahí las credenciales del backend Laravel.
 3. Ejecutar `docker-compose up -d`.
-4. Entrar al contenedor de PHP (donde `./backend` está montado como `/var/www`) y ejecutar:
+4. Entrar al contenedor de PHP (donde `./backend` está montado como `/var/www`) y ejecutar, o usar directamente el flujo estándar del repositorio:
+
+   ```bash
+   composer setup
+   ```
+
+   Si prefieres hacerlo manualmente, usa este orden para mantener la consistencia con Laravel y evitar fallos con `APP_KEY`:
 
    ```bash
    composer install
    php artisan key:generate
-   php artisan migrate --seed
+   php artisan migrate --force
+   ```
+
+   Si más adelante agregas seeds, ejecútalos después de generar la key y migrar:
+
+   ```bash
+   php artisan db:seed
    ```
 
 5. Instalar dependencias del frontend (si aplica):
