@@ -56,32 +56,33 @@ El `screening_id` y los asientos seleccionados se mantienen en Context/Redux ent
 
 ### Lógica crítica de reserva
 
-La operación completa va dentro de una transacción. El UNIQUE `(screening_id, row, seat_number)` en `purchase_seats` es la garantía de nivel de BD contra doble reserva.
+La operación completa va dentro de una transacción. El UNIQUE `(screening_id, row, seat_number)` en `purchase_seats` es la **única** garantía real contra doble reserva. No se usa `exists()` previo porque en concurrencia dos transacciones pueden pasar el check simultáneamente y aun así colisionar en el INSERT. El patrón correcto es intentar el INSERT directamente y capturar la excepción de clave duplicada que MySQL lanza cuando viola el UNIQUE:
 
 ```php
+use Illuminate\Database\UniqueConstraintViolationException;
+
 DB::transaction(function () use ($screeningId, $seats, $purchaseData) {
 
     $purchase = $this->purchaseRepository->create($purchaseData);
 
     foreach ($seats as $seat) {
-        $taken = PurchaseSeat::lockForUpdate()
-            ->where('screening_id', $screeningId)
-            ->where('row', $seat['row'])
-            ->where('seat_number', $seat['seat_number'])
-            ->exists();
-
-        if ($taken) throw new SeatAlreadyTakenException();
-
-        PurchaseSeat::create([
-            'purchase_id'  => $purchase->id,
-            'screening_id' => $screeningId,
-            'row'          => $seat['row'],
-            'seat_number'  => $seat['seat_number'],
-            'price_paid'   => $seat['price'],
-        ]);
+        try {
+            PurchaseSeat::create([
+                'purchase_id'  => $purchase->id,
+                'screening_id' => $screeningId,
+                'row'          => $seat['row'],
+                'seat_number'  => $seat['seat_number'],
+                'price_paid'   => $seat['price'],
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            throw new SeatAlreadyTakenException($seat['row'], $seat['seat_number']);
+        }
     }
+
 });
 ```
+
+`UniqueConstraintViolationException` está disponible desde Laravel 10. La transacción garantiza que si cualquier asiento falla, ninguno de los insertados anteriormente persiste (rollback automático).
 
 ### Asignación del ticket_code
 

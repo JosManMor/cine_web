@@ -49,6 +49,7 @@ php artisan tinker
 ```
 
 Frontend (from `frontend/`):
+
 ```bash
 npm install
 npm run dev    # Vite dev server
@@ -85,18 +86,17 @@ Current route registration uses `routes/web.php` and `routes/console.php`. If `a
 
 The source of truth for the schema is `docs/database-design.md`. Key constraints:
 
-**No double-booking:** UNIQUE `(screening_id, row, seat_number)` in `purchase_seats` is the DB-level guarantee. All reservation logic must run inside a transaction:
+**No double-booking:** UNIQUE `(screening_id, row, seat_number)` in `purchase_seats` is the DB-level guarantee. Do not use `exists()` as a pre-check — concurrent transactions can both pass the check and still collide on INSERT. Instead, attempt the INSERT directly and catch the duplicate-key exception:
+
 ```php
+use Illuminate\Database\UniqueConstraintViolationException;
+
 DB::transaction(function () {
-    $taken = PurchaseSeat::lockForUpdate()
-        ->where('screening_id', $screeningId)
-        ->where('row', $row)
-        ->where('seat_number', $seatNumber)
-        ->exists();
-
-    if ($taken) throw new SeatAlreadyTakenException();
-
-    PurchaseSeat::create([...]);
+    try {
+        PurchaseSeat::create([...]);
+    } catch (UniqueConstraintViolationException) {
+        throw new SeatAlreadyTakenException($row, $seatNumber);
+    }
 });
 ```
 
@@ -120,6 +120,6 @@ Tests use in-memory SQLite regardless of the `.env` DB setting (configured in `p
 
 `scripts/watchdog.sh` — restarts Apache/MySQL if down, logs to `/var/log/cine_error.log`  
 `scripts/backup.sh` — `mysqldump` only if disk free > 15%  
-`scripts/staff_creator.sh` — bulk Linux user creation for staff  
+`scripts/staff_creator.sh` — bulk Linux user creation for staff
 
 Cron: watchdog every minute (`*/1 * * * *`), backup at 2 AM (`0 2 * * *`).
