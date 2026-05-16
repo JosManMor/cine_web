@@ -16,10 +16,10 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 
 ## 1. Autenticación
 
-### 1.1 Registro de Usuariov
+### 1.1 Registro de Usuario
 
 **Endpoint:** `POST /register`
-v
+
 **Cuerpo de la solicitud (JSON):**
 
 ```json
@@ -35,39 +35,17 @@ v
 
 ```json
 {
-  "message": "Código de verificación enviado al correo.",
-  "email": "juan@example.com"
-}
-```
-
-### 1.2 Verificación de Registro (OTP)
-
-**Endpoint:** `POST /register/verify`
-
-**Cuerpo de la solicitud (JSON):**
-
-```json
-{
-  "email": "juan@example.com",
-  "code": "48271"
-}
-```
-
-**Respuesta exitosa (200 OK):**
-
-```json
-{
-  "message": "Cuenta verificada con éxito.",
   "user": {
     "id": 1,
     "name": "Juan Pérez",
     "email": "juan@example.com",
-    "role": "user"
-  }
+    "role": "client"
+  },
+  "token": "..."
 }
 ```
 
-### 1.3 Inicio de Sesión
+### 1.2 Inicio de Sesión
 
 **Endpoint:** `POST /login`
 
@@ -88,13 +66,13 @@ v
     "id": 1,
     "name": "Juan Pérez",
     "email": "juan@example.com",
-    "role": "user"
+    "role": "client"
   },
   "token": "..."
 }
 ```
 
-### 1.4 Cerrar Sesión
+### 1.3 Cerrar Sesión
 
 **Endpoint:** `POST /logout`
 **Seguridad:** Requiere autenticación.
@@ -121,12 +99,10 @@ v
     "id": 1,
     "title": "Inferno Nexus",
     "genre": "Acción",
-    "duration": "2h 18m",
-    "rating": "8.4",
-    "image": "https://cine-sendera.com/images/inferno-nexus.jpg",
-    "color": "#E50914",
-    "available_seats": 48,
-    "total_seats": 120
+    "duration_minutes": 138,
+    "rating": "PG-13",
+    "poster_url": "https://cine-sendera.com/images/inferno-nexus.jpg",
+    "status": "active"
   }
 ]
 ```
@@ -142,15 +118,28 @@ v
   "id": 1,
   "title": "Inferno Nexus",
   "genre": "Acción",
-  "duration": "2h 18m",
-  "rating": "8.4",
-  "image": "https://cine-sendera.com/images/inferno-nexus.jpg",
-  "color": "#E50914",
+  "duration_minutes": 138,
+  "rating": "PG-13",
+  "poster_url": "https://cine-sendera.com/images/inferno-nexus.jpg",
   "synopsis": "Un ex-agente infiltrado debe detener una conspiración global...",
-  "cast": "Marco Reyes, Ana Villanueva, Luis Serrano",
-  "schedule": ["14:00", "17:30", "21:00"],
-  "available_seats": 48,
-  "total_seats": 120
+  "director": "María Castillo",
+  "status": "active",
+  "screenings": [
+    {
+      "id": 12,
+      "start_time": "2025-07-25 14:00:00",
+      "format": "2D",
+      "language_type": "subtitled",
+      "base_price": 90.00,
+      "status": "open",
+      "room": {
+        "id": 1,
+        "name": "Sala 1",
+        "total_seats": 120,
+        "available_seats": 48
+      }
+    }
+  ]
 }
 ```
 
@@ -167,10 +156,13 @@ v
 
 ```json
 {
-  "movie_id": 1,
-  "schedule": "17:30",
-  "seats": ["A3", "A4"],
-  "total": 180.0
+  "screening_id": 12,
+  "seats": [
+    { "row": "A", "seat_number": 3 },
+    { "row": "A", "seat_number": 4 }
+  ],
+  "payment_method": "card",
+  "total_amount": 180.00
 }
 ```
 
@@ -180,13 +172,17 @@ v
 {
   "message": "Compra realizada con éxito.",
   "purchase_id": 501,
-  "ticket_code": "SNDR-2025-7A3F"
+  "payment_status": "completed",
+  "tickets": [
+    { "row": "A", "seat_number": 3, "ticket_code": "SNDR-2025-7A3F" },
+    { "row": "A", "seat_number": 4, "ticket_code": "SNDR-2025-7A4G" }
+  ]
 }
 ```
 
 ### 3.2 Obtener Ticket
 
-**Endpoint:** `GET /tickets/{code}`
+**Endpoint:** `GET /tickets/{ticket_code}`
 **Seguridad:** Requiere autenticación.
 
 **Respuesta exitosa (200 OK):**
@@ -194,13 +190,17 @@ v
 ```json
 {
   "ticket_code": "SNDR-2025-7A3F",
+  "status": "active",
   "movie_title": "Inferno Nexus",
-  "schedule": "17:30",
+  "start_time": "2025-07-25 17:30:00",
+  "format": "2D",
+  "language_type": "subtitled",
   "room": "Sala 1",
-  "seats": ["A3", "A4"],
+  "row": "A",
+  "seat_number": 3,
+  "price_paid": 90.00,
   "user_name": "Juan Pérez",
-  "total": 180.0,
-  "generated_at": "2025-07-25 10:30:00"
+  "purchased_at": "2025-07-25 10:30:00"
 }
 ```
 
@@ -222,12 +222,11 @@ v
   "registered_users": 1482,
   "top_movie": {
     "title": "Inferno Nexus",
-    "sold": 104
+    "tickets_sold": 104
   },
   "weekly_sales": [
     {"day": "Lun", "value": 42},
-    {"day": "Mar", "value": 68},
-    ...
+    {"day": "Mar", "value": 68}
   ]
 }
 ```
@@ -264,10 +263,11 @@ v
 ```json
 [
   {
+    "room": "Sala 1",
     "movie_title": "Inferno Nexus",
     "occupancy_pct": 87,
-    "available_seats": 48,
-    "next_schedule": "14:00"
+    "available_seats": 16,
+    "next_start_time": "2025-07-25 14:00:00"
   }
 ]
 ```
