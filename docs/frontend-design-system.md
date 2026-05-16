@@ -95,6 +95,9 @@ Se busca una estética moderna y cinematográfica (Dark Mode por defecto).
 
 El frontend se comunicará con el backend a través de la API REST definida en la arquitectura del sistema.
 
+Para una referencia completa de los endpoints, parámetros y respuestas, consulte el documento:
+[Documentación de la API (api-endpoints.md)](api-endpoints.md)
+
 ### Endpoints Consumidos
 
 - `GET /api/movies` - Obtener lista de películas.

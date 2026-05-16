@@ -5,257 +5,276 @@ Sistema de gestión y reserva de entradas de cine (Cinema Management System). Pe
 **Stack confirmado:** React (SPA) + Laravel 13 (PHP 8.3) + MySQL/PostgreSQL + REST API
 
 ---
+
 /
+
 # Módulos Detectados
 
-| # | Módulo | Descripción |
-|---|--------|-------------|
-| 1 | **Auth** | Registro, login, verificación de email, recuperación de contraseña |
-| 2 | **Cartelera** | Listado y detalle de películas en cartel |
-| 3 | **Funciones** | Horarios/proyecciones disponibles por película |
-| 4 | **Selección de Asientos** | Mapa interactivo de sala con estados de disponibilidad |
-| 5 | **Compra/Reserva** | Flujo de compra, aplicación de promociones, pago |
-| 6 | **Tickets** | Generación de tickets digitales con código único/QR |
-| 7 | **Perfil de Usuario** | Historial de compras, datos personales |
-| 8 | **Admin — Películas** | CRUD de catálogo de películas |
-| 9 | **Admin — Salas** | Gestión de salas y distribución de asientos |
-| 10 | **Admin — Funciones** | Programación de proyecciones |
-| 11 | **Admin — Reportes** | Ventas, ocupación, ingresos |
+| #   | Módulo                    | Descripción                                                        |
+| --- | ------------------------- | ------------------------------------------------------------------ |
+| 1   | **Auth**                  | Registro, login, verificación de email, recuperación de contraseña |
+| 2   | **Cartelera**             | Listado y detalle de películas en cartel                           |
+| 3   | **Funciones**             | Horarios/proyecciones disponibles por película                     |
+| 4   | **Selección de Asientos** | Mapa interactivo de sala con estados de disponibilidad             |
+| 5   | **Compra/Reserva**        | Flujo de compra, aplicación de promociones, pago                   |
+| 6   | **Tickets**               | Generación de tickets digitales con código único/QR                |
+| 7   | **Perfil de Usuario**     | Historial de compras, datos personales                             |
+| 8   | **Admin — Películas**     | CRUD de catálogo de películas                                      |
+| 9   | **Admin — Salas**         | Gestión de salas y distribución de asientos                        |
+| 10  | **Admin — Funciones**     | Programación de proyecciones                                       |
+| 11  | **Admin — Reportes**      | Ventas, ocupación, ingresos                                        |
 
 ---
 
 # Entidades
 
 ## roles
+
 Catálogo de roles del sistema.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| name | VARCHAR(50) | UNIQUE, NOT NULL |
-| description | TEXT | NULLABLE |
-| created_at | TIMESTAMP | DEFAULT CURRENT |
-| updated_at | TIMESTAMP | ON UPDATE CURRENT |
+| Campo       | Tipo            | Restricciones      |
+| ----------- | --------------- | ------------------ |
+| id          | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
+| name        | VARCHAR(50)     | UNIQUE, NOT NULL   |
+| description | TEXT            | NULLABLE           |
+| created_at  | TIMESTAMP       | DEFAULT CURRENT    |
+| updated_at  | TIMESTAMP       | ON UPDATE CURRENT  |
 
 ## permissions
+
 Permisos granulares por acción.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| name | VARCHAR(100) | UNIQUE, NOT NULL (ej. `movies.create`) |
-| description | TEXT | NULLABLE |
+| Campo       | Tipo            | Restricciones                          |
+| ----------- | --------------- | -------------------------------------- |
+| id          | BIGINT UNSIGNED | PK, AUTO_INCREMENT                     |
+| name        | VARCHAR(100)    | UNIQUE, NOT NULL (ej. `movies.create`) |
+| description | TEXT            | NULLABLE                               |
 
-## role_permissions *(pivot)*
+## role_permissions _(pivot)_
+
 Asocia roles con permisos (N:M).
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| role_id | BIGINT UNSIGNED | FK → roles.id |
-| permission_id | BIGINT UNSIGNED | FK → permissions.id |
-| PK | — | (role_id, permission_id) |
+| Campo         | Tipo            | Restricciones            |
+| ------------- | --------------- | ------------------------ |
+| role_id       | BIGINT UNSIGNED | FK → roles.id            |
+| permission_id | BIGINT UNSIGNED | FK → permissions.id      |
+| PK            | —               | (role_id, permission_id) |
 
 ## users
+
 Cuentas de clientes y personal.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| role_id | BIGINT UNSIGNED | FK → roles.id, NOT NULL, DEFAULT role 'client' |
-| name | VARCHAR(255) | NOT NULL |
-| email | VARCHAR(255) | UNIQUE, NOT NULL |
-| email_verified_at | TIMESTAMP | NULLABLE |
-| password | VARCHAR(255) | NOT NULL |
-| phone | VARCHAR(20) | NULLABLE |
-| remember_token | VARCHAR(100) | NULLABLE |
-| created_at | TIMESTAMP | — |
-| updated_at | TIMESTAMP | — |
-| deleted_at | TIMESTAMP | NULLABLE (soft delete) |
+| Campo             | Tipo            | Restricciones                                  |
+| ----------------- | --------------- | ---------------------------------------------- |
+| id                | BIGINT UNSIGNED | PK, AUTO_INCREMENT                             |
+| role_id           | BIGINT UNSIGNED | FK → roles.id, NOT NULL, DEFAULT role 'client' |
+| name              | VARCHAR(255)    | NOT NULL                                       |
+| email             | VARCHAR(255)    | UNIQUE, NOT NULL                               |
+| email_verified_at | TIMESTAMP       | NULLABLE                                       |
+| password          | VARCHAR(255)    | NOT NULL                                       |
+| phone             | VARCHAR(20)     | NULLABLE                                       |
+| remember_token    | VARCHAR(100)    | NULLABLE                                       |
+| created_at        | TIMESTAMP       | —                                              |
+| updated_at        | TIMESTAMP       | —                                              |
+| deleted_at        | TIMESTAMP       | NULLABLE (soft delete)                         |
 
 ## genres
+
 Catálogo de géneros cinematográficos.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| name | VARCHAR(100) | UNIQUE, NOT NULL |
-| description | TEXT | NULLABLE |
+| Campo       | Tipo            | Restricciones      |
+| ----------- | --------------- | ------------------ |
+| id          | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
+| name        | VARCHAR(100)    | UNIQUE, NOT NULL   |
+| description | TEXT            | NULLABLE           |
 
 ## movies
+
 Catálogo de películas.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| genre_id | BIGINT UNSIGNED | FK → genres.id, NULLABLE |
-| title | VARCHAR(255) | NOT NULL |
-| synopsis | TEXT | NULLABLE |
-| duration_minutes | SMALLINT UNSIGNED | NOT NULL |
-| director | VARCHAR(255) | NULLABLE |
-| cast | TEXT | NULLABLE |
-| rating | VARCHAR(10) | NOT NULL (G, PG, PG-13, R) |
-| language | VARCHAR(50) | DEFAULT 'Español' |
-| poster_url | VARCHAR(500) | NULLABLE |
-| trailer_url | VARCHAR(500) | NULLABLE |
-| release_date | DATE | NULLABLE |
-| end_date | DATE | NULLABLE |
-| status | ENUM | NOT NULL: `active`, `inactive`, `coming_soon` |
-| created_at | TIMESTAMP | — |
-| updated_at | TIMESTAMP | — |
-| deleted_at | TIMESTAMP | NULLABLE |
+| Campo            | Tipo              | Restricciones                                 |
+| ---------------- | ----------------- | --------------------------------------------- |
+| id               | BIGINT UNSIGNED   | PK, AUTO_INCREMENT                            |
+| genre_id         | BIGINT UNSIGNED   | FK → genres.id, NULLABLE                      |
+| title            | VARCHAR(255)      | NOT NULL                                      |
+| synopsis         | TEXT              | NULLABLE                                      |
+| duration_minutes | SMALLINT UNSIGNED | NOT NULL                                      |
+| director         | VARCHAR(255)      | NULLABLE                                      |
+| cast             | TEXT              | NULLABLE                                      |
+| rating           | VARCHAR(10)       | NOT NULL (G, PG, PG-13, R)                    |
+| language         | VARCHAR(50)       | DEFAULT 'Español'                             |
+| poster_url       | VARCHAR(500)      | NULLABLE                                      |
+| trailer_url      | VARCHAR(500)      | NULLABLE                                      |
+| release_date     | DATE              | NULLABLE                                      |
+| end_date         | DATE              | NULLABLE                                      |
+| status           | ENUM              | NOT NULL: `active`, `inactive`, `coming_soon` |
+| created_at       | TIMESTAMP         | —                                             |
+| updated_at       | TIMESTAMP         | —                                             |
+| deleted_at       | TIMESTAMP         | NULLABLE                                      |
 
 ## rooms
+
 Salas de proyección físicas.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| name | VARCHAR(100) | NOT NULL (ej. "Sala 1", "Sala VIP") |
-| capacity | SMALLINT UNSIGNED | NOT NULL |
-| has_3d | BOOLEAN | DEFAULT FALSE |
-| has_dolby | BOOLEAN | DEFAULT FALSE |
-| status | ENUM | DEFAULT `active`: `active`, `maintenance` |
-| created_at | TIMESTAMP | — |
-| updated_at | TIMESTAMP | — |
+| Campo      | Tipo              | Restricciones                             |
+| ---------- | ----------------- | ----------------------------------------- |
+| id         | BIGINT UNSIGNED   | PK, AUTO_INCREMENT                        |
+| name       | VARCHAR(100)      | NOT NULL (ej. "Sala 1", "Sala VIP")       |
+| capacity   | SMALLINT UNSIGNED | NOT NULL                                  |
+| has_3d     | BOOLEAN           | DEFAULT FALSE                             |
+| has_dolby  | BOOLEAN           | DEFAULT FALSE                             |
+| status     | ENUM              | DEFAULT `active`: `active`, `maintenance` |
+| created_at | TIMESTAMP         | —                                         |
+| updated_at | TIMESTAMP         | —                                         |
 
 ## seat_types
+
 Tipos de asiento (estándar, VIP, accesible).
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| name | VARCHAR(50) | UNIQUE, NOT NULL |
-| description | TEXT | NULLABLE |
-| price_modifier | DECIMAL(5,2) | DEFAULT 1.00 (multiplicador sobre precio base) |
+| Campo          | Tipo            | Restricciones                                  |
+| -------------- | --------------- | ---------------------------------------------- |
+| id             | BIGINT UNSIGNED | PK, AUTO_INCREMENT                             |
+| name           | VARCHAR(50)     | UNIQUE, NOT NULL                               |
+| description    | TEXT            | NULLABLE                                       |
+| price_modifier | DECIMAL(5,2)    | DEFAULT 1.00 (multiplicador sobre precio base) |
 
 ## seats
+
 Asientos individuales dentro de una sala.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| room_id | BIGINT UNSIGNED | FK → rooms.id, NOT NULL |
-| seat_type_id | BIGINT UNSIGNED | FK → seat_types.id, NOT NULL |
-| row | VARCHAR(5) | NOT NULL (A, B, C…) |
-| number | SMALLINT UNSIGNED | NOT NULL |
-| status | ENUM | DEFAULT `available`: `available`, `maintenance` |
-| created_at | TIMESTAMP | — |
-| updated_at | TIMESTAMP | — |
-| UNIQUE | — | (room_id, row, number) |
+| Campo        | Tipo              | Restricciones                                   |
+| ------------ | ----------------- | ----------------------------------------------- |
+| id           | BIGINT UNSIGNED   | PK, AUTO_INCREMENT                              |
+| room_id      | BIGINT UNSIGNED   | FK → rooms.id, NOT NULL                         |
+| seat_type_id | BIGINT UNSIGNED   | FK → seat_types.id, NOT NULL                    |
+| row          | VARCHAR(5)        | NOT NULL (A, B, C…)                             |
+| number       | SMALLINT UNSIGNED | NOT NULL                                        |
+| status       | ENUM              | DEFAULT `available`: `available`, `maintenance` |
+| created_at   | TIMESTAMP         | —                                               |
+| updated_at   | TIMESTAMP         | —                                               |
+| UNIQUE       | —                 | (room_id, row, number)                          |
 
 ## screenings
+
 Proyección específica de una película en una sala y horario.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| movie_id | BIGINT UNSIGNED | FK → movies.id, NOT NULL |
-| room_id | BIGINT UNSIGNED | FK → rooms.id, NOT NULL |
-| start_time | DATETIME | NOT NULL |
-| end_time | DATETIME | NOT NULL |
-| base_price | DECIMAL(10,2) | NOT NULL |
-| format | ENUM | DEFAULT `2D`: `2D`, `3D`, `IMAX` |
-| language_type | ENUM | DEFAULT `subtitled`: `original`, `dubbed`, `subtitled` |
-| status | ENUM | DEFAULT `scheduled`: `scheduled`, `open`, `sold_out`, `cancelled`, `finished` |
-| created_at | TIMESTAMP | — |
-| updated_at | TIMESTAMP | — |
+| Campo         | Tipo            | Restricciones                                                                 |
+| ------------- | --------------- | ----------------------------------------------------------------------------- |
+| id            | BIGINT UNSIGNED | PK, AUTO_INCREMENT                                                            |
+| movie_id      | BIGINT UNSIGNED | FK → movies.id, NOT NULL                                                      |
+| room_id       | BIGINT UNSIGNED | FK → rooms.id, NOT NULL                                                       |
+| start_time    | DATETIME        | NOT NULL                                                                      |
+| end_time      | DATETIME        | NOT NULL                                                                      |
+| base_price    | DECIMAL(10,2)   | NOT NULL                                                                      |
+| format        | ENUM            | DEFAULT `2D`: `2D`, `3D`, `IMAX`                                              |
+| language_type | ENUM            | DEFAULT `subtitled`: `original`, `dubbed`, `subtitled`                        |
+| status        | ENUM            | DEFAULT `scheduled`: `scheduled`, `open`, `sold_out`, `cancelled`, `finished` |
+| created_at    | TIMESTAMP       | —                                                                             |
+| updated_at    | TIMESTAMP       | —                                                                             |
 
 ## seat_pricing
+
 Precio específico por tipo de asiento por función (sobreescribe base_price × modifier).
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
+| Campo        | Tipo            | Restricciones                |
+| ------------ | --------------- | ---------------------------- |
+| id           | BIGINT UNSIGNED | PK, AUTO_INCREMENT           |
 | screening_id | BIGINT UNSIGNED | FK → screenings.id, NOT NULL |
 | seat_type_id | BIGINT UNSIGNED | FK → seat_types.id, NOT NULL |
-| price | DECIMAL(10,2) | NOT NULL |
-| UNIQUE | — | (screening_id, seat_type_id) |
+| price        | DECIMAL(10,2)   | NOT NULL                     |
+| UNIQUE       | —               | (screening_id, seat_type_id) |
 
 ## payment_methods
+
 Catálogo de métodos de pago aceptados.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| name | VARCHAR(50) | UNIQUE, NOT NULL |
-| description | TEXT | NULLABLE |
-| is_active | BOOLEAN | DEFAULT TRUE |
+| Campo       | Tipo            | Restricciones      |
+| ----------- | --------------- | ------------------ |
+| id          | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
+| name        | VARCHAR(50)     | UNIQUE, NOT NULL   |
+| description | TEXT            | NULLABLE           |
+| is_active   | BOOLEAN         | DEFAULT TRUE       |
 
 ## promotions
+
 Códigos de descuento y promociones.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| code | VARCHAR(50) | UNIQUE, NOT NULL |
-| description | TEXT | NULLABLE |
-| discount_type | ENUM | NOT NULL: `percentage`, `fixed` |
-| discount_value | DECIMAL(10,2) | NOT NULL |
-| min_purchase | DECIMAL(10,2) | DEFAULT 0.00 |
-| max_uses | INTEGER UNSIGNED | NULLABLE (NULL = ilimitado) |
-| uses_count | INTEGER UNSIGNED | DEFAULT 0 |
-| valid_from | DATETIME | NOT NULL |
-| valid_until | DATETIME | NOT NULL |
-| is_active | BOOLEAN | DEFAULT TRUE |
-| created_at | TIMESTAMP | — |
-| updated_at | TIMESTAMP | — |
+| Campo          | Tipo             | Restricciones                   |
+| -------------- | ---------------- | ------------------------------- |
+| id             | BIGINT UNSIGNED  | PK, AUTO_INCREMENT              |
+| code           | VARCHAR(50)      | UNIQUE, NOT NULL                |
+| description    | TEXT             | NULLABLE                        |
+| discount_type  | ENUM             | NOT NULL: `percentage`, `fixed` |
+| discount_value | DECIMAL(10,2)    | NOT NULL                        |
+| min_purchase   | DECIMAL(10,2)    | DEFAULT 0.00                    |
+| max_uses       | INTEGER UNSIGNED | NULLABLE (NULL = ilimitado)     |
+| uses_count     | INTEGER UNSIGNED | DEFAULT 0                       |
+| valid_from     | DATETIME         | NOT NULL                        |
+| valid_until    | DATETIME         | NOT NULL                        |
+| is_active      | BOOLEAN          | DEFAULT TRUE                    |
+| created_at     | TIMESTAMP        | —                               |
+| updated_at     | TIMESTAMP        | —                               |
 
 ## purchases
+
 Transacción de compra (cabecera del pedido).
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| user_id | BIGINT UNSIGNED | FK → users.id, NOT NULL |
-| screening_id | BIGINT UNSIGNED | FK → screenings.id, NOT NULL |
-| payment_method_id | BIGINT UNSIGNED | FK → payment_methods.id, NULLABLE |
-| subtotal | DECIMAL(10,2) | NOT NULL |
-| discount_amount | DECIMAL(10,2) | DEFAULT 0.00 |
-| total_amount | DECIMAL(10,2) | NOT NULL |
-| payment_status | ENUM | DEFAULT `pending`: `pending`, `completed`, `failed`, `refunded` |
-| purchase_status | ENUM | DEFAULT `active`: `active`, `cancelled` |
-| payment_reference | VARCHAR(255) | NULLABLE (referencia externa del pago) |
-| purchased_at | TIMESTAMP | NULLABLE (cuando se confirmó el pago) |
-| created_at | TIMESTAMP | — |
-| updated_at | TIMESTAMP | — |
+| Campo             | Tipo            | Restricciones                                                   |
+| ----------------- | --------------- | --------------------------------------------------------------- |
+| id                | BIGINT UNSIGNED | PK, AUTO_INCREMENT                                              |
+| user_id           | BIGINT UNSIGNED | FK → users.id, NOT NULL                                         |
+| screening_id      | BIGINT UNSIGNED | FK → screenings.id, NOT NULL                                    |
+| payment_method_id | BIGINT UNSIGNED | FK → payment_methods.id, NULLABLE                               |
+| subtotal          | DECIMAL(10,2)   | NOT NULL                                                        |
+| discount_amount   | DECIMAL(10,2)   | DEFAULT 0.00                                                    |
+| total_amount      | DECIMAL(10,2)   | NOT NULL                                                        |
+| payment_status    | ENUM            | DEFAULT `pending`: `pending`, `completed`, `failed`, `refunded` |
+| purchase_status   | ENUM            | DEFAULT `active`: `active`, `cancelled`                         |
+| payment_reference | VARCHAR(255)    | NULLABLE (referencia externa del pago)                          |
+| purchased_at      | TIMESTAMP       | NULLABLE (cuando se confirmó el pago)                           |
+| created_at        | TIMESTAMP       | —                                                               |
+| updated_at        | TIMESTAMP       | —                                                               |
 
-## purchase_seats *(pivot)*
+## purchase_seats _(pivot)_
+
 Asientos específicos seleccionados en una compra.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| purchase_id | BIGINT UNSIGNED | FK → purchases.id, NOT NULL |
-| seat_id | BIGINT UNSIGNED | FK → seats.id, NOT NULL |
-| screening_id | BIGINT UNSIGNED | FK → screenings.id, NOT NULL |
-| price_paid | DECIMAL(10,2) | NOT NULL |
-| status | ENUM | DEFAULT `active`: `active`, `cancelled` |
-| UNIQUE | — | (seat_id, screening_id) — **garantiza no doble reserva** |
+| Campo        | Tipo            | Restricciones                                            |
+| ------------ | --------------- | -------------------------------------------------------- |
+| id           | BIGINT UNSIGNED | PK, AUTO_INCREMENT                                       |
+| purchase_id  | BIGINT UNSIGNED | FK → purchases.id, NOT NULL                              |
+| seat_id      | BIGINT UNSIGNED | FK → seats.id, NOT NULL                                  |
+| screening_id | BIGINT UNSIGNED | FK → screenings.id, NOT NULL                             |
+| price_paid   | DECIMAL(10,2)   | NOT NULL                                                 |
+| status       | ENUM            | DEFAULT `active`: `active`, `cancelled`                  |
+| UNIQUE       | —               | (seat_id, screening_id) — **garantiza no doble reserva** |
 
 ## tickets
+
 Tickets digitales individuales por asiento-compra.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| purchase_seat_id | BIGINT UNSIGNED | FK → purchase_seats.id, NOT NULL, UNIQUE |
-| ticket_code | VARCHAR(100) | UNIQUE, NOT NULL |
-| qr_data | TEXT | NULLABLE (payload JSON para QR) |
-| status | ENUM | DEFAULT `valid`: `valid`, `used`, `cancelled` |
-| used_at | TIMESTAMP | NULLABLE |
-| generated_at | TIMESTAMP | NOT NULL |
-| created_at | TIMESTAMP | — |
-| updated_at | TIMESTAMP | — |
+| Campo            | Tipo            | Restricciones                                 |
+| ---------------- | --------------- | --------------------------------------------- |
+| id               | BIGINT UNSIGNED | PK, AUTO_INCREMENT                            |
+| purchase_seat_id | BIGINT UNSIGNED | FK → purchase_seats.id, NOT NULL, UNIQUE      |
+| ticket_code      | VARCHAR(100)    | UNIQUE, NOT NULL                              |
+| qr_data          | TEXT            | NULLABLE (payload JSON para QR)               |
+| status           | ENUM            | DEFAULT `valid`: `valid`, `used`, `cancelled` |
+| used_at          | TIMESTAMP       | NULLABLE                                      |
+| generated_at     | TIMESTAMP       | NOT NULL                                      |
+| created_at       | TIMESTAMP       | —                                             |
+| updated_at       | TIMESTAMP       | —                                             |
 
-## purchase_promotions *(pivot)*
+## purchase_promotions _(pivot)_
+
 Promociones aplicadas a una compra.
 
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
-| purchase_id | BIGINT UNSIGNED | FK → purchases.id, NOT NULL |
-| promotion_id | BIGINT UNSIGNED | FK → promotions.id, NOT NULL |
-| discount_applied | DECIMAL(10,2) | NOT NULL |
+| Campo            | Tipo            | Restricciones                |
+| ---------------- | --------------- | ---------------------------- |
+| id               | BIGINT UNSIGNED | PK, AUTO_INCREMENT           |
+| purchase_id      | BIGINT UNSIGNED | FK → purchases.id, NOT NULL  |
+| promotion_id     | BIGINT UNSIGNED | FK → promotions.id, NOT NULL |
+| discount_applied | DECIMAL(10,2)   | NOT NULL                     |
 
 ---
 
@@ -285,11 +304,11 @@ payment_methods 1 --- * purchases
 
 # Tablas Pivote
 
-| Tabla | Propósito |
-|-------|-----------|
-| `role_permissions` | Relación N:M entre roles y permisos granulares |
-| `purchase_seats` | Detalle de qué asientos forman parte de cada compra; contiene el precio pagado y garantiza unicidad de asiento por función |
-| `purchase_promotions` | Registro de qué códigos de descuento se aplicaron a cada compra y el monto descontado |
+| Tabla                 | Propósito                                                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `role_permissions`    | Relación N:M entre roles y permisos granulares                                                                             |
+| `purchase_seats`      | Detalle de qué asientos forman parte de cada compra; contiene el precio pagado y garantiza unicidad de asiento por función |
+| `purchase_promotions` | Registro de qué códigos de descuento se aplicaron a cada compra y el monto descontado                                      |
 
 ---
 
@@ -711,6 +730,7 @@ Ref: purchase_promotions.promotion_id > promotions.id
 # Endpoints Sugeridos
 
 ## Auth
+
 ```
 POST   /api/auth/register
 POST   /api/auth/login
@@ -722,6 +742,7 @@ POST   /api/auth/verify-email/{id}/{hash}
 ```
 
 ## Películas (público)
+
 ```
 GET    /api/movies                    # listado con filtros (genre, status, search)
 GET    /api/movies/{id}               # detalle + screenings activos
@@ -729,6 +750,7 @@ GET    /api/movies/{id}/screenings    # funciones disponibles de una película
 ```
 
 ## Películas (admin)
+
 ```
 POST   /api/admin/movies
 PUT    /api/admin/movies/{id}
@@ -736,6 +758,7 @@ DELETE /api/admin/movies/{id}
 ```
 
 ## Funciones
+
 ```
 GET    /api/screenings/{id}           # detalle + mapa de asientos con disponibilidad
 GET    /api/screenings/{id}/seats     # asientos con status (disponible/ocupado)
@@ -746,6 +769,7 @@ PATCH  /api/admin/screenings/{id}/status
 ```
 
 ## Salas (admin)
+
 ```
 GET    /api/admin/rooms
 POST   /api/admin/rooms
@@ -756,6 +780,7 @@ POST   /api/admin/rooms/{id}/seats/bulk
 ```
 
 ## Compras
+
 ```
 POST   /api/purchases                 # crear compra (con asientos, promo opcional)
 GET    /api/purchases/{id}            # detalle de compra propia
@@ -765,12 +790,14 @@ GET    /api/purchases/{id}/tickets    # tickets de una compra
 ```
 
 ## Tickets
+
 ```
 GET    /api/tickets/{ticket_code}     # validar ticket (para entrada)
 PATCH  /api/tickets/{ticket_code}/use # marcar como usado (staff)
 ```
 
 ## Promociones
+
 ```
 POST   /api/promotions/validate       # validar código antes de compra
 GET    /api/admin/promotions
@@ -780,6 +807,7 @@ DELETE /api/admin/promotions/{id}
 ```
 
 ## Reportes (admin)
+
 ```
 GET    /api/admin/reports/sales       # ventas por período
 GET    /api/admin/reports/occupancy   # ocupación por sala/función
@@ -787,6 +815,7 @@ GET    /api/admin/reports/revenue     # ingresos por película/período
 ```
 
 ## Catálogos (admin)
+
 ```
 GET|POST|PUT|DELETE   /api/admin/genres
 GET|POST|PUT|DELETE   /api/admin/seat-types
@@ -797,43 +826,43 @@ GET|POST              /api/admin/payment-methods
 
 # Operaciones CRUD por Módulo
 
-| Módulo | Create | Read | Update | Delete | Notas |
-|--------|--------|------|--------|--------|-------|
-| Usuarios | Registro | Perfil, listado admin | Datos personales | Soft delete | No borrado físico |
-| Películas | POST admin | GET público | PUT admin | Soft delete | Requiere género |
-| Géneros | POST admin | GET público | PUT admin | DELETE (si sin pelis) | Catálogo |
-| Salas | POST admin | GET admin | PUT admin | — | Requiere salas vacías |
-| Asientos | POST bulk | GET por sala | PATCH status | — | Solo admin |
-| Funciones | POST admin | GET público | PUT admin | Solo si sin compras | Valida solapamiento |
-| Compras | POST usuario | GET propio | — | Cancelación controlada | Transacción atómica |
-| Tickets | Auto (post-pago) | GET por código | PATCH used | — | Inmutable |
-| Promociones | POST admin | GET admin | PUT admin | Soft deactivate | Validar vigencia |
+| Módulo      | Create           | Read                  | Update           | Delete                 | Notas                 |
+| ----------- | ---------------- | --------------------- | ---------------- | ---------------------- | --------------------- |
+| Usuarios    | Registro         | Perfil, listado admin | Datos personales | Soft delete            | No borrado físico     |
+| Películas   | POST admin       | GET público           | PUT admin        | Soft delete            | Requiere género       |
+| Géneros     | POST admin       | GET público           | PUT admin        | DELETE (si sin pelis)  | Catálogo              |
+| Salas       | POST admin       | GET admin             | PUT admin        | —                      | Requiere salas vacías |
+| Asientos    | POST bulk        | GET por sala          | PATCH status     | —                      | Solo admin            |
+| Funciones   | POST admin       | GET público           | PUT admin        | Solo si sin compras    | Valida solapamiento   |
+| Compras     | POST usuario     | GET propio            | —                | Cancelación controlada | Transacción atómica   |
+| Tickets     | Auto (post-pago) | GET por código        | PATCH used       | —                      | Inmutable             |
+| Promociones | POST admin       | GET admin             | PUT admin        | Soft deactivate        | Validar vigencia      |
 
 ---
 
 # Roles y Permisos
 
-| Permiso | `admin` | `cashier` | `client` |
-|---------|---------|-----------|---------|
-| `movies.view` | ✓ | ✓ | ✓ |
-| `movies.create` | ✓ | — | — |
-| `movies.edit` | ✓ | — | — |
-| `movies.delete` | ✓ | — | — |
-| `screenings.view` | ✓ | ✓ | ✓ |
-| `screenings.manage` | ✓ | — | — |
-| `rooms.manage` | ✓ | — | — |
-| `seats.view` | ✓ | ✓ | ✓ |
-| `seats.manage` | ✓ | — | — |
-| `purchases.create` | ✓ | ✓ | ✓ |
-| `purchases.view_all` | ✓ | ✓ | — |
-| `purchases.view_own` | ✓ | ✓ | ✓ |
-| `purchases.cancel` | ✓ | ✓ | ✓ (solo la propia) |
-| `tickets.validate` | ✓ | ✓ | — |
-| `tickets.use` | ✓ | ✓ | — |
-| `promotions.manage` | ✓ | — | — |
-| `reports.view` | ✓ | — | — |
-| `users.manage` | ✓ | — | — |
-| `roles.manage` | ✓ | — | — |
+| Permiso              | `admin` | `cashier` | `client`           |
+| -------------------- | ------- | --------- | ------------------ |
+| `movies.view`        | ✓       | ✓         | ✓                  |
+| `movies.create`      | ✓       | —         | —                  |
+| `movies.edit`        | ✓       | —         | —                  |
+| `movies.delete`      | ✓       | —         | —                  |
+| `screenings.view`    | ✓       | ✓         | ✓                  |
+| `screenings.manage`  | ✓       | —         | —                  |
+| `rooms.manage`       | ✓       | —         | —                  |
+| `seats.view`         | ✓       | ✓         | ✓                  |
+| `seats.manage`       | ✓       | —         | —                  |
+| `purchases.create`   | ✓       | ✓         | ✓                  |
+| `purchases.view_all` | ✓       | ✓         | —                  |
+| `purchases.view_own` | ✓       | ✓         | ✓                  |
+| `purchases.cancel`   | ✓       | ✓         | ✓ (solo la propia) |
+| `tickets.validate`   | ✓       | ✓         | —                  |
+| `tickets.use`        | ✓       | ✓         | —                  |
+| `promotions.manage`  | ✓       | —         | —                  |
+| `reports.view`       | ✓       | —         | —                  |
+| `users.manage`       | ✓       | —         | —                  |
+| `roles.manage`       | ✓       | —         | —                  |
 
 ---
 
@@ -896,6 +925,7 @@ Implementar con un `Observer` de Laravel que se auto-registre en `AppServiceProv
 ## Normalización
 
 El esquema está en **3FN** (Tercera Forma Normal):
+
 - 1FN: todos los campos son atómicos
 - 2FN: no hay dependencias parciales de la PK compuesta
 - 3FN: no hay dependencias transitivas (`seat_pricing` separa el precio del tipo de asiento, evitando redundancia en `screenings`)
@@ -904,10 +934,10 @@ El único campo denormalizado intencional es `purchase_seats.screening_id` (tamb
 
 ## Riesgos identificados
 
-| Riesgo | Probabilidad | Impacto | Mitigación |
-|--------|-------------|---------|------------|
-| Doble reserva de asiento | Alta | Crítico | UNIQUE constraint + SELECT FOR UPDATE |
-| Overflow de `uses_count` en promos | Media | Alto | Incremento atómico con `DB::statement('UPDATE ... WHERE uses_count < max_uses')` |
-| Tickets generados sin pago confirmado | Media | Alto | Observer en `purchases` que solo dispara Job si `payment_status = completed` |
-| N+1 en mapa de asientos | Alta | Medio | Eager loading: `with(['seat.seatType', 'purchaseSeats'])` |
-| Salas sin asientos asociados | Baja | Medio | Validación en `ScreeningRequest`: verificar `seats.count() > 0` para la sala |
+| Riesgo                                | Probabilidad | Impacto | Mitigación                                                                       |
+| ------------------------------------- | ------------ | ------- | -------------------------------------------------------------------------------- |
+| Doble reserva de asiento              | Alta         | Crítico | UNIQUE constraint + SELECT FOR UPDATE                                            |
+| Overflow de `uses_count` en promos    | Media        | Alto    | Incremento atómico con `DB::statement('UPDATE ... WHERE uses_count < max_uses')` |
+| Tickets generados sin pago confirmado | Media        | Alto    | Observer en `purchases` que solo dispara Job si `payment_status = completed`     |
+| N+1 en mapa de asientos               | Alta         | Medio   | Eager loading: `with(['seat.seatType', 'purchaseSeats'])`                        |
+| Salas sin asientos asociados          | Baja         | Medio   | Validación en `ScreeningRequest`: verificar `seats.count() > 0` para la sala     |

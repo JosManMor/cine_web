@@ -10,7 +10,7 @@ Para mantener la consistencia y profesionalismo en el desarrollo, se establecen 
 
 - **Código (Backend & Frontend):** Inglés (nombres de variables, funciones, clases, comentarios técnicos).
 - **Base de Datos:** Inglés (nombres de tablas, columnas, índices).
-- **Frontend (UI/UX):** Inglés (nombres de componentes, props, archivos). *Nota: El contenido visible para el usuario final será en Español.*
+- **Frontend (UI/UX):** Inglés (nombres de componentes, props, archivos). _Nota: El contenido visible para el usuario final será en Español._
 - **Documentación:** Español (explicaciones, manuales, guías de arquitectura).
 
 ---
@@ -332,31 +332,8 @@ Centralizar lógica empresarial.
 
 # 10. API Interna
 
-Aunque inicialmente sea web tradicional, se recomienda estructura REST.
-
-## Endpoints
-
-### Auth
-
-```http
-POST /register
-POST /login
-POST /logout
-```
-
-### Movies
-
-```http
-GET /movies
-GET /movies/{id}
-```
-
-### Purchases
-
-```http
-POST /purchases
-GET /tickets/{id}
-```
+Para una referencia completa de los endpoints, parámetros y respuestas, consulte el documento:
+[Documentación de la API (api-endpoints.md)](api-endpoints.md)
 
 ---
 
