@@ -223,29 +223,27 @@ La operación debe ser atómica. La garantía de no doble reserva es el constrai
 
 ## Solución
 
+No usar `exists()` como pre-chequeo: en concurrencia, dos transacciones pueden pasar el check simultáneamente y colisionar igual en el INSERT. El UNIQUE es la garantía real; se captura su excepción y se convierte en un error de dominio:
+
 ```php
+use Illuminate\Database\UniqueConstraintViolationException;
+
 DB::transaction(function () use ($screeningId, $seats, $purchaseData) {
 
     $purchase = $this->purchaseRepository->create($purchaseData);
 
     foreach ($seats as $seat) {
-        $taken = PurchaseSeat::lockForUpdate()
-            ->where('screening_id', $screeningId)
-            ->where('row', $seat['row'])
-            ->where('seat_number', $seat['seat_number'])
-            ->exists();
-
-        if ($taken) {
-            throw new SeatAlreadyTakenException();
+        try {
+            PurchaseSeat::create([
+                'purchase_id'  => $purchase->id,
+                'screening_id' => $screeningId,
+                'row'          => $seat['row'],
+                'seat_number'  => $seat['seat_number'],
+                'price_paid'   => $seat['price'],
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            throw new SeatAlreadyTakenException($seat['row'], $seat['seat_number']);
         }
-
-        PurchaseSeat::create([
-            'purchase_id'  => $purchase->id,
-            'screening_id' => $screeningId,
-            'row'          => $seat['row'],
-            'seat_number'  => $seat['seat_number'],
-            'price_paid'   => $seat['price'],
-        ]);
     }
 
 });
@@ -255,8 +253,8 @@ DB::transaction(function () use ($screeningId, $seats, $purchaseData) {
 
 ## Beneficios
 
-- Evita doble reserva (constraint UNIQUE + lockForUpdate)
-- Previene race conditions
+- Evita doble reserva (constraint UNIQUE como garantía final, no un `exists()` previo)
+- El rollback de la transacción deshace todos los inserts si falla alguno
 - Garantiza consistencia del precio histórico
 
 ---
