@@ -122,7 +122,7 @@ El layout de asientos se define aquí. No hay tabla de asientos individuales.
 | status | ENUM | DEFAULT `active` → `active`, `cancelled`, `used` |
 | **UNIQUE** | — | **(screening_id, row, seat_number)** |
 
-> El constraint UNIQUE en `(screening_id, row, seat_number)` es **la garantía de nivel de BD contra doble reserva**. Toda lógica de reserva debe ejecutarse dentro de una transacción con `SELECT ... FOR UPDATE` sobre este par.
+> El constraint UNIQUE en `(screening_id, row, seat_number)` es **la garantía de nivel de BD contra doble reserva**. La lógica de reserva debe ejecutarse dentro de una transacción **intentando insertar** en `purchase_seats` y manejando una posible violación de UNIQUE si otra transacción reservó ese asiento primero. Como alternativa, puede bloquearse una fila padre existente (por ejemplo, en `screenings`) antes de insertar; no debe asumirse que `SELECT ... FOR UPDATE` sobre este par siempre serializa la inserción cuando el asiento aún no existe.
 
 `screening_id` está denormalizado aquí (ya existe en `purchases`) para poder aplicar el constraint UNIQUE directamente sin joins.
 
