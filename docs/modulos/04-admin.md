@@ -1,6 +1,10 @@
 # Módulo 04 — Administración
 
-Panel de control para el rol `admin`. Muestra métricas generales, actividad reciente y estado de las salas. Acceso restringido: cualquier request sin rol `admin` recibe `403 Forbidden`.
+Panel de control para el rol `admin`. Muestra métricas generales, actividad reciente y estado de las salas.
+
+**Códigos de error de acceso:**
+- `401 Unauthorized` — request sin token válido (no autenticado).
+- `403 Forbidden` — token válido pero el usuario no tiene rol `admin`.
 
 ---
 
@@ -37,7 +41,7 @@ Antes de renderizar cualquier componente de este módulo, verificar `user.role =
 
 ### Autorización
 
-Todas las rutas del módulo pasan por el middleware de rol:
+Todas las rutas pasan por dos middlewares en orden. `auth:sanctum` responde `401` si no hay token; `role:admin` responde `403` si el usuario autenticado no es admin:
 
 ```php
 // routes/admin.php
@@ -66,7 +70,7 @@ $usersCount   = User::where('status', 'active')->count();
 
 ### GET `/admin/metrics`
 
-**Seguridad:** Bearer Token + rol `admin`.
+**Seguridad:** Bearer Token requerido (`401` si ausente) + rol `admin` (`403` si no es admin).
 
 **Respuesta 200:**
 ```json
@@ -89,7 +93,7 @@ $usersCount   = User::where('status', 'active')->count();
 
 ### GET `/admin/activity`
 
-**Seguridad:** Bearer Token + rol `admin`.
+**Seguridad:** Bearer Token requerido (`401` si ausente) + rol `admin` (`403` si no es admin).
 
 **Respuesta 200:**
 ```json
@@ -103,7 +107,7 @@ $usersCount   = User::where('status', 'active')->count();
 
 ### GET `/admin/rooms`
 
-**Seguridad:** Bearer Token + rol `admin`.
+**Seguridad:** Bearer Token requerido (`401` si ausente) + rol `admin` (`403` si no es admin).
 
 **Respuesta 200:**
 ```json
