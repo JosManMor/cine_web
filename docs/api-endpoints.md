@@ -170,15 +170,13 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 
 ```json
 {
-  "message": "Compra realizada con éxito.",
+  "message": "Compra registrada. En espera de confirmación de pago.",
   "purchase_id": 501,
-  "payment_status": "completed",
-  "tickets": [
-    { "row": "A", "seat_number": 3, "ticket_code": "SNDR-2025-7A3F" },
-    { "row": "A", "seat_number": 4, "ticket_code": "SNDR-2025-7A4G" }
-  ]
+  "payment_status": "pending"
 }
 ```
+
+> Los `ticket_code` **no se incluyen aquí**. Se asignan mediante un Observer/Job cuando el pago se confirma (`payment_status = completed`). Una vez confirmados, los tickets se consultan con `GET /tickets/{ticket_code}` o desde el historial del usuario.
 
 ### 3.2 Obtener Ticket
 
