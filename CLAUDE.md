@@ -72,7 +72,7 @@ Models/             → Eloquent models (User, Movie, Room, Screening, Purchase,
 Policies/           → Laravel Policies for authorization per model
 ```
 
-Routes are split: `web.php`, `api.php`, `auth.php`, `admin.php`.
+Current route registration uses `routes/web.php` and `routes/console.php`. If `api.php`, `auth.php`, or `admin.php` are added later, they must also be registered in `backend/bootstrap/app.php`.
 
 ## API
 
