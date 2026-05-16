@@ -41,7 +41,7 @@ El sistema debe permitir:
 
 Se recomienda utilizar:
 
-- Laravel 12+
+- Laravel 13
 - Arquitectura modular tipo Clean Architecture / Layered Architecture
 - Patrón Service + Repository
 - API REST interna
@@ -93,8 +93,10 @@ app/
 ├── Models/
 │   ├── User.php
 │   ├── Movie.php
+│   ├── Room.php
+│   ├── Screening.php
 │   ├── Purchase.php
-│   └── Ticket.php
+│   └── PurchaseSeat.php
 │
 ├── Services/
 │   ├── Auth/
@@ -176,17 +178,18 @@ Laravel utilizará:
 - Mostrar disponibilidad
 - Consulta de asientos en tiempo real
 
-## Entidad principal
+## Entidades principales
 
 ### Movie
+- id, title, genre, synopsis, duration_minutes, director, rating, poster_url, status, created_at
 
-- id
-- title
-- description
-- image
-- available_seats
-- schedule
-- created_at
+### Screening
+- id, movie_id, room_id, start_time, base_price, format, language_type, status, created_at
+
+### Room
+- id, name, rows, seats_per_row, status, created_at
+
+La disponibilidad de asientos se calcula como `rooms.rows × rooms.seats_per_row` menos el conteo de `purchase_seats` activos para esa función. No se almacena `available_seats` en ninguna tabla.
 
 ---
 
@@ -194,69 +197,21 @@ Laravel utilizará:
 
 ## Flujo
 
-1. Usuario selecciona película
-2. Ingresa cantidad de boletos
-3. Sistema valida disponibilidad
-4. Sistema genera compra
-5. Se descuentan asientos
-6. Se genera ticket digital
+1. Usuario selecciona función (`screening_id`)
+2. Selecciona asientos individuales (`row` + `seat_number`)
+3. Sistema valida disponibilidad en `purchase_seats`
+4. Sistema crea `purchases` y los registros en `purchase_seats` dentro de una transacción
+5. Al confirmar el pago (`payment_status = completed`), un Observer/Job asigna `ticket_code` a cada `purchase_seat`
 
 ---
 
 # 6. Diseño de Base de Datos
 
-# Tabla `users`
+El esquema completo, con todas las tablas, columnas, restricciones, índices y decisiones de diseño, se encuentra en:
 
-| Campo      | Tipo      |
-| ---------- | --------- |
-| id         | bigint    |
-| name       | varchar   |
-| email      | varchar   |
-| password   | varchar   |
-| role       | varchar   |
-| created_at | timestamp |
-| updated_at | timestamp |
+**[docs/database-design.md](database-design.md)** ← fuente de verdad del esquema
 
----
-
-# Tabla `movies`
-
-| Campo           | Tipo      |
-| --------------- | --------- |
-| id              | bigint    |
-| title           | varchar   |
-| description     | text      |
-| image           | varchar   |
-| available_seats | integer   |
-| schedule        | datetime  |
-| created_at      | timestamp |
-| updated_at      | timestamp |
-
----
-
-# Tabla `purchases`
-
-| Campo      | Tipo      |
-| ---------- | --------- |
-| id         | bigint    |
-| user_id    | bigint    |
-| movie_id   | bigint    |
-| quantity   | integer   |
-| total      | decimal   |
-| status     | varchar   |
-| created_at | timestamp |
-| updated_at | timestamp |
-
----
-
-# Tabla `tickets`
-
-| Campo        | Tipo      |
-| ------------ | --------- |
-| id           | bigint    |
-| purchase_id  | bigint    |
-| ticket_code  | varchar   |
-| generated_at | timestamp |
+Resumen: 6 tablas — `users`, `movies`, `rooms`, `screenings`, `purchases`, `purchase_seats`. No existe tabla `tickets`; el campo `ticket_code` vive en `purchase_seats`. No hay soft delete; se usa `status` para desactivar registros.
 
 ---
 
@@ -264,39 +219,45 @@ Laravel utilizará:
 
 ## Requerimiento
 
-La operación debe ser atómica.
+La operación debe ser atómica. La garantía de no doble reserva es el constraint UNIQUE `(screening_id, row, seat_number)` en `purchase_seats`.
 
 ## Solución
 
-Uso de transacciones:
-
 ```php
-DB::transaction(function () {
+DB::transaction(function () use ($screeningId, $seats, $purchaseData) {
 
-    $movie = $this->movieRepository
-        ->lockForUpdate()
-        ->find($movieId);
+    $purchase = $this->purchaseRepository->create($purchaseData);
 
-    if ($movie->available_seats < $quantity) {
-        throw new Exception('No seats available');
+    foreach ($seats as $seat) {
+        $taken = PurchaseSeat::lockForUpdate()
+            ->where('screening_id', $screeningId)
+            ->where('row', $seat['row'])
+            ->where('seat_number', $seat['seat_number'])
+            ->exists();
+
+        if ($taken) {
+            throw new SeatAlreadyTakenException();
+        }
+
+        PurchaseSeat::create([
+            'purchase_id'  => $purchase->id,
+            'screening_id' => $screeningId,
+            'row'          => $seat['row'],
+            'seat_number'  => $seat['seat_number'],
+            'price_paid'   => $seat['price'],
+        ]);
     }
 
-    $movie->decrement('available_seats', $quantity);
-
-    $purchase = $this->purchaseRepository->create([
-        ...
-    ]);
-
-    $this->ticketService->generate($purchase);
-
 });
+// El ticket_code se asigna en un Observer/Job al confirmar el pago,
+// nunca inline en este request.
 ```
 
 ## Beneficios
 
-- Evita sobreventa
+- Evita doble reserva (constraint UNIQUE + lockForUpdate)
 - Previene race conditions
-- Garantiza consistencia
+- Garantiza consistencia del precio histórico
 
 ---
 
@@ -323,10 +284,9 @@ Centralizar lógica empresarial.
 
 ## Ejemplo
 
-- PurchaseService
-- MovieService
-- AuthService
-- TicketService
+- PurchaseService — reserva de asientos, confirmación de pago
+- MovieService — cartelera, detalle, disponibilidad calculada
+- AuthService — registro, login, logout
 
 ---
 

@@ -62,12 +62,12 @@ Follows **Service + Repository + DTO** pattern. Never put business logic in cont
 Http/Controllers/   → Thin: validate input, call Service, return Resource
 Http/Requests/      → Form Request validation (PurchaseRequest, RegisterRequest, etc.)
 Http/Resources/     → JSON response shaping
-Services/           → All business logic (PurchaseService, MovieService, TicketService, AuthService)
+Services/           → All business logic (PurchaseService, MovieService, AuthService)
 Repositories/
   Contracts/        → Interfaces (MovieRepositoryInterface, etc.)
   Eloquent/         → Eloquent implementations
 DTOs/               → Data Transfer Objects between layers
-Models/             → Eloquent models (User, Movie, Screening, Purchase, Ticket, etc.)
+Models/             → Eloquent models (User, Movie, Room, Screening, Purchase, PurchaseSeat)
 Policies/           → Laravel Policies for authorization per model
 ```
 
@@ -77,26 +77,33 @@ Routes are split: `web.php`, `api.php`, `auth.php`, `admin.php`.
 
 - **Base URL**: `/api`
 - **Auth**: Laravel Sanctum (Bearer token for SPA)
-- **Roles**: `admin`, `cashier`, `client` — permissions stored in `role_permissions` pivot
+- **Roles**: `admin`, `cashier`, `client` — stored as ENUM in `users.role`
 - **Admin routes** require role `admin`; `purchases.cancel` is available to the owner
 
 ## Database — Critical Rules
 
-The most important constraint: **`(seat_id, screening_id)` in `purchase_seats` is UNIQUE** — this is the DB-level guarantee against double-booking.
+The source of truth for the schema is `docs/database-design.md`. Key constraints:
 
-All seat reservation logic must use:
+**No double-booking:** UNIQUE `(screening_id, row, seat_number)` in `purchase_seats` is the DB-level guarantee. All reservation logic must run inside a transaction:
 ```php
 DB::transaction(function () {
-    $seat = Seat::lockForUpdate()->findOrFail($seatId);
-    // validate + insert purchase_seats ...
+    $taken = PurchaseSeat::lockForUpdate()
+        ->where('screening_id', $screeningId)
+        ->where('row', $row)
+        ->where('seat_number', $seatNumber)
+        ->exists();
+
+    if ($taken) throw new SeatAlreadyTakenException();
+
+    PurchaseSeat::create([...]);
 });
 ```
 
-Tickets (`tickets` table) are only generated **after** `purchases.payment_status = 'completed'`. Use a Laravel Observer or Queue Job triggered on that state change, never inline in the purchase request.
+**No `tickets` table.** `ticket_code` lives in `purchase_seats`. Assign it (UUID or unique code) only after `purchases.payment_status = 'completed'`, via an Observer or Queue Job — never inline in the purchase request.
 
-Soft deletes are used on `users` and `movies` (preserve purchase history). Do not add soft deletes to high-volume tables.
+**No soft deletes.** Use `status = 'inactive'` on `users` and `movies` to preserve purchase history.
 
-`purchase_seats.price_paid` stores the historical price — never recalculate from current `seat_pricing` for past purchases.
+`purchase_seats.price_paid` stores the historical price — never recalculate from `screenings.base_price` for past purchases.
 
 ## Environment
 
