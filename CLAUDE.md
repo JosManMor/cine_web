@@ -11,6 +11,7 @@ Cine Sendera is a cinema management system (ticketing, seat selection, admin das
 - **Code** (variables, functions, classes, DB columns): English
 - **User-visible UI content**: Spanish
 - **Documentation** (docs/, comments explaining business rules): Spanish
+- **Exception**: `CLAUDE.md` se mantiene en inglés por compatibilidad con herramientas y asistentes que consumen este archivo.
 
 ## Development Setup
 
