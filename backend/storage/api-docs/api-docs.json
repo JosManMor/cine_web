@@ -323,6 +323,67 @@
                     }
                 ]
             }
+        },
+        "/movies": {
+            "get": {
+                "tags": [
+                    "Cartelera"
+                ],
+                "summary": "Listar cartelera",
+                "description": "Devuelve todas las películas con estado activo, ordenadas por título.",
+                "operationId": "5ea1e205d16b53f29174a23fd2dc0aca",
+                "responses": {
+                    "200": {
+                        "description": "Lista de películas activas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Movie"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/movies/{id}": {
+            "get": {
+                "tags": [
+                    "Cartelera"
+                ],
+                "summary": "Detalle de película",
+                "description": "Devuelve la película con sus funciones (solo status=open), salas y asientos disponibles calculados.",
+                "operationId": "4705b96c2d4c7ae2c3d1138291da5b6d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Película con funciones",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MovieDetail"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Película no encontrada"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -365,6 +426,140 @@
                     }
                 },
                 "type": "object"
+            },
+            "Movie": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Inferno Nexus"
+                    },
+                    "genre": {
+                        "type": "string",
+                        "example": "Acción"
+                    },
+                    "duration_minutes": {
+                        "type": "integer",
+                        "example": 138
+                    },
+                    "rating": {
+                        "type": "string",
+                        "example": "PG-13"
+                    },
+                    "poster_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "https://cine-sendera.com/images/inferno-nexus.jpg"
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "active",
+                        "enum": [
+                            "active",
+                            "inactive"
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "Room": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Sala 1"
+                    },
+                    "total_seats": {
+                        "type": "integer",
+                        "example": 120
+                    },
+                    "available_seats": {
+                        "type": "integer",
+                        "example": 48
+                    }
+                },
+                "type": "object"
+            },
+            "Screening": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-07-25T14:00:00Z"
+                    },
+                    "format": {
+                        "type": "string",
+                        "example": "2D",
+                        "enum": [
+                            "2D",
+                            "3D",
+                            "IMAX"
+                        ]
+                    },
+                    "language_type": {
+                        "type": "string",
+                        "example": "subtitled",
+                        "enum": [
+                            "dubbed",
+                            "subtitled",
+                            "original"
+                        ]
+                    },
+                    "base_price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 90
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "open",
+                        "enum": [
+                            "open",
+                            "closed",
+                            "cancelled"
+                        ]
+                    },
+                    "room": {
+                        "$ref": "#/components/schemas/Room"
+                    }
+                },
+                "type": "object"
+            },
+            "MovieDetail": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/Movie"
+                    },
+                    {
+                        "properties": {
+                            "synopsis": {
+                                "type": "string",
+                                "example": "Un ex-agente infiltrado debe detener una conspiración global..."
+                            },
+                            "director": {
+                                "type": "string",
+                                "example": "María Castillo"
+                            },
+                            "screenings": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Screening"
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
             }
         },
         "securitySchemes": {
@@ -383,6 +578,10 @@
         {
             "name": "Verificación de correo",
             "description": "Verificación de correo"
+        },
+        {
+            "name": "Cartelera",
+            "description": "Cartelera"
         }
     ]
 }
