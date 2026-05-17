@@ -22,7 +22,7 @@ api.interceptors.response.use(
       localStorage.removeItem("auth_user");
       window.dispatchEvent(new Event("auth:logout"));
     }
-    if (err.response?.status === 403) {
+    if (err.response?.status === 403 && !err.config?.url?.includes("/email/verify")) {
       window.dispatchEvent(new Event("auth:unverified"));
     }
     return Promise.reject(err);
