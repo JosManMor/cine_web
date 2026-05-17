@@ -24,7 +24,7 @@ Sistema de simulación de cartelera y venta de entradas. Permite explorar pelíc
 
 ---
 
-## Esquema — 7 tablas
+## Esquema — 6 tablas de negocio + 1 de infraestructura
 
 ### users
 
