@@ -19,7 +19,9 @@ export default function Navbar({ page, setPage, user, onLogout }) {
         ))}
         {user
           ? <>
-            <button onClick={() => setPage("admin")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, fontFamily: "'Open Sans', sans-serif", cursor: "pointer" }}>Admin</button>
+            {user.role === "admin" && (
+              <button onClick={() => setPage("admin")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, fontFamily: "'Open Sans', sans-serif", cursor: "pointer" }}>Admin</button>
+            )}
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8, padding: "6px 14px", borderRadius: 4, background: C.card, border: `1px solid ${C.border}` }}>
               <div style={{ width: 24, height: 24, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{user.name[0]}</div>
               <span style={{ fontSize: 13, color: C.gray }}>{user.name}</span>

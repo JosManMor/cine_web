@@ -2,22 +2,29 @@ import { useState } from "react";
 import { C } from "../constants/theme";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import Spinner from "../components/ui/Spinner";
+import { login } from "../api/auth";
+import { useAuth } from "../context/AuthContext";
 
-export default function LoginPage({ setPage, setUser, addToast }) {
+export default function LoginPage({ setPage, addToast }) {
+  const { saveAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handle = () => {
+  const handle = async () => {
     if (!email || !pass) { setError("Completa todos los campos"); return; }
     setError(""); setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setUser({ name: email.split("@")[0], email, role: email.includes("admin") ? "admin" : "user" });
+    try {
+      const { data } = await login({ email, password: pass });
+      saveAuth(data.user, data.token);
       addToast("Sesión iniciada ✓", "success");
       setPage("home");
-    }, 1600);
+    } catch (err) {
+      setError(err.response?.data?.message ?? "Error al iniciar sesión");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,17 +45,17 @@ export default function LoginPage({ setPage, setUser, addToast }) {
             <label>Contraseña</label>
             <input type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" onKeyDown={e => e.key === "Enter" && handle()} />
           </div>
-          <div style={{ textAlign: "right", marginBottom: 20 }}>
-            <span style={{ fontSize: 13, color: C.red, cursor: "pointer" }} onClick={() => setPage("verify")}>¿Olvidaste tu contraseña?</span>
-          </div>
           {loading
-            ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: 14 }}><Spinner /><span style={{ color: C.gray, fontSize: 14 }}>Verificando...</span></div>
+            ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: 14 }}>
+                <Spinner /><span style={{ color: C.gray, fontSize: 14 }}>Verificando...</span>
+              </div>
             : <BtnPrimary onClick={handle} style={{ width: "100%", padding: 13, fontSize: 14 }}>Iniciar sesión</BtnPrimary>
           }
           <div style={{ height: 1, background: C.border, margin: "20px 0" }} />
-          <p style={{ textAlign: "center", fontSize: 13, color: C.gray }}>¿No tienes cuenta? <span style={{ color: C.red, cursor: "pointer" }} onClick={() => setPage("register")}>Regístrate gratis</span></p>
+          <p style={{ textAlign: "center", fontSize: 13, color: C.gray }}>
+            ¿No tienes cuenta? <span style={{ color: C.red, cursor: "pointer" }} onClick={() => setPage("register")}>Regístrate gratis</span>
+          </p>
         </div>
-        <p style={{ textAlign: "center", fontSize: 11, color: C.grayDark, marginTop: 12 }}>Ingresa "admin@..." para acceder al panel de administración</p>
       </div>
     </div>
   );
