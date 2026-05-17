@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('rating', 10);
             $table->string('poster_url', 500)->nullable();
             $table->enum('status', ['active', 'inactive', 'coming_soon'])->default('active');
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
 
             $table->index('status');
         });

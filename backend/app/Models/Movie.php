@@ -10,8 +10,6 @@ class Movie extends Model
 {
     use HasFactory;
 
-    public const UPDATED_AT = null;
-
     protected $fillable = [
         'title',
         'genre',

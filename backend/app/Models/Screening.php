@@ -11,8 +11,6 @@ class Screening extends Model
 {
     use HasFactory;
 
-    public const UPDATED_AT = null;
-
     protected $fillable = [
         'movie_id',
         'room_id',

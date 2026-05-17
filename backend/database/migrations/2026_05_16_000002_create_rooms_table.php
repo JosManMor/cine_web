@@ -14,7 +14,7 @@ return new class extends Migration
             $table->tinyInteger('rows')->unsigned();
             $table->tinyInteger('seats_per_row')->unsigned();
             $table->enum('status', ['active', 'maintenance'])->default('active');
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
         });
     }
 

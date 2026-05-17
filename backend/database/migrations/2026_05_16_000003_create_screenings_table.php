@@ -17,7 +17,7 @@ return new class extends Migration
             $table->enum('format', ['2D', '3D', 'IMAX'])->default('2D');
             $table->enum('language_type', ['original', 'dubbed', 'subtitled'])->default('subtitled');
             $table->enum('status', ['scheduled', 'open', 'sold_out', 'cancelled', 'finished'])->default('scheduled');
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
 
             $table->index(['movie_id', 'start_time', 'status']);
         });
