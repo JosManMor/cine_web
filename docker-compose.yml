@@ -145,6 +145,20 @@ services:
     networks:
       - cine_network
 
+  mailpit:
+    image: axllent/mailpit:latest
+
+    container_name: cine_mailpit
+
+    restart: unless-stopped
+
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+    networks:
+      - cine_network
+
 volumes:
   mysql_data:
 
