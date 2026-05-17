@@ -18,12 +18,13 @@ Sistema de simulación de cartelera y venta de entradas. Permite explorar pelíc
 | Sin tabla `tickets` | Un asiento comprado y un ticket son lo mismo en el prototipo. `ticket_code` y el estado (used) se mueven directamente a `purchase_seats`. El QR se genera en tiempo real a partir del código; no hay nada que persistir. |
 | Sin soft delete | Para desactivar un usuario o película basta con el campo `status`. El borrado lógico complica las consultas sin aportar al prototipo. |
 | Sin `end_time` en `screenings` | Dato calculable: `start_time + movies.duration_minutes`. Persistirlo obliga a mantenerlo sincronizado manualmente. |
-| Sin `email_verified_at` / `remember_token` | Campos de scaffolding de Laravel irrelevantes para el prototipo. Con `email` y `password` basta. |
-| `updated_at` solo en `purchases` | Solo es crítico rastrear cuándo cambia el estado de pago. En el resto de tablas, `created_at` es suficiente. |
+| `timestamps()` en entidades mutables | `users`, `movies`, `rooms` y `screenings` incluyen `created_at` y `updated_at` para auditoría de cambios de estado (rol, cancelación, desactivación). `purchase_seats` no los tiene: es una tabla de ocupación inmutable una vez creada. |
+| `email_verified_at` en `users` | Requerido por `MustVerifyEmail` de Laravel. Permite proteger rutas sensibles (ej. compras) con el middleware `verified`. |
+| Sin `remember_token` | La autenticación usa Sanctum Bearer Token; no se usan sesiones persistentes de browser. |
 
 ---
 
-## Esquema — 6 tablas
+## Esquema — 7 tablas
 
 ### users
 
@@ -36,7 +37,21 @@ Sistema de simulación de cartelera y venta de entradas. Permite explorar pelíc
 | role | ENUM | NOT NULL DEFAULT `client` → `admin`, `cashier`, `client` |
 | phone | VARCHAR(20) | NULLABLE |
 | status | ENUM | NOT NULL DEFAULT `active` → `active`, `inactive` |
+| email_verified_at | TIMESTAMP | NULLABLE |
 | created_at | TIMESTAMP | — |
+| updated_at | TIMESTAMP | — |
+
+---
+
+### password_reset_tokens
+
+Tabla de infraestructura de Laravel para el flujo de recuperación de contraseña.
+
+| Campo | Tipo | Restricciones |
+|---|---|---|
+| email | VARCHAR(255) | PK |
+| token | VARCHAR(255) | NOT NULL |
+| created_at | TIMESTAMP | NULLABLE |
 
 ---
 
@@ -54,6 +69,7 @@ Sistema de simulación de cartelera y venta de entradas. Permite explorar pelíc
 | poster_url | VARCHAR(500) | NULLABLE |
 | status | ENUM | NOT NULL DEFAULT `active` → `active`, `inactive`, `coming_soon` |
 | created_at | TIMESTAMP | — |
+| updated_at | TIMESTAMP | — |
 
 ---
 
@@ -69,6 +85,7 @@ El layout de asientos se define aquí. No hay tabla de asientos individuales.
 | seats_per_row | TINYINT UNSIGNED | NOT NULL → asientos por fila |
 | status | ENUM | DEFAULT `active` → `active`, `maintenance` |
 | created_at | TIMESTAMP | — |
+| updated_at | TIMESTAMP | — |
 
 **Capacidad total:** `rows × seats_per_row` (calculado, no almacenado).
 
@@ -87,6 +104,7 @@ El layout de asientos se define aquí. No hay tabla de asientos individuales.
 | language_type | ENUM | DEFAULT `subtitled` → `original`, `dubbed`, `subtitled` |
 | status | ENUM | DEFAULT `scheduled` → `scheduled`, `open`, `sold_out`, `cancelled`, `finished` |
 | created_at | TIMESTAMP | — |
+| updated_at | TIMESTAMP | — |
 
 ---
 
@@ -185,6 +203,14 @@ Table users {
   role varchar(20) [not null, default: "client", note: "admin | cashier | client"]
   phone varchar(20)
   status varchar(20) [not null, default: "active", note: "active | inactive"]
+  email_verified_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table password_reset_tokens {
+  email varchar(255) [pk]
+  token varchar(255) [not null]
   created_at timestamp
 }
 
@@ -199,6 +225,7 @@ Table movies {
   poster_url varchar(500)
   status varchar(20) [not null, default: "active", note: "active | inactive | coming_soon"]
   created_at timestamp
+  updated_at timestamp
 }
 
 Table rooms {
@@ -208,6 +235,7 @@ Table rooms {
   seats_per_row tinyint [not null]
   status varchar(20) [default: "active", note: "active | maintenance"]
   created_at timestamp
+  updated_at timestamp
 }
 
 Table screenings {
@@ -220,6 +248,7 @@ Table screenings {
   language_type varchar(20) [default: "subtitled", note: "original | dubbed | subtitled"]
   status varchar(20) [default: "scheduled", note: "scheduled | open | sold_out | cancelled | finished"]
   created_at timestamp
+  updated_at timestamp
 }
 
 Table purchases {

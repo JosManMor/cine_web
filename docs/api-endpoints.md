@@ -83,6 +83,46 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 { "message": "Sesión cerrada correctamente." }
 ```
 
+### 1.4 Reenviar Correo de Verificación
+
+**Endpoint:** `POST /email/verification-notification`
+**Seguridad:** Requiere autenticación. Rate limit: `throttle:6,1`.
+
+**Respuesta exitosa (200 OK)** — correo enviado:
+```json
+{ "message": "Correo de verificación enviado." }
+```
+
+**Respuesta (204 No Content)** — el correo ya estaba verificado, sin cuerpo.
+
+### 1.5 Verificar Correo
+
+**Endpoint:** `GET /email/verify/{id}/{hash}`
+**Seguridad:** Requiere autenticación + URL firmada (`signed` middleware). Rate limit: `throttle:6,1`.
+
+| Parámetro | Descripción |
+|---|---|
+| `id` | ID del usuario |
+| `hash` | SHA-1 del email, incluido en el enlace firmado |
+| `expires` *(query)* | Timestamp de expiración de la firma |
+| `signature` *(query)* | Firma HMAC generada por Laravel |
+
+**Respuesta exitosa (200 OK):**
+```json
+{ "message": "Correo verificado correctamente." }
+```
+
+**Respuesta (403 Forbidden)** — firma inválida o expirada:
+```json
+{ "message": "El enlace de verificación no es válido o ha expirado." }
+```
+
+> **Flujo completo:**
+> 1. Usuario se registra → Laravel envía email automáticamente con enlace firmado.
+> 2. Usuario hace clic en el enlace → petición `GET /api/email/verify/{id}/{hash}?expires=...&signature=...`.
+> 3. Si el enlace expiró → el frontend llama a `POST /email/verification-notification` para reenviar.
+> 4. Rutas que requieran email verificado usan el middleware `verified`.
+
 ---
 
 ## 2. Cartelera y Películas
