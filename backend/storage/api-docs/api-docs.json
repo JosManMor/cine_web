@@ -384,6 +384,162 @@
                     }
                 }
             }
+        },
+        "/purchases": {
+            "post": {
+                "tags": [
+                    "Compras"
+                ],
+                "summary": "Crear compra",
+                "description": "Reserva asientos y crea la compra en estado pending. El ticket_code se asigna cuando el pago se confirma.",
+                "operationId": "b7e40bd94380c4c777ef68c5a37d1283",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "screening_id",
+                                    "seats",
+                                    "payment_method"
+                                ],
+                                "properties": {
+                                    "screening_id": {
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "seats": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "row": {
+                                                    "type": "string",
+                                                    "example": "A"
+                                                },
+                                                "seat_number": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "payment_method": {
+                                        "type": "string",
+                                        "example": "card",
+                                        "enum": [
+                                            "cash",
+                                            "card",
+                                            "online"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Compra creada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "purchase_id": {
+                                            "type": "integer"
+                                        },
+                                        "payment_status": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Asiento ya reservado"
+                    },
+                    "422": {
+                        "description": "Datos inválidos o función no disponible"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/tickets/{ticket_code}": {
+            "get": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Ver ticket digital",
+                "description": "Devuelve la información completa del ticket. El QR se genera en el cliente a partir del ticket_code.",
+                "operationId": "2b405b210da0191050827c5c912bdc69",
+                "parameters": [
+                    {
+                        "name": "ticket_code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "SNDR-2025-7A3F"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ticket encontrado"
+                    },
+                    "403": {
+                        "description": "El ticket no pertenece al usuario autenticado"
+                    },
+                    "404": {
+                        "description": "Ticket no encontrado"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/screenings/{id}": {
+            "get": {
+                "tags": [
+                    "Cartelera"
+                ],
+                "summary": "Mapa de asientos de una función",
+                "description": "Devuelve los datos de la sala y la lista de asientos ocupados para que el frontend construya el mapa interactivo.",
+                "operationId": "7aeb7f89c24ade654cf36314eff53994",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Datos de la función con asientos ocupados"
+                    },
+                    "404": {
+                        "description": "Función no encontrada"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -582,6 +738,14 @@
         {
             "name": "Cartelera",
             "description": "Cartelera"
+        },
+        {
+            "name": "Compras",
+            "description": "Compras"
+        },
+        {
+            "name": "Tickets",
+            "description": "Tickets"
         }
     ]
 }
