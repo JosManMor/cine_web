@@ -4,7 +4,6 @@ set -e
 cd /var/www
 
 if [ -z "$APP_KEY" ]; then
-    # Try to reuse a key already written to the mounted .env file
     if [ -f .env ]; then
         FILE_KEY=$(grep '^APP_KEY=' .env | cut -d'=' -f2- | tr -d '[:space:]')
     fi
@@ -19,5 +18,7 @@ if [ -z "$APP_KEY" ]; then
 
     export APP_KEY
 fi
+
+composer setup
 
 exec "$@"
