@@ -148,6 +148,34 @@ CREATE UNIQUE INDEX idx_purchase_seats_ticket ON purchase_seats (ticket_code);
 
 ---
 
+### GET `/my-tickets`
+
+**Seguridad:** Bearer Token requerido.
+
+**Respuesta 200:**
+```json
+[
+  {
+    "ticket_code": "3f4a8b2c-...",
+    "status": "active",
+    "movie_title": "Inferno Nexus",
+    "start_time": "2025-07-25 17:30:00",
+    "format": "2D",
+    "language_type": "subtitled",
+    "room": "Sala 1",
+    "row": "A",
+    "seat_number": 3,
+    "price_paid": 90.00,
+    "user_name": "Juan Pérez",
+    "purchased_at": "2025-07-25 10:30:00"
+  }
+]
+```
+
+> Solo devuelve asientos con `status = 'active'` y `ticket_code IS NOT NULL`. Las compras pendientes de pago no aparecen. Cada asiento es un objeto independiente, incluso si pertenecen a la misma compra.
+
+---
+
 ### GET `/tickets/{ticket_code}`
 
 **Seguridad:** Bearer Token requerido.

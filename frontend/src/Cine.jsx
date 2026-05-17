@@ -14,6 +14,7 @@ import RegisterPage from "./pages/RegisterPage";
 import EmailPendingPage from "./pages/EmailPendingPage";
 import EmailVerifyPage from "./pages/EmailVerifyPage";
 import AdminPage from "./pages/AdminPage";
+import MyTicketsPage from "./pages/MyTicketsPage";
 
 export default function App() {
   const { user, clearAuth } = useAuth();
@@ -86,6 +87,7 @@ export default function App() {
           {page === "email-pending" && <EmailPendingPage setPage={nav} addToast={addToast} />}
           {page === "email-verify"  && <EmailVerifyPage  setPage={nav} addToast={addToast} />}
           {page === "admin"         && <AdminPage        user={user} setPage={nav} />}
+          {page === "my-tickets"    && <MyTicketsPage    setPage={nav} />}
         </div>
       </div>
     </>

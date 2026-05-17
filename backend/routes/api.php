@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // ── Autenticado + correo verificado ──────────────────────────────────────────
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    Route::post('/purchases', [PurchaseController::class, 'store']);
-    Route::get('/tickets/{ticket_code}', [PurchaseController::class, 'showTicket']);
+    Route::post('/purchases',             [PurchaseController::class, 'store']);
+    Route::get('/my-tickets',             [PurchaseController::class, 'myTickets']);
+    Route::get('/tickets/{ticket_code}',  [PurchaseController::class, 'showTicket']);
 });

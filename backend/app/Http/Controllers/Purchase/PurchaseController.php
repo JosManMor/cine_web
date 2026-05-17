@@ -93,6 +93,32 @@ class PurchaseController extends Controller
             new OA\Response(response: 404, description: 'Ticket no encontrado'),
         ]
     )]
+    #[OA\Get(
+        path: '/my-tickets',
+        summary: 'Listar mis tickets activos',
+        description: 'Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirmado. Un ticket por asiento reservado.',
+        security: [['sanctum' => []]],
+        tags: ['Tickets'],
+        responses: [
+            new OA\Response(response: 200, description: 'Lista de tickets activos'),
+        ]
+    )]
+    public function myTickets(Request $request): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+    {
+        $seats = PurchaseSeat::with([
+            'purchase.user',
+            'purchase.screening.movie',
+            'purchase.screening.room',
+        ])
+            ->where('status', 'active')
+            ->whereNotNull('ticket_code')
+            ->whereHas('purchase', fn ($q) => $q->where('user_id', $request->user()->id))
+            ->orderByDesc('id')
+            ->get();
+
+        return TicketResource::collection($seats);
+    }
+
     public function showTicket(Request $request, string $ticketCode): TicketResource|JsonResponse
     {
         $seat = PurchaseSeat::with([

@@ -282,7 +282,37 @@ POST /api/register
 
 ---
 
-### 3.2 Obtener Ticket
+### 3.2 Mis Tickets Activos
+
+**`GET /my-tickets`** — Verificado
+
+Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirmado (`payment_status = completed`, `ticket_code` asignado, `status = active`). Ordenados por ID descendente (más recientes primero).
+
+**200 OK:**
+```json
+[
+  {
+    "ticket_code": "3f4a8b2c-...",
+    "status": "active",
+    "movie_title": "Inferno Nexus",
+    "start_time": "2025-07-25 17:30:00",
+    "format": "2D",
+    "language_type": "subtitled",
+    "room": "Sala 1",
+    "row": "A",
+    "seat_number": 3,
+    "price_paid": 90.00,
+    "user_name": "Juan Pérez",
+    "purchased_at": "2025-07-25 10:30:00"
+  }
+]
+```
+
+> Cada elemento del array es un asiento/ticket individual. Si el usuario compró 2 asientos en una misma función, aparecen 2 objetos. Las compras con `payment_status = pending` (sin `ticket_code`) **no aparecen aquí**.
+
+---
+
+### 3.3 Obtener Ticket
 
 **`GET /tickets/{ticket_code}`** — Verificado
 
