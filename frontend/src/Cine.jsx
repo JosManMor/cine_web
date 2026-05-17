@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { C, FONTS } from "./constants/theme";
-import { MOVIES } from "./constants/mockData";
 import { useAuth } from "./context/AuthContext";
 import { logout } from "./api/auth";
 import Navbar from "./components/Navbar";
@@ -19,7 +18,7 @@ import AdminPage from "./pages/AdminPage";
 export default function App() {
   const { user, clearAuth } = useAuth();
   const [page, setPage] = useState("home");
-  const [selectedMovie, setSelectedMovie] = useState(MOVIES[0]);
+  const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [toasts, setToasts] = useState([]);
 

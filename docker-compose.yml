@@ -77,6 +77,8 @@ services:
 
       VITE_APP_NAME: ${VITE_APP_NAME}
 
+      L5_SWAGGER_GENERATE_ALWAYS: ${L5_SWAGGER_GENERATE_ALWAYS}
+
     depends_on:
       mysql:
         condition: service_healthy

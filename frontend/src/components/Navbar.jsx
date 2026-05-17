@@ -9,14 +9,6 @@ export default function Navbar({ page, setPage, user, onLogout }) {
         <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 2, color: C.white }}>CINE SENDERA</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {["home", "cartelera"].map(p => (
-          <button key={p} onClick={() => setPage(p)} style={{
-            background: page === p ? C.redGlow : "none", border: page === p ? `1px solid ${C.red}` : "1px solid transparent",
-            color: page === p ? C.white : C.gray, padding: "6px 14px", borderRadius: 4,
-            fontFamily: "'Open Sans', sans-serif", fontSize: 13, cursor: "pointer", textTransform: "capitalize",
-            transition: "all .2s"
-          }}>{p === "home" ? "Inicio" : "Cartelera"}</button>
-        ))}
         {user
           ? <>
             {user.role === "admin" && (

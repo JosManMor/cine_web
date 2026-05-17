@@ -293,6 +293,22 @@ Centralizar lógica empresarial.
 Para una referencia completa de los endpoints, parámetros y respuestas, consulte el documento:
 [Documentación de la API (api-endpoints.md)](api-endpoints.md)
 
+## Documentación OpenAPI
+
+Todos los módulos del sistema están documentados con **OpenAPI 3.0** mediante el paquete [`darkaonline/l5-swagger`](https://github.com/DarkaOnLine/L5-Swagger). Las anotaciones viven directamente en los controladores y Form Requests usando atributos PHP (`#[OA\...]`).
+
+La interfaz interactiva (Swagger UI) está disponible en:
+
+```
+http://localhost/api/documentation
+```
+
+Para regenerar la especificación tras modificar anotaciones:
+
+```bash
+php artisan l5-swagger:generate
+```
+
 ---
 
 # 11. Seguridad Backend

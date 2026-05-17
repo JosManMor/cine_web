@@ -2,11 +2,15 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Movie\MovieController;
 use Illuminate\Support\Facades\Route;
 
 // ── Rutas públicas ────────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:5,1');
+
+Route::get('/movies',       [MovieController::class, 'index']);
+Route::get('/movies/{id}',  [MovieController::class, 'show']);
 
 // ── Autenticado (token válido, email no necesariamente verificado) ─────────────
 Route::middleware('auth:sanctum')->group(function () {
