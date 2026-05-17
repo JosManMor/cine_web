@@ -18,8 +18,10 @@ import AdminPage from "./pages/AdminPage";
 export default function App() {
   const { user, clearAuth } = useAuth();
   const [page, setPage] = useState("home");
-  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [selectedMovie, setSelectedMovie]     = useState(null);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [selectedSeats, setSelectedSeats]     = useState([]);
+  const [purchaseResult, setPurchaseResult]   = useState(null);
   const [toasts, setToasts] = useState([]);
 
   // Detecta el link de verificación de correo al montar
@@ -76,9 +78,9 @@ export default function App() {
           {page === "home"          && <HomePage         setPage={nav} setSelectedMovie={setSelectedMovie} />}
           {page === "cartelera"     && <HomePage         setPage={nav} setSelectedMovie={setSelectedMovie} />}
           {page === "movie-detail"  && <MovieDetailPage  movie={selectedMovie} setPage={nav} setSelectedMovie={setSelectedMovie} setSelectedSchedule={setSelectedSchedule} />}
-          {page === "seats"         && <SeatsPage        movie={selectedMovie} schedule={selectedSchedule} setPage={nav} addToast={addToast} user={user} />}
-          {page === "checkout"      && <CheckoutPage     movie={selectedMovie} user={user} setPage={nav} addToast={addToast} />}
-          {page === "ticket"        && <TicketPage       movie={selectedMovie} addToast={addToast} />}
+          {page === "seats"         && <SeatsPage        movie={selectedMovie} schedule={selectedSchedule} setPage={nav} addToast={addToast} user={user} setSelectedSeats={setSelectedSeats} />}
+          {page === "checkout"      && <CheckoutPage     movie={selectedMovie} schedule={selectedSchedule} user={user} selectedSeats={selectedSeats} setPage={nav} addToast={addToast} setPurchaseResult={setPurchaseResult} />}
+          {page === "ticket"        && <TicketPage       movie={selectedMovie} schedule={selectedSchedule} purchaseResult={purchaseResult} user={user} addToast={addToast} />}
           {page === "login"         && <LoginPage        setPage={nav} addToast={addToast} />}
           {page === "register"      && <RegisterPage     setPage={nav} addToast={addToast} />}
           {page === "email-pending" && <EmailPendingPage setPage={nav} addToast={addToast} />}
