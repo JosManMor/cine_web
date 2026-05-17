@@ -16,6 +16,7 @@ return new class extends Migration
             $table->enum('role', ['admin', 'cashier', 'client'])->default('client');
             $table->string('phone', 20)->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->timestamp('email_verified_at')->nullable();
             $table->timestamps();
         });
 

@@ -1,16 +1,34 @@
 # Documentación de la API — Cine Sendera
 
-Este documento detalla los endpoints de la API REST para el sistema de Cine Sendera, basados en el prototipo del frontend y la arquitectura del backend.
-
 ---
 
 ## 0. Estándares de la API
 
-- **Base URL:** `/api`
-- **Formato de datos:** JSON
-- **Autenticación:** Laravel Sanctum (Bearer Token) o Sessions (para web tradicional).
-- **Idioma de las claves:** Inglés.
-- **Idioma de los valores (Contenido):** Español.
+| Atributo | Valor |
+|---|---|
+| Base URL | `/api` |
+| Formato | JSON (`Content-Type: application/json`, `Accept: application/json`) |
+| Autenticación | Laravel Sanctum — Bearer Token |
+| Idioma de claves | Inglés |
+| Idioma de valores | Español |
+
+### Niveles de protección
+
+| Nivel | Header requerido | Condición extra |
+|---|---|---|
+| Público | — | — |
+| Autenticado | `Authorization: Bearer <token>` | Token Sanctum válido |
+| Verificado | `Authorization: Bearer <token>` | + `email_verified_at` no nulo |
+| Admin | `Authorization: Bearer <token>` | + `role = admin` |
+
+### Respuestas de error comunes
+
+| Código | Causa |
+|---|---|
+| 401 | Token ausente, inválido o revocado |
+| 403 | Acción no permitida (firma inválida, correo no verificado, rol insuficiente) |
+| 422 | Validación fallida — `{ "message": "...", "errors": { "campo": ["..."] } }` |
+| 429 | Rate limit superado |
 
 ---
 
@@ -18,10 +36,11 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 
 ### 1.1 Registro de Usuario
 
-**Endpoint:** `POST /register`
+**`POST /register`** — Público
 
-**Cuerpo de la solicitud (JSON):**
+Crea la cuenta con rol `client`, emite un Bearer Token y envía automáticamente un correo de verificación. El token es válido de inmediato para rutas públicas y de verificación; las rutas que exigen `verified` permanecen bloqueadas hasta confirmar el correo.
 
+**Body:**
 ```json
 {
   "name": "Juan Pérez",
@@ -31,8 +50,13 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 }
 ```
 
-**Respuesta exitosa (201 Created):**
+| Campo | Reglas |
+|---|---|
+| `name` | requerido, string, máx. 255 |
+| `email` | requerido, email único |
+| `password` | requerido, mín. 8 caracteres, confirmado |
 
+**201 Created:**
 ```json
 {
   "user": {
@@ -41,16 +65,19 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
     "email": "juan@example.com",
     "role": "client"
   },
-  "token": "..."
+  "token": "1|abc123..."
 }
 ```
 
+**422** — email ya registrado u otro campo inválido.
+
+---
+
 ### 1.2 Inicio de Sesión
 
-**Endpoint:** `POST /login`
+**`POST /login`** — Público · `throttle:5,1`
 
-**Cuerpo de la solicitud (JSON):**
-
+**Body:**
 ```json
 {
   "email": "juan@example.com",
@@ -58,8 +85,7 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 }
 ```
 
-**Respuesta exitosa (200 OK):**
-
+**200 OK:**
 ```json
 {
   "user": {
@@ -68,19 +94,96 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
     "email": "juan@example.com",
     "role": "client"
   },
-  "token": "..."
+  "token": "2|xyz789..."
 }
 ```
 
-### 1.3 Cerrar Sesión
+**401** — credenciales incorrectas:
+```json
+{ "message": "Credenciales incorrectas." }
+```
 
-**Endpoint:** `POST /logout`
-**Seguridad:** Requiere autenticación.
+---
 
-**Respuesta exitosa (200 OK):**
+### 1.3 Cierre de Sesión
 
+**`POST /logout`** — Autenticado
+
+Revoca únicamente el token usado en la request. El resto de sesiones activas del usuario no se ven afectadas.
+
+**200 OK:**
 ```json
 { "message": "Sesión cerrada correctamente." }
+```
+
+---
+
+### 1.4 Reenviar Correo de Verificación
+
+**`POST /email/verification-notification`** — Autenticado · `throttle:6,1`
+
+Genera un nuevo enlace firmado y lo envía al email del usuario. El enlace apunta al frontend (`FRONTEND_URL/email/verify?...`), no directamente a la API.
+
+**200 OK** (correo enviado):
+```json
+{ "message": "Correo de verificación enviado." }
+```
+
+**204 No Content** — el correo ya estaba verificado, sin cuerpo.
+
+---
+
+### 1.5 Verificar Correo Electrónico
+
+**`GET /email/verify/{id}/{hash}`** — Autenticado · URL firmada (`signed`) · `throttle:6,1`
+
+El frontend llama a este endpoint después de extraer los parámetros del enlace recibido en el correo. Requiere el Bearer Token ya almacenado en el cliente.
+
+| Parámetro | Tipo | Origen | Descripción |
+|---|---|---|---|
+| `id` | path | URL | ID del usuario |
+| `hash` | path | URL | `sha1($user->email)` |
+| `expires` | query | URL | Timestamp UNIX de expiración (60 min) |
+| `signature` | query | URL | Firma HMAC-SHA256 generada por Laravel |
+
+**200 OK:**
+```json
+{ "message": "Correo verificado correctamente." }
+```
+
+**403** — firma inválida, enlace expirado o hash que no coincide con el email actual.
+
+**401** — token ausente.
+
+---
+
+### Flujo completo de verificación
+
+```
+POST /api/register
+  │
+  ├─→ Respuesta inmediata: { user, token }
+  │   El token funciona para rutas públicas y de verificación.
+  │
+  └─→ Email enviado a juan@example.com
+        Enlace: http://frontend:5173/email/verify
+                ?id=1
+                &hash=<sha1(email)>
+                &expires=<timestamp>
+                &signature=<hmac>
+
+  Usuario hace clic en el enlace
+  │
+  └─→ Frontend carga /email/verify, lee los query params
+        └─→ GET /api/email/verify/1/<hash>?expires=...&signature=...
+              Authorization: Bearer <token almacenado>
+              │
+              ├─→ 200 OK → email_verified_at seteado
+              │   Frontend redirige a la cartelera con acceso completo.
+              │
+              └─→ 403 → enlace expirado
+                  Frontend llama a POST /api/email/verification-notification
+                  para generar un nuevo enlace.
 ```
 
 ---
@@ -89,10 +192,9 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 
 ### 2.1 Listar Películas
 
-**Endpoint:** `GET /movies`
+**`GET /movies`** — Público
 
-**Respuesta exitosa (200 OK):**
-
+**200 OK:**
 ```json
 [
   {
@@ -107,12 +209,13 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 ]
 ```
 
+---
+
 ### 2.2 Detalle de Película
 
-**Endpoint:** `GET /movies/{id}`
+**`GET /movies/{id}`** — Público
 
-**Respuesta exitosa (200 OK):**
-
+**200 OK:**
 ```json
 {
   "id": 1,
@@ -149,11 +252,9 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 
 ### 3.1 Crear Compra
 
-**Endpoint:** `POST /purchases`
-**Seguridad:** Requiere autenticación.
+**`POST /purchases`** — Verificado
 
-**Cuerpo de la solicitud (JSON):**
-
+**Body:**
 ```json
 {
   "screening_id": 12,
@@ -166,8 +267,7 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 }
 ```
 
-**Respuesta exitosa (201 Created):**
-
+**201 Created:**
 ```json
 {
   "message": "Compra registrada. En espera de confirmación de pago.",
@@ -176,15 +276,17 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 }
 ```
 
-> Los `ticket_code` **no se incluyen aquí**. Se asignan mediante un Observer/Job cuando el pago se confirma (`payment_status = completed`). Una vez confirmados, los tickets se consultan con `GET /tickets/{ticket_code}` o desde el historial del usuario.
+> `ticket_code` no se incluye en esta respuesta. Se asigna mediante un Observer/Job cuando `payment_status` cambia a `completed`. Los tickets se consultan con `GET /tickets/{ticket_code}`.
+
+**409 Conflict** — asiento ya reservado por otra transacción concurrente.
+
+---
 
 ### 3.2 Obtener Ticket
 
-**Endpoint:** `GET /tickets/{ticket_code}`
-**Seguridad:** Requiere autenticación.
+**`GET /tickets/{ticket_code}`** — Verificado
 
-**Respuesta exitosa (200 OK):**
-
+**200 OK:**
 ```json
 {
   "ticket_code": "SNDR-2025-7A3F",
@@ -208,11 +310,9 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 
 ### 4.1 Métricas Generales
 
-**Endpoint:** `GET /admin/metrics`
-**Seguridad:** Requiere rol `admin`.
+**`GET /admin/metrics`** — Admin
 
-**Respuesta exitosa (200 OK):**
-
+**200 OK:**
 ```json
 {
   "tickets_sold": 247,
@@ -223,19 +323,19 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
     "tickets_sold": 104
   },
   "weekly_sales": [
-    {"day": "Lun", "value": 42},
-    {"day": "Mar", "value": 68}
+    { "day": "Lun", "value": 42 },
+    { "day": "Mar", "value": 68 }
   ]
 }
 ```
 
+---
+
 ### 4.2 Actividad Reciente
 
-**Endpoint:** `GET /admin/activity`
-**Seguridad:** Requiere rol `admin`.
+**`GET /admin/activity`** — Admin
 
-**Respuesta exitosa (200 OK):**
-
+**200 OK:**
 ```json
 [
   {
@@ -251,13 +351,13 @@ Este documento detalla los endpoints de la API REST para el sistema de Cine Send
 ]
 ```
 
+---
+
 ### 4.3 Estado de Salas
 
-**Endpoint:** `GET /admin/rooms`
-**Seguridad:** Requiere rol `admin`.
+**`GET /admin/rooms`** — Admin
 
-**Respuesta exitosa (200 OK):**
-
+**200 OK:**
 ```json
 [
   {
