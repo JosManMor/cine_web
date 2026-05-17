@@ -36,7 +36,8 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user }) 
     aisle: { bg: "transparent", border: "transparent" },
   }[status]);
 
-  const total = selected.length * 85;
+  const unitPrice = (typeof schedule === "object" && schedule?.base_price) ? Number(schedule.base_price) : 85;
+  const total = selected.length * unitPrice;
   const seatLabels = selected.map(k => {
     const [r, c] = k.split("-").map(Number);
     return `${ROW_LABELS[r]}${c + 1}`;
@@ -107,10 +108,19 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user }) 
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
-                <div style={{ width: 48, height: 64, background: `radial-gradient(${movie.color}44, ${C.surface})`, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{movie.emoji}</div>
+                <div style={{ width: 48, height: 64, background: C.surface, borderRadius: 4, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {movie.poster_url
+                    ? <img src={movie.poster_url} alt={movie.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: "#6B6B6B" }}>{movie.title?.[0]}</span>
+                  }
+                </div>
                 <div>
                   <p style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 14 }}>{movie.title}</p>
-                  <p style={{ color: C.gray, fontSize: 12 }}>{schedule || movie.schedule[0]}</p>
+                  <p style={{ color: C.gray, fontSize: 12 }}>
+                    {typeof schedule === "object" && schedule?.start_time
+                      ? new Date(schedule.start_time).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false })
+                      : schedule ?? ""}
+                  </p>
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -122,7 +132,7 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user }) 
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: C.gray }}>Precio unitario</span>
-                  <span>$85.00</span>
+                  <span>${unitPrice.toFixed(2)}</span>
                 </div>
                 <div style={{ height: 1, background: C.border, margin: "4px 0" }} />
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
