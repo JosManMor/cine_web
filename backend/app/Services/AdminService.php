@@ -65,6 +65,7 @@ class AdminService
                 $title = $purchase->purchaseSeats->first()?->screening?->movie?->title ?? 'película';
 
                 return [
+                    '_ts'     => $purchase->updated_at->timestamp,
                     'type'    => 'success',
                     'message' => "Compra exitosa — {$title}",
                     'time'    => $this->relativeTime($purchase->updated_at),
@@ -76,13 +77,15 @@ class AdminService
             ->limit(10)
             ->get()
             ->map(fn (Purchase $purchase) => [
+                '_ts'     => $purchase->updated_at->timestamp,
                 'type'    => 'error',
                 'message' => 'Pago fallido bloqueado',
                 'time'    => $this->relativeTime($purchase->updated_at),
             ]);
 
         return $successEvents->merge($errorEvents)
-            ->sortByDesc(fn (array $event) => $event['time'])
+            ->sortByDesc('_ts')
+            ->map(fn (array $e) => array_diff_key($e, ['_ts' => 0]))
             ->values()
             ->all();
     }
