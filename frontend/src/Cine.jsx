@@ -81,7 +81,7 @@ export default function App() {
           {page === "movie-detail"  && <MovieDetailPage  movie={selectedMovie} setPage={nav} setSelectedMovie={setSelectedMovie} setSelectedSchedule={setSelectedSchedule} />}
           {page === "seats"         && <SeatsPage        movie={selectedMovie} schedule={selectedSchedule} setPage={nav} addToast={addToast} user={user} setSelectedSeats={setSelectedSeats} />}
           {page === "checkout"      && <CheckoutPage     movie={selectedMovie} schedule={selectedSchedule} user={user} selectedSeats={selectedSeats} setPage={nav} addToast={addToast} setPurchaseResult={setPurchaseResult} />}
-          {page === "ticket"        && <TicketPage       movie={selectedMovie} schedule={selectedSchedule} purchaseResult={purchaseResult} user={user} addToast={addToast} />}
+          {page === "ticket"        && <TicketPage       movie={selectedMovie} schedule={selectedSchedule} purchaseResult={purchaseResult} user={user} setPage={nav} />}
           {page === "login"         && <LoginPage        setPage={nav} addToast={addToast} />}
           {page === "register"      && <RegisterPage     setPage={nav} addToast={addToast} />}
           {page === "email-pending" && <EmailPendingPage setPage={nav} addToast={addToast} />}
