@@ -138,13 +138,13 @@ CREATE UNIQUE INDEX idx_purchase_seats_ticket ON purchase_seats (ticket_code);
 **Respuesta 201:**
 ```json
 {
-  "message": "Compra registrada. En espera de confirmación de pago.",
+  "message": "Compra registrada y pago confirmado.",
   "purchase_id": 501,
-  "payment_status": "pending"
+  "payment_status": "completed"
 }
 ```
 
-> Los `ticket_code` **no se devuelven aquí**. El endpoint crea la compra y reserva los asientos; la asignación de códigos ocurre en un Observer/Job cuando el pago se confirma. El frontend debe consultar el estado del pago por separado y redirigir al usuario a `GET /tickets/{ticket_code}` una vez confirmado.
+> El servicio confirma el pago al final de la transacción llamando `$purchase->update(['payment_status' => 'completed'])`. Esto dispara el `PurchaseObserver` que asigna un UUID como `ticket_code` a cada `purchase_seat`. Los tickets quedan disponibles de inmediato en `GET /my-tickets`.
 
 ---
 

@@ -61,7 +61,10 @@ class PurchaseService
                 }
             }
 
-            return $purchase;
+            // Confirma el pago y dispara el Observer que asigna ticket_code a cada asiento.
+            $purchase->update(['payment_status' => 'completed']);
+
+            return $purchase->fresh();
         });
     }
 }

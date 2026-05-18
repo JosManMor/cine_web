@@ -270,13 +270,13 @@ POST /api/register
 **201 Created:**
 ```json
 {
-  "message": "Compra registrada. En espera de confirmación de pago.",
+  "message": "Compra registrada y pago confirmado.",
   "purchase_id": 501,
-  "payment_status": "pending"
+  "payment_status": "completed"
 }
 ```
 
-> `ticket_code` no se incluye en esta respuesta. Se asigna mediante un Observer/Job cuando `payment_status` cambia a `completed`. Los tickets se consultan con `GET /tickets/{ticket_code}`.
+> El servicio confirma el pago automáticamente al final de la transacción (`payment_status = completed`), lo que dispara el `PurchaseObserver` que asigna un `ticket_code` UUID a cada asiento reservado. Los tickets se consultan con `GET /my-tickets` o `GET /tickets/{ticket_code}`.
 
 **409 Conflict** — asiento ya reservado por otra transacción concurrente.
 

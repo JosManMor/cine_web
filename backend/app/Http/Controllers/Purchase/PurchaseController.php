@@ -67,7 +67,7 @@ class PurchaseController extends Controller
         );
 
         return response()->json([
-            'message'        => 'Compra registrada. En espera de confirmación de pago.',
+            'message'        => 'Compra registrada y pago confirmado.',
             'purchase_id'    => $purchase->id,
             'payment_status' => $purchase->payment_status,
         ], 201);
