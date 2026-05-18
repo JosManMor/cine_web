@@ -270,19 +270,49 @@ POST /api/register
 **201 Created:**
 ```json
 {
-  "message": "Compra registrada. En espera de confirmación de pago.",
+  "message": "Compra registrada y pago confirmado.",
   "purchase_id": 501,
-  "payment_status": "pending"
+  "payment_status": "completed"
 }
 ```
 
-> `ticket_code` no se incluye en esta respuesta. Se asigna mediante un Observer/Job cuando `payment_status` cambia a `completed`. Los tickets se consultan con `GET /tickets/{ticket_code}`.
+> El servicio confirma el pago automáticamente al final de la transacción (`payment_status = completed`), lo que dispara el `PurchaseObserver` que asigna un `ticket_code` UUID a cada asiento reservado. Los tickets se consultan con `GET /my-tickets` o `GET /tickets/{ticket_code}`.
 
 **409 Conflict** — asiento ya reservado por otra transacción concurrente.
 
 ---
 
-### 3.2 Obtener Ticket
+### 3.2 Mis Tickets Activos
+
+**`GET /my-tickets`** — Verificado
+
+Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirmado (`payment_status = completed`, `ticket_code` asignado, `status = active`). Ordenados por ID descendente (más recientes primero).
+
+**200 OK:**
+```json
+[
+  {
+    "ticket_code": "3f4a8b2c-...",
+    "status": "active",
+    "movie_title": "Inferno Nexus",
+    "start_time": "2025-07-25 17:30:00",
+    "format": "2D",
+    "language_type": "subtitled",
+    "room": "Sala 1",
+    "row": "A",
+    "seat_number": 3,
+    "price_paid": 90.00,
+    "user_name": "Juan Pérez",
+    "purchased_at": "2025-07-25 10:30:00"
+  }
+]
+```
+
+> Cada elemento del array es un asiento/ticket individual. Si el usuario compró 2 asientos en una misma función, aparecen 2 objetos. Las compras con `payment_status = pending` (sin `ticket_code`) **no aparecen aquí**.
+
+---
+
+### 3.3 Obtener Ticket
 
 **`GET /tickets/{ticket_code}`** — Verificado
 

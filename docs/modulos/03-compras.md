@@ -138,13 +138,41 @@ CREATE UNIQUE INDEX idx_purchase_seats_ticket ON purchase_seats (ticket_code);
 **Respuesta 201:**
 ```json
 {
-  "message": "Compra registrada. En espera de confirmación de pago.",
+  "message": "Compra registrada y pago confirmado.",
   "purchase_id": 501,
-  "payment_status": "pending"
+  "payment_status": "completed"
 }
 ```
 
-> Los `ticket_code` **no se devuelven aquí**. El endpoint crea la compra y reserva los asientos; la asignación de códigos ocurre en un Observer/Job cuando el pago se confirma. El frontend debe consultar el estado del pago por separado y redirigir al usuario a `GET /tickets/{ticket_code}` una vez confirmado.
+> El servicio confirma el pago al final de la transacción llamando `$purchase->update(['payment_status' => 'completed'])`. Esto dispara el `PurchaseObserver` que asigna un UUID como `ticket_code` a cada `purchase_seat`. Los tickets quedan disponibles de inmediato en `GET /my-tickets`.
+
+---
+
+### GET `/my-tickets`
+
+**Seguridad:** Bearer Token requerido.
+
+**Respuesta 200:**
+```json
+[
+  {
+    "ticket_code": "3f4a8b2c-...",
+    "status": "active",
+    "movie_title": "Inferno Nexus",
+    "start_time": "2025-07-25 17:30:00",
+    "format": "2D",
+    "language_type": "subtitled",
+    "room": "Sala 1",
+    "row": "A",
+    "seat_number": 3,
+    "price_paid": 90.00,
+    "user_name": "Juan Pérez",
+    "purchased_at": "2025-07-25 10:30:00"
+  }
+]
+```
+
+> Solo devuelve asientos con `status = 'active'` y `ticket_code IS NOT NULL`. Las compras pendientes de pago no aparecen. Cada asiento es un objeto independiente, incluso si pertenecen a la misma compra.
 
 ---
 

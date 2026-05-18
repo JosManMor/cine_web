@@ -18,6 +18,7 @@ class PurchaseSeat extends Model
         'row',
         'seat_number',
         'price_paid',
+        'ticket_code',
         'status',
     ];
 

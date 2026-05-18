@@ -3,14 +3,17 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Movie\MovieController;
+use App\Http\Controllers\Purchase\PurchaseController;
+use App\Http\Controllers\Screening\ScreeningController;
 use Illuminate\Support\Facades\Route;
 
 // ── Rutas públicas ────────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:5,1');
 
-Route::get('/movies',       [MovieController::class, 'index']);
-Route::get('/movies/{id}',  [MovieController::class, 'show']);
+Route::get('/movies',          [MovieController::class, 'index']);
+Route::get('/movies/{id}',     [MovieController::class, 'show']);
+Route::get('/screenings/{id}', [ScreeningController::class, 'show']);
 
 // ── Autenticado (token válido, email no necesariamente verificado) ─────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -25,8 +28,8 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // ── Autenticado + correo verificado ──────────────────────────────────────────
-// Aquí van las rutas que exigen email verificado (compras, tickets, perfil)
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    // Route::apiResource('/purchases', PurchaseController::class);
-    // Route::get('/tickets/{ticket_code}', [TicketController::class, 'show']);
+    Route::post('/purchases',             [PurchaseController::class, 'store']);
+    Route::get('/my-tickets',             [PurchaseController::class, 'myTickets']);
+    Route::get('/tickets/{ticket_code}',  [PurchaseController::class, 'showTicket']);
 });
