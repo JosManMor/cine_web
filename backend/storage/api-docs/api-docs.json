@@ -12,6 +12,199 @@
         }
     ],
     "paths": {
+        "/admin/metrics": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Métricas generales del panel de administración",
+                "description": "Devuelve tickets vendidos, ventas del día, usuarios registrados, película más vendida y ventas por día de la semana.",
+                "operationId": "cbeb56339adcb1554c48f1c3446a68d4",
+                "responses": {
+                    "200": {
+                        "description": "Métricas obtenidas correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "tickets_sold": {
+                                            "type": "integer",
+                                            "example": 247
+                                        },
+                                        "daily_sales": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 20995
+                                        },
+                                        "registered_users": {
+                                            "type": "integer",
+                                            "example": 1482
+                                        },
+                                        "top_movie": {
+                                            "properties": {
+                                                "title": {
+                                                    "type": "string",
+                                                    "example": "Inferno Nexus"
+                                                },
+                                                "tickets_sold": {
+                                                    "type": "integer",
+                                                    "example": 104
+                                                }
+                                            },
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "weekly_sales": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "day": {
+                                                        "type": "string",
+                                                        "example": "Lun"
+                                                    },
+                                                    "value": {
+                                                        "type": "integer",
+                                                        "example": 42
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    },
+                    "403": {
+                        "description": "Acceso denegado — no es admin"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/admin/activity": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Actividad reciente del sistema",
+                "description": "Devuelve los últimos eventos del sistema (compras exitosas y pagos fallidos).",
+                "operationId": "db6943f9c5c24bf9c59958df998a7277",
+                "responses": {
+                    "200": {
+                        "description": "Lista de eventos recientes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "example": "success",
+                                                "enum": [
+                                                    "success",
+                                                    "error"
+                                                ]
+                                            },
+                                            "message": {
+                                                "type": "string",
+                                                "example": "Compra exitosa — Inferno Nexus"
+                                            },
+                                            "time": {
+                                                "type": "string",
+                                                "example": "hace 2 min"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    },
+                    "403": {
+                        "description": "Acceso denegado — no es admin"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/admin/rooms": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Estado actual de las salas",
+                "description": "Devuelve el estado de cada sala activa: película, % ocupación, asientos disponibles y próxima función.",
+                "operationId": "3cc9471da67f8a8e82e169cd976abf16",
+                "responses": {
+                    "200": {
+                        "description": "Lista de salas con estado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "room": {
+                                                "type": "string",
+                                                "example": "Sala 1"
+                                            },
+                                            "movie_title": {
+                                                "type": "string",
+                                                "example": "Inferno Nexus",
+                                                "nullable": true
+                                            },
+                                            "occupancy_pct": {
+                                                "type": "integer",
+                                                "example": 87
+                                            },
+                                            "available_seats": {
+                                                "type": "integer",
+                                                "example": 16
+                                            },
+                                            "next_start_time": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "example": "2025-07-25 14:00:00",
+                                                "nullable": true
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    },
+                    "403": {
+                        "description": "Acceso denegado — no es admin"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/register": {
             "post": {
                 "tags": [
@@ -470,7 +663,7 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearerAuth": []
                     }
                 ]
             }
@@ -482,7 +675,7 @@
                 ],
                 "summary": "Ver ticket digital",
                 "description": "Devuelve la información completa del ticket. El QR se genera en el cliente a partir del ticket_code.",
-                "operationId": "2b405b210da0191050827c5c912bdc69",
+                "operationId": "9d429503a87557b1519ac3e936ccab7f",
                 "parameters": [
                     {
                         "name": "ticket_code",
@@ -507,7 +700,27 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/my-tickets": {
+            "get": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Listar mis tickets activos",
+                "description": "Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirmado. Un ticket por asiento reservado.",
+                "operationId": "e13b926d454ef13268915da1bf4f1628",
+                "responses": {
+                    "200": {
+                        "description": "Lista de tickets activos"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
                     }
                 ]
             }
@@ -727,6 +940,10 @@
         }
     },
     "tags": [
+        {
+            "name": "Admin",
+            "description": "Admin"
+        },
         {
             "name": "Autenticación",
             "description": "Autenticación"
