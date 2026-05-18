@@ -21,7 +21,7 @@ class PurchaseController extends Controller
         path: '/purchases',
         summary: 'Crear compra',
         description: 'Reserva asientos y crea la compra en estado pending. El ticket_code se asigna cuando el pago se confirma.',
-        security: [['sanctum' => []]],
+        security: [['bearerAuth' => []]],
         tags: ['Compras'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -77,7 +77,7 @@ class PurchaseController extends Controller
         path: '/tickets/{ticket_code}',
         summary: 'Ver ticket digital',
         description: 'Devuelve la información completa del ticket. El QR se genera en el cliente a partir del ticket_code.',
-        security: [['sanctum' => []]],
+        security: [['bearerAuth' => []]],
         tags: ['Tickets'],
         parameters: [
             new OA\Parameter(
@@ -97,7 +97,7 @@ class PurchaseController extends Controller
         path: '/my-tickets',
         summary: 'Listar mis tickets activos',
         description: 'Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirmado. Un ticket por asiento reservado.',
-        security: [['sanctum' => []]],
+        security: [['bearerAuth' => []]],
         tags: ['Tickets'],
         responses: [
             new OA\Response(response: 200, description: 'Lista de tickets activos'),

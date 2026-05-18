@@ -15,7 +15,7 @@ class AdminController extends Controller
         path: '/admin/metrics',
         summary: 'Métricas generales del panel de administración',
         description: 'Devuelve tickets vendidos, ventas del día, usuarios registrados, película más vendida y ventas por día de la semana.',
-        security: [['sanctum' => []]],
+        security: [['bearerAuth' => []]],
         tags: ['Admin'],
         responses: [
             new OA\Response(
@@ -61,7 +61,7 @@ class AdminController extends Controller
         path: '/admin/activity',
         summary: 'Actividad reciente del sistema',
         description: 'Devuelve los últimos eventos del sistema (compras exitosas y pagos fallidos).',
-        security: [['sanctum' => []]],
+        security: [['bearerAuth' => []]],
         tags: ['Admin'],
         responses: [
             new OA\Response(
@@ -91,7 +91,7 @@ class AdminController extends Controller
         path: '/admin/rooms',
         summary: 'Estado actual de las salas',
         description: 'Devuelve el estado de cada sala activa: película, % ocupación, asientos disponibles y próxima función.',
-        security: [['sanctum' => []]],
+        security: [['bearerAuth' => []]],
         tags: ['Admin'],
         responses: [
             new OA\Response(
