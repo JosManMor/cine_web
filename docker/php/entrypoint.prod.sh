@@ -6,15 +6,21 @@ cd /var/www
 # El bloque de setup solo corre cuando el contenedor levanta php-fpm.
 # Los workers (queue, scheduler) arrancan directamente sin repetir migraciones.
 if [ "$1" = "php-fpm" ]; then
-    # Si APP_KEY está vacía, generarla y exportarla para que config:cache la capture.
-    # En producción real, fija APP_KEY en .env.prod antes de arrancar.
-    if [ -z "$APP_KEY" ]; then
-        echo "[prod] AVISO: APP_KEY no configurada — generando clave temporal."
-        echo "[prod] Para persistirla entre reinicios, copia la siguiente línea a .env.prod:"
-        GENERATED_KEY=$(php artisan key:generate --show --no-interaction)
-        echo "[prod] APP_KEY=${GENERATED_KEY}"
-        export APP_KEY="${GENERATED_KEY}"
-    fi
+    # Una APP_KEY válida empieza con "base64:". Si está vacía o tiene otro valor
+    # (p.ej. el texto del comentario de .env.prod.example) se genera una nueva.
+    # En producción real, fija APP_KEY en .env.prod para persistirla entre reinicios.
+    case "$APP_KEY" in
+        base64:*)
+            echo "[prod] APP_KEY configurada."
+            ;;
+        *)
+            echo "[prod] AVISO: APP_KEY inválida o vacía — generando clave temporal."
+            echo "[prod] Copia la siguiente línea a .env.prod para persistirla:"
+            GENERATED_KEY=$(php artisan key:generate --show --no-interaction)
+            echo "[prod] APP_KEY=${GENERATED_KEY}"
+            export APP_KEY="${GENERATED_KEY}"
+            ;;
+    esac
 
     echo "[prod] Ejecutando migraciones..."
     php artisan migrate --force
