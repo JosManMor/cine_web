@@ -1,0 +1,32 @@
+# Secretos — nunca deben entrar a una imagen
+backend/.env
+backend/.env.*
+!backend/.env.example
+.env.prod
+
+# Dependencias — se instalan dentro del build
+backend/vendor/
+frontend/node_modules/
+frontend/dist/
+
+# Artefactos de build anteriores — se regeneran en la imagen
+backend/public/build/
+backend/bootstrap/cache/*
+!backend/bootstrap/cache/.gitignore
+backend/storage/logs/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+
+# Base de datos local de desarrollo
+backend/database/database.sqlite
+
+# Control de versiones y herramientas locales
+.git
+.gitattributes
+.vscode/
+.idea/
+*.swp
+
+# Documentación (no necesaria en la imagen)
+docs/

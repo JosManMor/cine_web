@@ -1,0 +1,183 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.prod.yml  —  Simulación de producción
+#
+# El código fuente, vendor PHP y el build del frontend están DENTRO de la
+# imagen (Dockerfile.prod). No hay bind mounts de código fuente.
+#
+# ── Primer despliegue ──────────────────────────────────────────────────────
+#   cp .env.prod.example .env.prod   # editar contraseñas y SMTP
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# ── Actualizar código / frontend ──────────────────────────────────────────
+#   docker compose -f docker-compose.prod.yml down
+#   docker volume rm $(docker compose -f docker-compose.prod.yml \
+#       config --volumes | grep app_www)    # elimina el volumen de app
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   (mysql_prod_data NO se elimina — los datos de la BD persisten)
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── PHP-FPM ────────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+    image: cine-sendera:prod
+    container_name: cine_app
+    restart: always
+    # app_www se auto-puebla desde la imagen en el primer arranque.
+    # app_www sirve también a apache y a los workers para compartir storage.
+    volumes:
+      - app_www:/var/www
+    env_file: .env.prod
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend_net
+    healthcheck:
+      # Saludable cuando el cache de config existe (setup del entrypoint terminó)
+      test: ["CMD-SHELL", "[ -f /var/www/bootstrap/cache/config.php ]"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.75"
+
+  # ── Apache ─────────────────────────────────────────────────────────────────
+  apache:
+    image: httpd:2.4
+    container_name: cine_apache
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - app_www:/var/www:ro
+      - ./docker/apache/prod.conf:/usr/local/apache2/conf/httpd.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost/up || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - frontend_net
+      - backend_net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.50"
+
+  # ── MySQL ──────────────────────────────────────────────────────────────────
+  # Sin `ports`: solo accesible dentro de backend_net, nunca desde el host.
+  mysql:
+    image: mysql:8.0
+    container_name: cine_mysql
+    restart: always
+    # MySQL lee MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, MYSQL_ROOT_PASSWORD
+    # directamente de .env.prod — sin interpolación del shell del host.
+    env_file: .env.prod
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p$$MYSQL_ROOT_PASSWORD",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+    networks:
+      - backend_net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.00"
+
+  # ── Queue worker ───────────────────────────────────────────────────────────
+  queue:
+    image: cine-sendera:prod # Reutiliza la imagen ya construida
+    container_name: cine_queue
+    restart: always
+    command:
+      [
+        "php",
+        "artisan",
+        "queue:work",
+        "--tries=3",
+        "--timeout=90",
+        "--sleep=3",
+        "--max-time=3600",
+      ]
+    volumes:
+      - app_www:/var/www
+    env_file: .env.prod
+    depends_on:
+      app:
+        condition: service_healthy # Espera a que el setup de app termine
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend_net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.50"
+
+  # ── Scheduler (cron de Artisan) ────────────────────────────────────────────
+  scheduler:
+    image: cine-sendera:prod
+    container_name: cine_scheduler
+    restart: always
+    command:
+      [
+        "/bin/sh",
+        "-c",
+        "while true; do php artisan schedule:run >> /dev/null 2>&1; sleep 60; done",
+      ]
+    volumes:
+      - app_www:/var/www
+    env_file: .env.prod
+    depends_on:
+      app:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend_net
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+
+# ── Volúmenes ────────────────────────────────────────────────────────────────
+volumes:
+  app_www:
+    # Se auto-puebla desde la imagen cine-sendera:prod en el primer arranque.
+    # Para actualizar código: eliminar este volumen y volver a levantar.
+  mysql_prod_data:
+    # Datos de MySQL — persiste entre despliegues, NO eliminar en actualizaciones.
+
+# ── Redes ─────────────────────────────────────────────────────────────────────
+networks:
+  frontend_net:
+  backend_net:

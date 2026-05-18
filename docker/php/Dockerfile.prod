@@ -1,0 +1,77 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 1 — Vendor PHP (sin dependencias de desarrollo)
+# ─────────────────────────────────────────────────────────────────────────────
+FROM composer:2 AS composer-builder
+
+WORKDIR /app
+
+COPY backend/composer.json backend/composer.lock ./
+
+RUN composer install \
+    --no-dev \
+    --optimize-autoloader \
+    --no-interaction \
+    --no-scripts \
+    --prefer-dist
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2 — Build del frontend React
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /project/frontend
+
+# Instala dependencias primero (capa cacheada si package.json no cambia)
+COPY frontend/package*.json ./
+RUN npm ci --prefer-offline
+
+COPY frontend/ ./
+
+# outDir "../backend/public/build" → /project/backend/public/build
+RUN mkdir -p /project/backend/public/build && npm run build
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 3 — Imagen final PHP-FPM
+# ─────────────────────────────────────────────────────────────────────────────
+FROM php:8.3-fpm
+
+RUN apt-get update && apt-get install -y \
+        curl git unzip zip \
+        libzip-dev libpng-dev libonig-dev libxml2-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl opcache
+
+# OPcache optimizado para producción
+RUN { \
+        echo 'opcache.enable=1'; \
+        echo 'opcache.memory_consumption=256'; \
+        echo 'opcache.max_accelerated_files=20000'; \
+        echo 'opcache.validate_timestamps=0'; \
+    } > /usr/local/etc/php/conf.d/opcache.ini
+
+WORKDIR /var/www
+
+# Código fuente del backend
+COPY backend/ .
+
+# Vendor de producción (stage 1 — sin devDependencies)
+COPY --from=composer-builder /app/vendor ./vendor
+
+# Assets compilados del frontend (stage 2)
+COPY --from=frontend-builder /project/backend/public/build ./public/build
+
+# Permisos de escritura para directorios de runtime
+RUN mkdir -p storage/logs \
+             storage/framework/cache \
+             storage/framework/sessions \
+             storage/framework/views \
+             bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
+COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["php-fpm"]
