@@ -4,6 +4,113 @@ import { getAdminMetrics, getAdminActivity, getAdminRooms } from "../api/admin";
 import Spinner from "../components/ui/Spinner";
 import BtnPrimary from "../components/ui/BtnPrimary";
 
+function fmtTime(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  const now = new Date();
+  const isToday    = d.toDateString() === now.toDateString();
+  const tomorrow   = new Date(now); tomorrow.setDate(now.getDate() + 1);
+  const isTomorrow = d.toDateString() === tomorrow.toDateString();
+  const hhmm = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+  if (isToday)    return `Hoy ${hhmm}`;
+  if (isTomorrow) return `Mañana ${hhmm}`;
+  return d.toLocaleDateString("es-MX", { day: "numeric", month: "short" }) + ` ${hhmm}`;
+}
+
+function minutesUntil(dateStr) {
+  if (!dateStr) return null;
+  const diff = Math.round((new Date(dateStr) - Date.now()) / 60000);
+  if (diff <= 0)   return null;
+  if (diff < 60)   return `en ${diff} min`;
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  return m > 0 ? `en ${h} h ${m} min` : `en ${h} h`;
+}
+
+function minutesLeft(dateStr) {
+  if (!dateStr) return null;
+  const diff = Math.round((new Date(dateStr) - Date.now()) / 60000);
+  if (diff <= 0) return "terminando";
+  if (diff < 60) return `${diff} min restantes`;
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  return m > 0 ? `${h} h ${m} min restantes` : `${h} h restantes`;
+}
+
+const STATUS_LABEL = { showing: "EN FUNCIÓN", upcoming: "PRÓXIMA", idle: "SIN FUNCIÓN" };
+const STATUS_COLOR = { showing: C.green, upcoming: "#EF9F27", idle: C.grayDark };
+
+function RoomCard({ r }) {
+  const col       = r.occupancy_pct > 80 ? C.red : r.occupancy_pct > 50 ? "#EF9F27" : C.green;
+  const statusCol = STATUS_COLOR[r.status];
+
+  return (
+    <div style={{
+      background: C.surface ?? "#282424", border: `1px solid ${C.border}`,
+      borderRadius: 8, padding: "14px 16px",
+    }}>
+      {/* Room name + status badge */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 13 }}>{r.room}</span>
+        <span style={{
+          fontSize: 10, fontFamily: "'Montserrat', sans-serif", fontWeight: 700,
+          color: statusCol, border: `1px solid ${statusCol}`,
+          borderRadius: 3, padding: "2px 6px", letterSpacing: .5,
+        }}>
+          {STATUS_LABEL[r.status]}
+        </span>
+      </div>
+
+      {/* Current movie block */}
+      {r.status === "showing" && (
+        <div style={{ marginBottom: 8 }}>
+          <p style={{ fontSize: 13, color: C.white, fontWeight: 500 }}>{r.current_movie}</p>
+          <p style={{ fontSize: 11, color: C.green, marginTop: 2 }}>
+            {minutesLeft(r.current_ends_at)}
+          </p>
+          {r.next_movie && (
+            <p style={{ fontSize: 11, color: C.gray, marginTop: 2 }}>
+              Próxima: {r.next_movie} · {fmtTime(r.next_start_time)}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Upcoming movie block */}
+      {r.status === "upcoming" && (
+        <div style={{ marginBottom: 8 }}>
+          <p style={{ fontSize: 13, color: C.white, fontWeight: 500 }}>{r.next_movie}</p>
+          <p style={{ fontSize: 11, color: "#EF9F27", marginTop: 2 }}>
+            {fmtTime(r.next_start_time)} · {minutesUntil(r.next_start_time)}
+          </p>
+        </div>
+      )}
+
+      {/* Idle block */}
+      {r.status === "idle" && (
+        <p style={{ fontSize: 12, color: C.grayDark, marginBottom: 8 }}>Sin funciones programadas</p>
+      )}
+
+      {/* Occupancy bar */}
+      {r.status !== "idle" && (
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+            <span style={{ fontSize: 11, color: C.gray }}>
+              {r.available_seats} de {r.total_seats} disponibles
+            </span>
+            <span style={{ fontSize: 11, color: col, fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+              {r.occupancy_pct}%
+            </span>
+          </div>
+          <div style={{ height: 5, background: C.grayDarker, borderRadius: 3, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${r.occupancy_pct}%`, background: col, borderRadius: 3 }} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 const TODAY = new Date().toLocaleDateString("es-MX", {
   weekday: "long", day: "numeric", month: "long", year: "numeric",
 });
@@ -158,25 +265,11 @@ export default function AdminPage({ user, setPage }) {
             </h3>
             {rooms.length === 0 ? (
               <p style={{ color: C.gray, fontSize: 13 }}>Sin salas activas.</p>
-            ) : rooms.map((r, i) => {
-              const col = r.occupancy_pct > 80 ? C.red : r.occupancy_pct > 50 ? "#EF9F27" : C.green;
-              return (
-                <div key={r.room} style={{ marginBottom: i < rooms.length - 1 ? 14 : 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                    <span style={{ fontSize: 13 }}>{r.room}</span>
-                    <span style={{ fontSize: 12, color: col, fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
-                      {r.occupancy_pct}% ocupado
-                    </span>
-                  </div>
-                  <div style={{ height: 5, background: C.grayDarker, borderRadius: 3, overflow: "hidden", marginBottom: 4 }}>
-                    <div style={{ height: "100%", width: `${r.occupancy_pct}%`, background: col, borderRadius: 3 }} />
-                  </div>
-                  <p style={{ fontSize: 11, color: C.grayDark }}>
-                    {r.movie_title ?? "Sin función"} · {r.available_seats} disponibles
-                  </p>
-                </div>
-              );
-            })}
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {rooms.map(r => <RoomCard key={r.room} r={r} />)}
+              </div>
+            )}
           </div>
         </div>
 

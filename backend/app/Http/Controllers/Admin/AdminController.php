@@ -101,11 +101,15 @@ class AdminController extends Controller
                     type: 'array',
                     items: new OA\Items(
                         properties: [
-                            new OA\Property(property: 'room',            type: 'string',      example: 'Sala 1'),
-                            new OA\Property(property: 'movie_title',     type: 'string',      nullable: true, example: 'Inferno Nexus'),
-                            new OA\Property(property: 'occupancy_pct',   type: 'integer',     example: 87),
-                            new OA\Property(property: 'available_seats', type: 'integer',     example: 16),
-                            new OA\Property(property: 'next_start_time', type: 'string',      nullable: true, format: 'date-time', example: '2025-07-25 14:00:00'),
+                            new OA\Property(property: 'room',             type: 'string',  example: 'Sala 1'),
+                            new OA\Property(property: 'status',           type: 'string',  enum: ['showing', 'upcoming', 'idle'], example: 'showing'),
+                            new OA\Property(property: 'current_movie',    type: 'string',  nullable: true, example: 'Inferno Nexus'),
+                            new OA\Property(property: 'current_ends_at',  type: 'string',  nullable: true, format: 'date-time', example: '2025-07-25 16:18:00'),
+                            new OA\Property(property: 'next_movie',       type: 'string',  nullable: true, example: 'Hollow Depths'),
+                            new OA\Property(property: 'next_start_time',  type: 'string',  nullable: true, format: 'date-time', example: '2025-07-25 18:00:00'),
+                            new OA\Property(property: 'occupancy_pct',    type: 'integer', example: 87),
+                            new OA\Property(property: 'available_seats',  type: 'integer', example: 16),
+                            new OA\Property(property: 'total_seats',      type: 'integer', example: 120),
                         ]
                     )
                 )

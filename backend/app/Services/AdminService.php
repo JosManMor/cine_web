@@ -92,41 +92,53 @@ class AdminService
 
     public function rooms(): array
     {
+        $now = now();
+
         $rooms = Room::with([
             'screenings' => fn ($q) => $q
-                ->where('status', 'active')
-                ->where('start_time', '>=', now())
+                ->with(['movie', 'purchaseSeats' => fn ($q) => $q->where('status', 'active')])
+                ->whereIn('status', ['scheduled', 'open', 'sold_out'])
                 ->orderBy('start_time'),
-            'screenings.movie',
-            'screenings.purchaseSeats' => fn ($q) => $q->where('status', 'active'),
         ])->where('status', 'active')->get();
 
-        return $rooms->map(function (Room $room) {
-            $totalSeats    = $room->rows * $room->seats_per_row;
-            $nextScreening = $room->screenings->first();
+        return $rooms->map(function (Room $room) use ($now) {
+            $totalSeats = $room->rows * $room->seats_per_row;
 
-            if (! $nextScreening) {
-                return [
-                    'room'            => $room->name,
-                    'movie_title'     => null,
-                    'occupancy_pct'   => 0,
-                    'available_seats' => $totalSeats,
-                    'next_start_time' => null,
-                ];
-            }
+            // Función en curso: comenzó y su duración no ha expirado
+            $current = $room->screenings->first(function (Screening $s) use ($now) {
+                $endsAt = $s->start_time->copy()->addMinutes($s->movie?->duration_minutes ?? 120);
+                return $s->start_time->lte($now) && $endsAt->gte($now);
+            });
 
-            $soldSeats      = $nextScreening->purchaseSeats->count();
-            $availableSeats = $totalSeats - $soldSeats;
-            $occupancyPct   = $totalSeats > 0
-                ? (int) round(($soldSeats / $totalSeats) * 100)
-                : 0;
+            // Próxima función: la más cercana en el futuro
+            $next = $room->screenings->first(fn (Screening $s) => $s->start_time->gt($now));
+
+            // La ocupación se mide contra la función relevante (actual > próxima)
+            $reference  = $current ?? $next;
+            $soldSeats  = $reference?->purchaseSeats->count() ?? 0;
+            $available  = max(0, $totalSeats - $soldSeats);
+            $occupancy  = $totalSeats > 0 ? (int) round(($soldSeats / $totalSeats) * 100) : 0;
+
+            $status = match (true) {
+                $current !== null => 'showing',
+                $next    !== null => 'upcoming',
+                default           => 'idle',
+            };
 
             return [
                 'room'            => $room->name,
-                'movie_title'     => $nextScreening->movie?->title,
-                'occupancy_pct'   => $occupancyPct,
-                'available_seats' => max(0, $availableSeats),
-                'next_start_time' => $nextScreening->start_time?->toDateTimeString(),
+                'status'          => $status,
+                'current_movie'   => $current?->movie?->title,
+                'current_ends_at' => $current
+                    ? $current->start_time->copy()
+                        ->addMinutes($current->movie?->duration_minutes ?? 120)
+                        ->toDateTimeString()
+                    : null,
+                'next_movie'      => $next?->movie?->title,
+                'next_start_time' => $next?->start_time?->toDateTimeString(),
+                'occupancy_pct'   => $occupancy,
+                'available_seats' => $available,
+                'total_seats'     => $totalSeats,
             ];
         })->values()->all();
     }
