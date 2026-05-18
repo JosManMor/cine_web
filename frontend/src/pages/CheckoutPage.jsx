@@ -140,17 +140,6 @@ export default function CheckoutPage({ movie, schedule, user, selectedSeats = []
           </div>
         </div>
 
-        {/* Datos del comprador */}
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 24 }}>
-          <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 14, marginBottom: 16, color: C.gray, textTransform: "uppercase", letterSpacing: 1 }}>Datos del comprador</h3>
-          {[["Nombre completo", user?.name ?? ""], ["Correo electrónico", user?.email ?? ""]].map(([label, val]) => (
-            <div key={label} style={{ marginBottom: 14 }}>
-              <label>{label}</label>
-              <input value={val} readOnly style={{ cursor: "default", color: C.gray }} />
-            </div>
-          ))}
-        </div>
-
         {loading
           ? <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 32, background: C.card, borderRadius: 10, border: `1px solid ${C.border}` }}>
               <Spinner />
