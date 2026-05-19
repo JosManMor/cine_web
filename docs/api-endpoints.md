@@ -1,8 +1,10 @@
-# Documentación de la API — Cine Sendera
+# API — Cine Sendera
+
+Referencia de alto nivel de los módulos de la API. Para especificación completa de cada endpoint (body, respuestas, ejemplos, lógica de backend y componentes de frontend) ver los documentos de módulo en [`docs/modulos/`](modulos/README.md).
 
 ---
 
-## 0. Estándares de la API
+## 0. Estándares
 
 | Atributo          | Valor                                                               |
 | ----------------- | ------------------------------------------------------------------- |
@@ -34,385 +36,55 @@
 
 ## 1. Autenticación
 
-### 1.1 Registro de Usuario
+Gestiona el ciclo de vida de la sesión: registro, login, logout y verificación de correo. Es la base de la que dependen todos los demás módulos — define si el usuario está autenticado, si tiene el correo verificado y qué rol posee (`admin`, `cashier`, `client`). Sin este módulo no existe control de acceso.
 
-**`POST /register`** — Público
+| Endpoint                                | Nivel       | Descripción                                              |
+| --------------------------------------- | ----------- | -------------------------------------------------------- |
+| `POST /register`                        | Público     | Crea cuenta, emite token y envía correo de verificación  |
+| `POST /login`                           | Público     | Autentica credenciales y devuelve token · `throttle:5,1` |
+| `POST /logout`                          | Autenticado | Revoca el token de la sesión actual                      |
+| `POST /email/verification-notification` | Autenticado | Reenvía el enlace de verificación · `throttle:6,1`       |
+| `GET /email/verify/{id}/{hash}`         | Autenticado | Valida la firma del enlace y marca el correo verificado  |
 
-Crea la cuenta con rol `client`, emite un Bearer Token y envía automáticamente un correo de verificación. El token es válido de inmediato para rutas públicas y de verificación; las rutas que exigen `verified` permanecen bloqueadas hasta confirmar el correo.
-
-**Body:**
-
-```json
-{
-  "name": "Juan Pérez",
-  "email": "juan@example.com",
-  "password": "password123",
-  "password_confirmation": "password123"
-}
-```
-
-| Campo      | Reglas                                   |
-| ---------- | ---------------------------------------- |
-| `name`     | requerido, string, máx. 255              |
-| `email`    | requerido, email único                   |
-| `password` | requerido, mín. 8 caracteres, confirmado |
-
-**201 Created:**
-
-```json
-{
-  "user": {
-    "id": 1,
-    "name": "Juan Pérez",
-    "email": "juan@example.com",
-    "role": "client"
-  },
-  "token": "1|abc123..."
-}
-```
-
-**422** — email ya registrado u otro campo inválido.
-
----
-
-### 1.2 Inicio de Sesión
-
-**`POST /login`** — Público · `throttle:5,1`
-
-**Body:**
-
-```json
-{
-  "email": "juan@example.com",
-  "password": "password123"
-}
-```
-
-**200 OK:**
-
-```json
-{
-  "user": {
-    "id": 1,
-    "name": "Juan Pérez",
-    "email": "juan@example.com",
-    "role": "client"
-  },
-  "token": "2|xyz789..."
-}
-```
-
-**401** — credenciales incorrectas:
-
-```json
-{ "message": "Credenciales incorrectas." }
-```
-
----
-
-### 1.3 Cierre de Sesión
-
-**`POST /logout`** — Autenticado
-
-Revoca únicamente el token usado en la request. El resto de sesiones activas del usuario no se ven afectadas.
-
-**200 OK:**
-
-```json
-{ "message": "Sesión cerrada correctamente." }
-```
-
----
-
-### 1.4 Reenviar Correo de Verificación
-
-**`POST /email/verification-notification`** — Autenticado · `throttle:6,1`
-
-Genera un nuevo enlace firmado y lo envía al email del usuario. El enlace apunta al frontend (`FRONTEND_URL/email/verify?...`), no directamente a la API.
-
-**200 OK** (correo enviado):
-
-```json
-{ "message": "Correo de verificación enviado." }
-```
-
-**204 No Content** — el correo ya estaba verificado, sin cuerpo.
-
----
-
-### 1.5 Verificar Correo Electrónico
-
-**`GET /email/verify/{id}/{hash}`** — Autenticado · URL firmada (`signed`) · `throttle:6,1`
-
-El frontend llama a este endpoint después de extraer los parámetros del enlace recibido en el correo. Requiere el Bearer Token ya almacenado en el cliente.
-
-| Parámetro   | Tipo  | Origen | Descripción                            |
-| ----------- | ----- | ------ | -------------------------------------- |
-| `id`        | path  | URL    | ID del usuario                         |
-| `hash`      | path  | URL    | `sha1($user->email)`                   |
-| `expires`   | query | URL    | Timestamp UNIX de expiración (60 min)  |
-| `signature` | query | URL    | Firma HMAC-SHA256 generada por Laravel |
-
-**200 OK:**
-
-```json
-{ "message": "Correo verificado correctamente." }
-```
-
-**403** — firma inválida, enlace expirado o hash que no coincide con el email actual.
-
-**401** — token ausente.
-
----
-
-### Flujo completo de verificación
-
-```
-POST /api/register
-  │
-  ├─→ Respuesta inmediata: { user, token }
-  │   El token funciona para rutas públicas y de verificación.
-  │
-  └─→ Email enviado a juan@example.com
-        Enlace: http://frontend:5173/email/verify
-                ?id=1
-                &hash=<sha1(email)>
-                &expires=<timestamp>
-                &signature=<hmac>
-
-  Usuario hace clic en el enlace
-  │
-  └─→ Frontend carga /email/verify, lee los query params
-        └─→ GET /api/email/verify/1/<hash>?expires=...&signature=...
-              Authorization: Bearer <token almacenado>
-              │
-              ├─→ 200 OK → email_verified_at seteado
-              │   Frontend redirige a la cartelera con acceso completo.
-              │
-              └─→ 403 → enlace expirado
-                  Frontend llama a POST /api/email/verification-notification
-                  para generar un nuevo enlace.
-```
+**Documentación completa:** [docs/modulos/01-auth.md](modulos/01-auth.md)
 
 ---
 
 ## 2. Cartelera y Películas
 
-### 2.1 Listar Películas
+Expone el catálogo de películas y sus funciones disponibles. Es el punto de entrada del flujo de compra: el usuario navega la cartelera, selecciona una película y elige una función antes de pasar al checkout. Los datos de disponibilidad de asientos se calculan en tiempo real; no se almacena `available_seats` en ninguna tabla.
 
-**`GET /movies`** — Público
+| Endpoint           | Nivel   | Descripción                                                    |
+| ------------------ | ------- | -------------------------------------------------------------- |
+| `GET /movies`      | Público | Lista todas las películas activas                              |
+| `GET /movies/{id}` | Público | Detalle de película con funciones, sala y asientos disponibles |
 
-**200 OK:**
-
-```json
-[
-  {
-    "id": 1,
-    "title": "Inferno Nexus",
-    "genre": "Acción",
-    "duration_minutes": 138,
-    "rating": "PG-13",
-    "poster_url": "https://cine-sendera.com/images/inferno-nexus.jpg",
-    "status": "active"
-  }
-]
-```
-
----
-
-### 2.2 Detalle de Película
-
-**`GET /movies/{id}`** — Público
-
-**200 OK:**
-
-```json
-{
-  "id": 1,
-  "title": "Inferno Nexus",
-  "genre": "Acción",
-  "duration_minutes": 138,
-  "rating": "PG-13",
-  "poster_url": "https://cine-sendera.com/images/inferno-nexus.jpg",
-  "synopsis": "Un ex-agente infiltrado debe detener una conspiración global...",
-  "director": "María Castillo",
-  "status": "active",
-  "screenings": [
-    {
-      "id": 12,
-      "start_time": "2025-07-25 14:00:00",
-      "format": "2D",
-      "language_type": "subtitled",
-      "base_price": 90.0,
-      "status": "open",
-      "room": {
-        "id": 1,
-        "name": "Sala 1",
-        "total_seats": 120,
-        "available_seats": 48
-      }
-    }
-  ]
-}
-```
+**Documentación completa:** [docs/modulos/02-cartelera.md](modulos/02-cartelera.md)
 
 ---
 
 ## 3. Compras y Tickets
 
-### 3.1 Crear Compra
+Maneja la reserva atómica de asientos y la generación del ticket digital. Es el módulo de mayor criticidad: una transacción fallida o un doble-booking implica pérdida económica o experiencia degradada. La garantía contra doble reserva descansa en el constraint `UNIQUE (screening_id, row, seat_number)` de `purchase_seats`; el `ticket_code` se asigna solo al confirmarse el pago, vía Observer.
 
-**`POST /purchases`** — Verificado
+| Endpoint                     | Nivel      | Descripción                                                   |
+| ---------------------------- | ---------- | ------------------------------------------------------------- |
+| `POST /purchases`            | Verificado | Reserva asientos y confirma la compra en una sola transacción |
+| `GET /my-tickets`            | Verificado | Lista todos los tickets activos del usuario autenticado       |
+| `GET /tickets/{ticket_code}` | Verificado | Detalle de un ticket individual para mostrar en el QR digital |
 
-**Body:**
-
-```json
-{
-  "screening_id": 12,
-  "seats": [
-    { "row": "A", "seat_number": 3 },
-    { "row": "A", "seat_number": 4 }
-  ],
-  "payment_method": "card",
-  "total_amount": 180.0
-}
-```
-
-**201 Created:**
-
-```json
-{
-  "message": "Compra registrada y pago confirmado.",
-  "purchase_id": 501,
-  "payment_status": "completed"
-}
-```
-
-> El servicio confirma el pago automáticamente al final de la transacción (`payment_status = completed`), lo que dispara el `PurchaseObserver` que asigna un `ticket_code` UUID a cada asiento reservado. Los tickets se consultan con `GET /my-tickets` o `GET /tickets/{ticket_code}`.
-
-**409 Conflict** — asiento ya reservado por otra transacción concurrente.
+**Documentación completa:** [docs/modulos/03-compras.md](modulos/03-compras.md)
 
 ---
 
-### 3.2 Mis Tickets Activos
+## 4. Administración
 
-**`GET /my-tickets`** — Verificado
+Dashboard exclusivo para el rol `admin`. Centraliza las métricas operativas del cine (ventas, ocupación, actividad) sin exponer datos sensibles a otros roles. Cualquier request con token válido pero sin `role = admin` recibe `403`.
 
-Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirmado (`payment_status = completed`, `ticket_code` asignado, `status = active`). Ordenados por ID descendente (más recientes primero).
+| Endpoint              | Nivel | Descripción                                                       |
+| --------------------- | ----- | ----------------------------------------------------------------- |
+| `GET /admin/metrics`  | Admin | Totales de tickets, ventas del día, usuarios y película más vista |
+| `GET /admin/activity` | Admin | Eventos recientes de compras exitosas y pagos fallidos            |
+| `GET /admin/rooms`    | Admin | Estado actual de cada sala: función en curso, ocupación y próxima |
 
-**200 OK:**
-
-```json
-[
-  {
-    "ticket_code": "3f4a8b2c-...",
-    "status": "active",
-    "movie_title": "Inferno Nexus",
-    "start_time": "2025-07-25 17:30:00",
-    "format": "2D",
-    "language_type": "subtitled",
-    "room": "Sala 1",
-    "row": "A",
-    "seat_number": 3,
-    "price_paid": 90.0,
-    "user_name": "Juan Pérez",
-    "purchased_at": "2025-07-25 10:30:00"
-  }
-]
-```
-
-> Cada elemento del array es un asiento/ticket individual. Si el usuario compró 2 asientos en una misma función, aparecen 2 objetos. Las compras con `payment_status = pending` (sin `ticket_code`) **no aparecen aquí**.
-
----
-
-### 3.3 Obtener Ticket
-
-**`GET /tickets/{ticket_code}`** — Verificado
-
-**200 OK:**
-
-```json
-{
-  "ticket_code": "SNDR-2025-7A3F",
-  "status": "active",
-  "movie_title": "Inferno Nexus",
-  "start_time": "2025-07-25 17:30:00",
-  "format": "2D",
-  "language_type": "subtitled",
-  "room": "Sala 1",
-  "row": "A",
-  "seat_number": 3,
-  "price_paid": 90.0,
-  "user_name": "Juan Pérez",
-  "purchased_at": "2025-07-25 10:30:00"
-}
-```
-
----
-
-## 4. Administración (Dashboard)
-
-### 4.1 Métricas Generales
-
-**`GET /admin/metrics`** — Admin
-
-**200 OK:**
-
-```json
-{
-  "tickets_sold": 247,
-  "daily_sales": 20995.0,
-  "registered_users": 1482,
-  "top_movie": {
-    "title": "Inferno Nexus",
-    "tickets_sold": 104
-  },
-  "weekly_sales": [
-    { "day": "Lun", "value": 42 },
-    { "day": "Mar", "value": 68 }
-  ]
-}
-```
-
----
-
-### 4.2 Actividad Reciente
-
-**`GET /admin/activity`** — Admin
-
-**200 OK:**
-
-```json
-[
-  {
-    "type": "success",
-    "message": "Compra exitosa — Inferno Nexus",
-    "time": "hace 2 min"
-  },
-  {
-    "type": "error",
-    "message": "Intento de acceso fallido bloqueado",
-    "time": "hace 2 h"
-  }
-]
-```
-
----
-
-### 4.3 Estado de Salas
-
-**`GET /admin/rooms`** — Admin
-
-**200 OK:**
-
-```json
-[
-  {
-    "room": "Sala 1",
-    "movie_title": "Inferno Nexus",
-    "occupancy_pct": 87,
-    "available_seats": 16,
-    "next_start_time": "2025-07-25 14:00:00"
-  }
-]
-```
+**Documentación completa:** [docs/modulos/04-admin.md](modulos/04-admin.md)

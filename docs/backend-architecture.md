@@ -137,74 +137,14 @@ scripts/
 
 # 5. Módulos del Sistema
 
-# 5.1 Autenticación
+El sistema se divide en cuatro módulos funcionales. La descripción de cada módulo (propósito, endpoints, contratos de request/response y niveles de acceso) se encuentra en **[docs/api-endpoints.md](api-endpoints.md)**.
 
-## Funcionalidades
-
-- Registro de usuarios
-- Inicio de sesión
-- Logout
-- Recuperación de contraseña
-- Protección CSRF
-- Rate limiting
-
-## Tecnologías
-
-- Laravel Breeze o Laravel Fortify
-- Sessions
-- Middleware `auth`
-
-## Seguridad
-
-Contraseñas usando:
-
-```php
-Hash::make($request->password);
-```
-
-Laravel utilizará:
-
-- bcrypt
-- argon2id
-
----
-
-# 5.2 Cartelera
-
-## Funcionalidades
-
-- Mostrar películas
-- Mostrar imagen
-- Mostrar disponibilidad
-- Consulta de asientos en tiempo real
-
-## Entidades principales
-
-### Movie
-
-- id, title, genre, synopsis, duration_minutes, director, rating, poster_url, status, created_at
-
-### Screening
-
-- id, movie_id, room_id, start_time, base_price, format, language_type, status, created_at
-
-### Room
-
-- id, name, rows, seats_per_row, status, created_at
-
-La disponibilidad de asientos se calcula como `rooms.rows × rooms.seats_per_row` menos el conteo de `purchase_seats` activos para esa función. No se almacena `available_seats` en ninguna tabla.
-
----
-
-# 5.3 Compra de Boletos
-
-## Flujo
-
-1. Usuario selecciona función (`screening_id`)
-2. Selecciona asientos individuales (`row` + `seat_number`)
-3. Sistema valida disponibilidad en `purchase_seats`
-4. Sistema crea `purchases` y los registros en `purchase_seats` dentro de una transacción
-5. Al confirmar el pago (`payment_status = completed`), un Observer/Job asigna `ticket_code` a cada `purchase_seat`
+| Módulo            | Descripción breve                                                   |
+| ----------------- | ------------------------------------------------------------------- |
+| Autenticación     | Registro, login, logout y verificación de correo vía Sanctum        |
+| Cartelera         | Catálogo de películas y funciones con disponibilidad en tiempo real |
+| Compras y Tickets | Reserva atómica de asientos y generación de ticket digital          |
+| Administración    | Dashboard de métricas, actividad y estado de salas para `admin`     |
 
 ---
 
@@ -680,11 +620,11 @@ sudo crontab scripts/cine.cron
 
 ## Resumen de entradas
 
-| Script | Frecuencia | Docker | Nativo |
-|---|---|---|---|
-| `watchdog.sh` | `*/1 * * * *` | No aplica (`restart: always`) | Sí |
-| `backup.sh` | `0 2 * * *` | Servicio `cron` (automático) | Sí |
-| `staff_creator.sh` | — | `docker exec -it cine_app /usr/local/scripts/staff_creator.sh` | `sudo bash scripts/staff_creator.sh` |
+| Script             | Frecuencia    | Docker                                                         | Nativo                               |
+| ------------------ | ------------- | -------------------------------------------------------------- | ------------------------------------ |
+| `watchdog.sh`      | `*/1 * * * *` | No aplica (`restart: always`)                                  | Sí                                   |
+| `backup.sh`        | `0 2 * * *`   | Servicio `cron` (automático)                                   | Sí                                   |
+| `staff_creator.sh` | —             | `docker exec -it cine_app /usr/local/scripts/staff_creator.sh` | `sudo bash scripts/staff_creator.sh` |
 
 ---
 
@@ -728,21 +668,7 @@ sudo crontab scripts/cine.cron
 
 ---
 
-# 22. Estructura del Repositorio
-
-```txt
-cine-system/
-├── backend/
-├── database/
-├── scripts/
-├── docs/
-├── docker/
-└── README.md
-```
-
----
-
-# 23. Recomendaciones Finales
+# 22. Recomendaciones Finales
 
 ## Recomendaciones técnicas
 
@@ -758,7 +684,7 @@ cine-system/
 
 ---
 
-# 24. Tecnologías Recomendadas
+# 23. Tecnologías Recomendadas
 
 | Componente    | Tecnología    |
 | ------------- | ------------- |
