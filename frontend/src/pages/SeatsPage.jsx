@@ -73,9 +73,9 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user, se
 
   return (
     <div style={{ minHeight: "100vh", paddingTop: 80 }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px", animation: "fadeUp .5s ease forwards" }}>
+      <div className="seats-container" style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px", animation: "fadeUp .5s ease forwards" }}>
         <button onClick={() => setPage("movie-detail")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, cursor: "pointer", marginBottom: 20, fontFamily: "'Open Sans', sans-serif" }}>← Volver</button>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 28 }}>
+        <div className="seats-layout" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 28 }}>
 
           {/* Sala */}
           <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: "32px 24px" }}>
@@ -98,6 +98,7 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user, se
 
             {/* Grilla de asientos */}
             {!fetchLoading && screeningData && (
+              <div className="seats-scroll">
               <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
                 {rowLabels.map(rowLabel => (
                   <div key={rowLabel} style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -131,6 +132,7 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user, se
                     <span style={{ width: 16, textAlign: "center", fontSize: 11, color: C.grayDark, fontFamily: "'Montserrat', sans-serif" }}>{rowLabel}</span>
                   </div>
                 ))}
+              </div>
               </div>
             )}
 
@@ -201,6 +203,14 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user, se
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 650px) {
+          .seats-container { padding: 20px 12px !important; }
+          .seats-layout    { grid-template-columns: 1fr !important; gap: 20px !important; }
+          .seats-scroll    { overflow-x: auto; padding-bottom: 8px; }
+        }
+      `}</style>
     </div>
   );
 }
