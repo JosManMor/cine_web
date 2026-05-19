@@ -3,6 +3,7 @@
 Panel de control para el rol `admin`. Muestra métricas generales, actividad reciente y estado de las salas.
 
 **Códigos de error de acceso:**
+
 - `401 Unauthorized` — request sin token válido (no autenticado).
 - `403 Forbidden` — token válido pero el usuario no tiene rol `admin`.
 
@@ -12,8 +13,8 @@ Panel de control para el rol `admin`. Muestra métricas generales, actividad rec
 
 ### Páginas
 
-| Ruta | Descripción |
-|---|---|
+| Ruta     | Descripción         |
+| -------- | ------------------- |
 | `/admin` | Dashboard principal |
 
 ### Componentes
@@ -25,10 +26,10 @@ Panel de control para el rol `admin`. Muestra métricas generales, actividad rec
 
 ### Archivos
 
-| Archivo | Descripción |
-|---|---|
+| Archivo                   | Descripción                                            |
+| ------------------------- | ------------------------------------------------------ |
 | `src/pages/AdminPage.jsx` | Página principal; carga los tres endpoints en paralelo |
-| `src/api/admin.js` | `getAdminMetrics`, `getAdminActivity`, `getAdminRooms` |
+| `src/api/admin.js`        | `getAdminMetrics`, `getAdminActivity`, `getAdminRooms` |
 
 ### Flujo de carga
 
@@ -40,11 +41,11 @@ Panel de control para el rol `admin`. Muestra métricas generales, actividad rec
 
 ### Lógica de `RoomCard`
 
-| `status` | Contenido mostrado |
-|---|---|
-| `showing` | Película actual · tiempo restante · próxima función (si existe) · barra de ocupación |
-| `upcoming` | Película próxima · hora de inicio · tiempo hasta que empiece · barra de ocupación |
-| `idle` | "Sin funciones programadas" · sin barra de ocupación |
+| `status`   | Contenido mostrado                                                                   |
+| ---------- | ------------------------------------------------------------------------------------ |
+| `showing`  | Película actual · tiempo restante · próxima función (si existe) · barra de ocupación |
+| `upcoming` | Película próxima · hora de inicio · tiempo hasta que empiece · barra de ocupación    |
+| `idle`     | "Sin funciones programadas" · sin barra de ocupación                                 |
 
 ---
 
@@ -52,13 +53,13 @@ Panel de control para el rol `admin`. Muestra métricas generales, actividad rec
 
 ### Archivos involucrados
 
-| Capa | Archivo |
-|---|---|
-| Controller | `Http/Controllers/Admin/AdminController.php` |
-| Service | `Services/AdminService.php` |
-| Middleware | `Http/Middleware/EnsureIsAdmin.php` |
-| Routes | `routes/admin.php` |
-| Models | `Models/Purchase.php`, `Models/PurchaseSeat.php`, `Models/Screening.php`, `Models/Room.php`, `Models/Movie.php`, `Models/User.php` |
+| Capa       | Archivo                                                                                                                            |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Controller | `Http/Controllers/Admin/AdminController.php`                                                                                       |
+| Service    | `Services/AdminService.php`                                                                                                        |
+| Middleware | `Http/Middleware/EnsureIsAdmin.php`                                                                                                |
+| Routes     | `routes/admin.php`                                                                                                                 |
+| Models     | `Models/Purchase.php`, `Models/PurchaseSeat.php`, `Models/Screening.php`, `Models/Room.php`, `Models/Movie.php`, `Models/User.php` |
 
 ### Autorización
 
@@ -75,6 +76,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
 ### Cálculos principales
 
 **Métricas:**
+
 ```php
 $ticketsSold  = PurchaseSeat::where('status', 'active')->count();
 $dailySales   = Purchase::where('payment_status', 'completed')
@@ -107,10 +109,11 @@ Los eventos de compras completadas y pagos fallidos se ordenan por timestamp rea
 **Seguridad:** Bearer Token requerido (`401` si ausente) + rol `admin` (`403` si no es admin).
 
 **Respuesta 200:**
+
 ```json
 {
   "tickets_sold": 247,
-  "daily_sales": 20995.00,
+  "daily_sales": 20995.0,
   "registered_users": 1482,
   "top_movie": {
     "title": "Inferno Nexus",
@@ -137,10 +140,15 @@ Los eventos de compras completadas y pagos fallidos se ordenan por timestamp rea
 **Seguridad:** Bearer Token requerido (`401` si ausente) + rol `admin` (`403` si no es admin).
 
 **Respuesta 200:**
+
 ```json
 [
-  { "type": "success", "message": "Compra exitosa — Inferno Nexus", "time": "hace 2 min" },
-  { "type": "error",   "message": "Pago fallido bloqueado",          "time": "hace 2 h"  }
+  {
+    "type": "success",
+    "message": "Compra exitosa — Inferno Nexus",
+    "time": "hace 2 min"
+  },
+  { "type": "error", "message": "Pago fallido bloqueado", "time": "hace 2 h" }
 ]
 ```
 
@@ -155,6 +163,7 @@ Los eventos de compras completadas y pagos fallidos se ordenan por timestamp rea
 **Seguridad:** Bearer Token requerido (`401` si ausente) + rol `admin` (`403` si no es admin).
 
 **Respuesta 200:**
+
 ```json
 [
   {
@@ -195,10 +204,10 @@ Los eventos de compras completadas y pagos fallidos se ordenan por timestamp rea
 
 **Valores de `status`:**
 
-| Valor | Condición |
-|---|---|
-| `showing` | `start_time ≤ now < start_time + movie.duration_minutes` |
-| `upcoming` | Primera función con `start_time > now` |
-| `idle` | Sin funciones activas programadas |
+| Valor      | Condición                                                |
+| ---------- | -------------------------------------------------------- |
+| `showing`  | `start_time ≤ now < start_time + movie.duration_minutes` |
+| `upcoming` | Primera función con `start_time > now`                   |
+| `idle`     | Sin funciones activas programadas                        |
 
 `current_ends_at` se calcula como `start_time + movie.duration_minutes`. `occupancy_pct` y `available_seats` son `0` / `total_seats` cuando `status = 'idle'`.

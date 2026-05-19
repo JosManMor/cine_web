@@ -8,11 +8,11 @@ Selección de asientos, creación de la compra y visualización del ticket digit
 
 ### Páginas
 
-| Ruta | Descripción |
-|---|---|
+| Ruta                    | Descripción                            |
+| ----------------------- | -------------------------------------- |
 | `/screenings/:id/seats` | Selección de asientos para una función |
-| `/checkout` | Resumen y confirmación de pago |
-| `/tickets/:ticket_code` | Ticket digital con QR |
+| `/checkout`             | Resumen y confirmación de pago         |
+| `/tickets/:ticket_code` | Ticket digital con QR                  |
 
 ### Componentes
 
@@ -46,13 +46,13 @@ El `screening_id` y los asientos seleccionados se mantienen en Context/Redux ent
 
 ### Archivos involucrados
 
-| Capa | Archivo |
-|---|---|
+| Capa       | Archivo                                            |
+| ---------- | -------------------------------------------------- |
 | Controller | `Http/Controllers/Purchase/PurchaseController.php` |
-| Requests | `Http/Requests/Purchase/PurchaseRequest.php` |
-| Service | `Services/PurchaseService.php` |
-| Models | `Models/Purchase.php`, `Models/PurchaseSeat.php` |
-| Resource | `Http/Resources/PurchaseResource.php` |
+| Requests   | `Http/Requests/Purchase/PurchaseRequest.php`       |
+| Service    | `Services/PurchaseService.php`                     |
+| Models     | `Models/Purchase.php`, `Models/PurchaseSeat.php`   |
+| Resource   | `Http/Resources/PurchaseResource.php`              |
 
 ### Lógica crítica de reserva
 
@@ -123,6 +123,7 @@ CREATE UNIQUE INDEX idx_purchase_seats_ticket ON purchase_seats (ticket_code);
 **Seguridad:** Bearer Token requerido.
 
 **Body:**
+
 ```json
 {
   "screening_id": 12,
@@ -131,11 +132,12 @@ CREATE UNIQUE INDEX idx_purchase_seats_ticket ON purchase_seats (ticket_code);
     { "row": "A", "seat_number": 4 }
   ],
   "payment_method": "card",
-  "total_amount": 180.00
+  "total_amount": 180.0
 }
 ```
 
 **Respuesta 201:**
+
 ```json
 {
   "message": "Compra registrada y pago confirmado.",
@@ -153,6 +155,7 @@ CREATE UNIQUE INDEX idx_purchase_seats_ticket ON purchase_seats (ticket_code);
 **Seguridad:** Bearer Token requerido.
 
 **Respuesta 200:**
+
 ```json
 [
   {
@@ -165,7 +168,7 @@ CREATE UNIQUE INDEX idx_purchase_seats_ticket ON purchase_seats (ticket_code);
     "room": "Sala 1",
     "row": "A",
     "seat_number": 3,
-    "price_paid": 90.00,
+    "price_paid": 90.0,
     "user_name": "Juan Pérez",
     "purchased_at": "2025-07-25 10:30:00"
   }
@@ -181,6 +184,7 @@ CREATE UNIQUE INDEX idx_purchase_seats_ticket ON purchase_seats (ticket_code);
 **Seguridad:** Bearer Token requerido.
 
 **Respuesta 200:**
+
 ```json
 {
   "ticket_code": "SNDR-2025-7A3F",
@@ -192,7 +196,7 @@ CREATE UNIQUE INDEX idx_purchase_seats_ticket ON purchase_seats (ticket_code);
   "room": "Sala 1",
   "row": "A",
   "seat_number": 3,
-  "price_paid": 90.00,
+  "price_paid": 90.0,
   "user_name": "Juan Pérez",
   "purchased_at": "2025-07-25 10:30:00"
 }

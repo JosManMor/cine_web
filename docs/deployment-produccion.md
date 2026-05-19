@@ -6,16 +6,16 @@ Este documento describe cómo levantar y mantener el entorno de producción simu
 
 ## Diferencias con el entorno de desarrollo
 
-| Aspecto | Desarrollo (`docker-compose.yml`) | Producción (`docker-compose.prod.yml`) |
-|---|---|---|
-| Código fuente | Bind-mount (`./backend`) | Baked en la imagen |
-| Frontend | Vite dev server | Build estático en `public/build/` |
-| PHP vendor | Montado desde host | Instalado sin `--dev` en la imagen |
-| Base de datos | Expuesta en el host (`:3306`) | Solo accesible en red interna |
-| phpMyAdmin / Mailpit | Incluidos | Excluidos |
-| Queue worker | No incluido | Contenedor `queue` dedicado |
-| Scheduler | No incluido | Contenedor `scheduler` dedicado |
-| OPcache | Desactivado | Activado y optimizado |
+| Aspecto              | Desarrollo (`docker-compose.yml`) | Producción (`docker-compose.prod.yml`) |
+| -------------------- | --------------------------------- | -------------------------------------- |
+| Código fuente        | Bind-mount (`./backend`)          | Baked en la imagen                     |
+| Frontend             | Vite dev server                   | Build estático en `public/build/`      |
+| PHP vendor           | Montado desde host                | Instalado sin `--dev` en la imagen     |
+| Base de datos        | Expuesta en el host (`:3306`)     | Solo accesible en red interna          |
+| phpMyAdmin / Mailpit | Incluidos                         | Excluidos                              |
+| Queue worker         | No incluido                       | Contenedor `queue` dedicado            |
+| Scheduler            | No incluido                       | Contenedor `scheduler` dedicado        |
+| OPcache              | Desactivado                       | Activado y optimizado                  |
 
 ---
 
@@ -36,14 +36,14 @@ cp .env.prod.example .env.prod
 
 Editar `.env.prod` y ajustar obligatoriamente:
 
-| Variable | Descripción |
-|---|---|
-| `APP_KEY` | Dejar vacío; el contenedor lo genera al primer arranque (ver paso 4) |
-| `APP_URL` | URL pública del servidor (ej. `http://192.168.1.10`) |
-| `DB_PASSWORD` | Contraseña segura para el usuario de la BD |
-| `MYSQL_PASSWORD` | Debe coincidir con `DB_PASSWORD` |
-| `MYSQL_ROOT_PASSWORD` | Contraseña root de MySQL |
-| `MAIL_*` | Credenciales SMTP reales |
+| Variable              | Descripción                                                          |
+| --------------------- | -------------------------------------------------------------------- |
+| `APP_KEY`             | Dejar vacío; el contenedor lo genera al primer arranque (ver paso 4) |
+| `APP_URL`             | URL pública del servidor (ej. `http://192.168.1.10`)                 |
+| `DB_PASSWORD`         | Contraseña segura para el usuario de la BD                           |
+| `MYSQL_PASSWORD`      | Debe coincidir con `DB_PASSWORD`                                     |
+| `MYSQL_ROOT_PASSWORD` | Contraseña root de MySQL                                             |
+| `MAIL_*`              | Credenciales SMTP reales                                             |
 
 > **Importante:** `env_file` en Docker Compose **no soporta comentarios en línea**.  
 > Todos los comentarios deben ir en su propia línea (`# comentario`), nunca al final de una línea con valor.
@@ -55,11 +55,13 @@ docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 Esto ejecuta un build multi-etapa:
+
 - **Stage 1** — Instala dependencias PHP sin `--dev`
 - **Stage 2** — Compila el frontend React con Vite
 - **Stage 3** — Imagen final PHP-FPM con el código y los assets listos
 
 Al arrancar, el contenedor `app` ejecuta automáticamente:
+
 1. `php artisan migrate --force`
 2. `php artisan db:seed --force` (idempotente, usa `firstOrCreate`)
 3. `php artisan config:cache / route:cache / view:cache`
@@ -160,10 +162,10 @@ Los servicios `queue` y `scheduler` reutilizan la imagen `cine-sendera:prod` y c
 
 ## Solución de problemas frecuentes
 
-| Síntoma | Causa probable | Solución |
-|---|---|---|
-| `500` en todas las rutas | `APP_KEY` vacío o con texto de comentario | Ver paso 4 del primer despliegue |
-| `Table 'sessions' not found` | Migración de sesiones no ejecutada | Rebuild completo |
-| MIME type vacío en assets | `mod_mime` no cargado en Apache | Verificar `docker/apache/prod.conf` |
-| `550 Sending from domain not allowed` | Dominio SMTP no verificado | Verificar dominio en Mailtrap o usar `MAIL_MAILER=log` |
-| `validation.unique` en lugar de mensaje | Sin archivos `lang/es/` | Rebuild para incluir traducciones |
+| Síntoma                                 | Causa probable                            | Solución                                               |
+| --------------------------------------- | ----------------------------------------- | ------------------------------------------------------ |
+| `500` en todas las rutas                | `APP_KEY` vacío o con texto de comentario | Ver paso 4 del primer despliegue                       |
+| `Table 'sessions' not found`            | Migración de sesiones no ejecutada        | Rebuild completo                                       |
+| MIME type vacío en assets               | `mod_mime` no cargado en Apache           | Verificar `docker/apache/prod.conf`                    |
+| `550 Sending from domain not allowed`   | Dominio SMTP no verificado                | Verificar dominio en Mailtrap o usar `MAIL_MAILER=log` |
+| `validation.unique` en lugar de mensaje | Sin archivos `lang/es/`                   | Rebuild para incluir traducciones                      |
