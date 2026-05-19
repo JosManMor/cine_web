@@ -142,6 +142,29 @@ services:
           memory: 256M
           cpus: "0.50"
 
+  # ── Cron (backup diario a las 02:00) ──────────────────────────────────────
+  # watchdog.sh no aplica aquí: restart:always ya cubre los reinicios de contenedores.
+  cron:
+    image: cine-sendera:prod
+    container_name: cine_cron
+    restart: always
+    entrypoint: ["/usr/local/bin/cron-entrypoint.sh"]
+    env_file: .env.prod
+    volumes:
+      - cine_backups:/var/backups/cine
+    depends_on:
+      app:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend_net
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+
   # ── Scheduler (cron de Artisan) ────────────────────────────────────────────
   scheduler:
     image: cine-sendera:prod
@@ -176,6 +199,8 @@ volumes:
     # Para actualizar código: eliminar este volumen y volver a levantar.
   mysql_prod_data:
     # Datos de MySQL — persiste entre despliegues, NO eliminar en actualizaciones.
+  cine_backups:
+    # Backups diarios generados por backup.sh — persiste entre reinicios del cron.
 
 # ── Redes ─────────────────────────────────────────────────────────────────────
 networks:

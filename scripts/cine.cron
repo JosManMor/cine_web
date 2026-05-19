@@ -1,0 +1,12 @@
+# Cron jobs del sistema Cine Sendera
+# Instalación: sudo crontab -u root scripts/cine.cron
+#           o: sudo cp scripts/cine.cron /etc/cron.d/cine
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Watchdog — cada minuto reinicia apache2/mysql si están caídos
+*/1 * * * * root /opt/cine_sendera/scripts/watchdog.sh
+
+# Backup — cada día a las 2:00 AM si hay >15% de disco libre
+0 2 * * * root /opt/cine_sendera/scripts/backup.sh

@@ -377,6 +377,8 @@ Log::info();
 
 # 13.1 Watchdog
 
+**Script:** [`scripts/watchdog.sh`](../scripts/watchdog.sh)
+
 ## Objetivo
 
 Reiniciar Apache/MySQL automáticamente.
@@ -430,6 +432,8 @@ done
 
 # 13.2 Backup Script
 
+**Script:** [`scripts/backup.sh`](../scripts/backup.sh)
+
 ## Objetivo
 
 Respaldar base de datos.
@@ -472,11 +476,47 @@ fi
 
 # 13.3 Gestión Masiva de Staff
 
+**Script:** [`scripts/staff_creator.sh`](../scripts/staff_creator.sh)
+
 ## Objetivo
 
 Crear usuarios Linux automáticamente.
 
-## Ejemplo
+## Uso
+
+El script está disponible dentro del contenedor `cine_app` en `/usr/local/scripts/staff_creator.sh`.
+
+**Con la lista interna por defecto:**
+
+```bash
+docker exec -it cine_app /usr/local/scripts/staff_creator.sh
+```
+
+**Con un CSV personalizado (montado desde el host):**
+
+```bash
+# Copia el CSV al contenedor
+docker cp usuarios.csv cine_app:/tmp/usuarios.csv
+
+# Ejecuta con el archivo
+docker exec -it cine_app /usr/local/scripts/staff_creator.sh /tmp/usuarios.csv
+```
+
+**En servidor nativo (sin Docker):**
+
+```bash
+sudo bash scripts/staff_creator.sh [usuarios.csv]
+```
+
+## Formato CSV
+
+```csv
+# username,password,grupo
+vendedor1,TempPass1!,ventas
+tecnico1,TempPass2!,soporte
+```
+
+## Ejemplo integrado
 
 ```bash
 #!/bin/bash
@@ -609,17 +649,40 @@ DB_PASSWORD=strong_password
 
 # 18. Cron Jobs
 
-## Watchdog
+## Despliegue con Docker (producción)
 
-```cron
-*/1 * * * * /scripts/watchdog.sh
+El scheduling se configura automáticamente al levantar `docker-compose.prod.yml`. El servicio `cron` arranca con [`docker/php/cron-entrypoint.sh`](../docker/php/cron-entrypoint.sh), que registra el job y ejecuta `crond`.
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-## Backups
+> `watchdog.sh` **no aplica en Docker**: `restart: always` en cada servicio ya cubre los reinicios de contenedores caídos.
 
-```cron
-0 2 * * * /scripts/backup.sh
+## Despliegue nativo Linux (sin Docker)
+
+El archivo [`scripts/cine.cron`](../scripts/cine.cron) contiene las entradas listas para instalar.
+
+**Opción A — `/etc/cron.d/` (recomendado):**
+
+```bash
+sudo cp scripts/cine.cron /etc/cron.d/cine
+sudo chmod 644 /etc/cron.d/cine
 ```
+
+**Opción B — crontab de root:**
+
+```bash
+sudo crontab scripts/cine.cron
+```
+
+## Resumen de entradas
+
+| Script | Frecuencia | Docker | Nativo |
+|---|---|---|---|
+| `watchdog.sh` | `*/1 * * * *` | No aplica | Sí |
+| `backup.sh` | `0 2 * * *` | Servicio `cron` | Sí |
+| `staff_creator.sh` | — | Manual | Manual |
 
 ---
 
