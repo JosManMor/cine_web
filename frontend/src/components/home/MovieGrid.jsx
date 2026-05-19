@@ -13,7 +13,7 @@ export default function MovieGrid({ movies, filteredMovies, genres, genreFilter,
       {movies.length === 0
         ? <p style={{ color: C.grayDark, textAlign: "center", padding: 40 }}>No hay películas en cartelera.</p>
         : (
-          <div className="movies-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+          <div className="movies-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 20 }}>
             {filteredMovies.map((m, i) => (
               <MovieCard
                 key={m.id}
