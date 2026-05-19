@@ -680,9 +680,9 @@ sudo crontab scripts/cine.cron
 
 | Script | Frecuencia | Docker | Nativo |
 |---|---|---|---|
-| `watchdog.sh` | `*/1 * * * *` | No aplica | Sí |
-| `backup.sh` | `0 2 * * *` | Servicio `cron` | Sí |
-| `staff_creator.sh` | — | Manual | Manual |
+| `watchdog.sh` | `*/1 * * * *` | No aplica (`restart: always`) | Sí |
+| `backup.sh` | `0 2 * * *` | Servicio `cron` (automático) | Sí |
+| `staff_creator.sh` | — | `docker exec -it cine_app /usr/local/scripts/staff_creator.sh` | `sudo bash scripts/staff_creator.sh` |
 
 ---
 
