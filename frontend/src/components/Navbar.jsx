@@ -72,9 +72,9 @@ export default function Navbar({ page, setPage, user, onLogout }) {
           {user ? (
             <>
               {user.role === "admin" && (
-                <button onClick={() => setPage("admin")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, fontFamily: "'Open Sans', sans-serif", cursor: "pointer" }}>Admin</button>
+                <button onClick={() => setPage("admin")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Admin</button>
               )}
-              <button onClick={() => setPage("my-tickets")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, fontFamily: "'Open Sans', sans-serif", cursor: "pointer" }}>Mis tickets</button>
+              <button onClick={() => setPage("my-tickets")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Mis tickets</button>
 
               {/* Profile dropdown */}
               <div ref={profileRef} style={{ position: "relative" }}>
@@ -106,7 +106,7 @@ export default function Navbar({ page, setPage, user, onLogout }) {
             </>
           ) : (
             <>
-              <button onClick={() => setPage("login")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, fontFamily: "'Open Sans', sans-serif", cursor: "pointer" }}>Iniciar sesión</button>
+              <button onClick={() => setPage("login")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Iniciar sesión</button>
               <BtnPrimary onClick={() => setPage("register")} style={{ padding: "7px 16px" }}>Registrarse</BtnPrimary>
             </>
           )}

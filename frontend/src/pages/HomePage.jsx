@@ -121,7 +121,7 @@ export default function HomePage({ setPage, setSelectedMovie }) {
         {movies.length === 0
           ? <p style={{ color: C.grayDark, textAlign: "center", padding: 40 }}>No hay películas en cartelera.</p>
           : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+            <div className="movies-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
               {filteredMovies.map((m, i) => (
                 <div key={m.id}
                   onClick={() => { setSelectedMovie(m); setPage("movie-detail"); }}
@@ -163,6 +163,15 @@ export default function HomePage({ setPage, setSelectedMovie }) {
           )
         }
       </div>
+
+      <style>{`
+        @media (max-width: 900px) {
+          .movies-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 600px) {
+          .movies-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }
