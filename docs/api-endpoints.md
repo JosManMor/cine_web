@@ -4,31 +4,31 @@
 
 ## 0. Estándares de la API
 
-| Atributo | Valor |
-|---|---|
-| Base URL | `/api` |
-| Formato | JSON (`Content-Type: application/json`, `Accept: application/json`) |
-| Autenticación | Laravel Sanctum — Bearer Token |
-| Idioma de claves | Inglés |
-| Idioma de valores | Español |
+| Atributo          | Valor                                                               |
+| ----------------- | ------------------------------------------------------------------- |
+| Base URL          | `/api`                                                              |
+| Formato           | JSON (`Content-Type: application/json`, `Accept: application/json`) |
+| Autenticación     | Laravel Sanctum — Bearer Token                                      |
+| Idioma de claves  | Inglés                                                              |
+| Idioma de valores | Español                                                             |
 
 ### Niveles de protección
 
-| Nivel | Header requerido | Condición extra |
-|---|---|---|
-| Público | — | — |
-| Autenticado | `Authorization: Bearer <token>` | Token Sanctum válido |
-| Verificado | `Authorization: Bearer <token>` | + `email_verified_at` no nulo |
-| Admin | `Authorization: Bearer <token>` | + `role = admin` |
+| Nivel       | Header requerido                | Condición extra               |
+| ----------- | ------------------------------- | ----------------------------- |
+| Público     | —                               | —                             |
+| Autenticado | `Authorization: Bearer <token>` | Token Sanctum válido          |
+| Verificado  | `Authorization: Bearer <token>` | + `email_verified_at` no nulo |
+| Admin       | `Authorization: Bearer <token>` | + `role = admin`              |
 
 ### Respuestas de error comunes
 
-| Código | Causa |
-|---|---|
-| 401 | Token ausente, inválido o revocado |
-| 403 | Acción no permitida (firma inválida, correo no verificado, rol insuficiente) |
-| 422 | Validación fallida — `{ "message": "...", "errors": { "campo": ["..."] } }` |
-| 429 | Rate limit superado |
+| Código | Causa                                                                        |
+| ------ | ---------------------------------------------------------------------------- |
+| 401    | Token ausente, inválido o revocado                                           |
+| 403    | Acción no permitida (firma inválida, correo no verificado, rol insuficiente) |
+| 422    | Validación fallida — `{ "message": "...", "errors": { "campo": ["..."] } }`  |
+| 429    | Rate limit superado                                                          |
 
 ---
 
@@ -41,6 +41,7 @@
 Crea la cuenta con rol `client`, emite un Bearer Token y envía automáticamente un correo de verificación. El token es válido de inmediato para rutas públicas y de verificación; las rutas que exigen `verified` permanecen bloqueadas hasta confirmar el correo.
 
 **Body:**
+
 ```json
 {
   "name": "Juan Pérez",
@@ -50,13 +51,14 @@ Crea la cuenta con rol `client`, emite un Bearer Token y envía automáticamente
 }
 ```
 
-| Campo | Reglas |
-|---|---|
-| `name` | requerido, string, máx. 255 |
-| `email` | requerido, email único |
+| Campo      | Reglas                                   |
+| ---------- | ---------------------------------------- |
+| `name`     | requerido, string, máx. 255              |
+| `email`    | requerido, email único                   |
 | `password` | requerido, mín. 8 caracteres, confirmado |
 
 **201 Created:**
+
 ```json
 {
   "user": {
@@ -78,6 +80,7 @@ Crea la cuenta con rol `client`, emite un Bearer Token y envía automáticamente
 **`POST /login`** — Público · `throttle:5,1`
 
 **Body:**
+
 ```json
 {
   "email": "juan@example.com",
@@ -86,6 +89,7 @@ Crea la cuenta con rol `client`, emite un Bearer Token y envía automáticamente
 ```
 
 **200 OK:**
+
 ```json
 {
   "user": {
@@ -99,6 +103,7 @@ Crea la cuenta con rol `client`, emite un Bearer Token y envía automáticamente
 ```
 
 **401** — credenciales incorrectas:
+
 ```json
 { "message": "Credenciales incorrectas." }
 ```
@@ -112,6 +117,7 @@ Crea la cuenta con rol `client`, emite un Bearer Token y envía automáticamente
 Revoca únicamente el token usado en la request. El resto de sesiones activas del usuario no se ven afectadas.
 
 **200 OK:**
+
 ```json
 { "message": "Sesión cerrada correctamente." }
 ```
@@ -125,6 +131,7 @@ Revoca únicamente el token usado en la request. El resto de sesiones activas de
 Genera un nuevo enlace firmado y lo envía al email del usuario. El enlace apunta al frontend (`FRONTEND_URL/email/verify?...`), no directamente a la API.
 
 **200 OK** (correo enviado):
+
 ```json
 { "message": "Correo de verificación enviado." }
 ```
@@ -139,14 +146,15 @@ Genera un nuevo enlace firmado y lo envía al email del usuario. El enlace apunt
 
 El frontend llama a este endpoint después de extraer los parámetros del enlace recibido en el correo. Requiere el Bearer Token ya almacenado en el cliente.
 
-| Parámetro | Tipo | Origen | Descripción |
-|---|---|---|---|
-| `id` | path | URL | ID del usuario |
-| `hash` | path | URL | `sha1($user->email)` |
-| `expires` | query | URL | Timestamp UNIX de expiración (60 min) |
-| `signature` | query | URL | Firma HMAC-SHA256 generada por Laravel |
+| Parámetro   | Tipo  | Origen | Descripción                            |
+| ----------- | ----- | ------ | -------------------------------------- |
+| `id`        | path  | URL    | ID del usuario                         |
+| `hash`      | path  | URL    | `sha1($user->email)`                   |
+| `expires`   | query | URL    | Timestamp UNIX de expiración (60 min)  |
+| `signature` | query | URL    | Firma HMAC-SHA256 generada por Laravel |
 
 **200 OK:**
+
 ```json
 { "message": "Correo verificado correctamente." }
 ```
@@ -195,6 +203,7 @@ POST /api/register
 **`GET /movies`** — Público
 
 **200 OK:**
+
 ```json
 [
   {
@@ -216,6 +225,7 @@ POST /api/register
 **`GET /movies/{id}`** — Público
 
 **200 OK:**
+
 ```json
 {
   "id": 1,
@@ -233,7 +243,7 @@ POST /api/register
       "start_time": "2025-07-25 14:00:00",
       "format": "2D",
       "language_type": "subtitled",
-      "base_price": 90.00,
+      "base_price": 90.0,
       "status": "open",
       "room": {
         "id": 1,
@@ -255,6 +265,7 @@ POST /api/register
 **`POST /purchases`** — Verificado
 
 **Body:**
+
 ```json
 {
   "screening_id": 12,
@@ -263,11 +274,12 @@ POST /api/register
     { "row": "A", "seat_number": 4 }
   ],
   "payment_method": "card",
-  "total_amount": 180.00
+  "total_amount": 180.0
 }
 ```
 
 **201 Created:**
+
 ```json
 {
   "message": "Compra registrada y pago confirmado.",
@@ -289,6 +301,7 @@ POST /api/register
 Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirmado (`payment_status = completed`, `ticket_code` asignado, `status = active`). Ordenados por ID descendente (más recientes primero).
 
 **200 OK:**
+
 ```json
 [
   {
@@ -301,7 +314,7 @@ Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirm
     "room": "Sala 1",
     "row": "A",
     "seat_number": 3,
-    "price_paid": 90.00,
+    "price_paid": 90.0,
     "user_name": "Juan Pérez",
     "purchased_at": "2025-07-25 10:30:00"
   }
@@ -317,6 +330,7 @@ Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirm
 **`GET /tickets/{ticket_code}`** — Verificado
 
 **200 OK:**
+
 ```json
 {
   "ticket_code": "SNDR-2025-7A3F",
@@ -328,7 +342,7 @@ Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirm
   "room": "Sala 1",
   "row": "A",
   "seat_number": 3,
-  "price_paid": 90.00,
+  "price_paid": 90.0,
   "user_name": "Juan Pérez",
   "purchased_at": "2025-07-25 10:30:00"
 }
@@ -343,10 +357,11 @@ Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirm
 **`GET /admin/metrics`** — Admin
 
 **200 OK:**
+
 ```json
 {
   "tickets_sold": 247,
-  "daily_sales": 20995.00,
+  "daily_sales": 20995.0,
   "registered_users": 1482,
   "top_movie": {
     "title": "Inferno Nexus",
@@ -366,6 +381,7 @@ Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirm
 **`GET /admin/activity`** — Admin
 
 **200 OK:**
+
 ```json
 [
   {
@@ -388,6 +404,7 @@ Devuelve todos los tickets activos del usuario autenticado cuyo pago fue confirm
 **`GET /admin/rooms`** — Admin
 
 **200 OK:**
+
 ```json
 [
   {

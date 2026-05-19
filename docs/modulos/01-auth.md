@@ -37,12 +37,12 @@ Registro, inicio de sesión, cierre de sesión y verificación de correo. Todos 
 
 ## Niveles de acceso por middleware
 
-| Middleware | Requiere | Rutas ejemplo |
-|---|---|---|
-| *(ninguno)* | — | `GET /movies`, `GET /movies/{id}` |
-| `auth:sanctum` | Bearer Token válido | `POST /logout`, `POST /email/verification-notification` |
-| `auth:sanctum` + `verified` | Token + email verificado | `POST /purchases`, `GET /tickets/{code}` |
-| `auth:sanctum` + `verified` + policy `admin` | Token + email + rol admin | `GET /admin/metrics`, etc. |
+| Middleware                                   | Requiere                  | Rutas ejemplo                                           |
+| -------------------------------------------- | ------------------------- | ------------------------------------------------------- |
+| _(ninguno)_                                  | —                         | `GET /movies`, `GET /movies/{id}`                       |
+| `auth:sanctum`                               | Bearer Token válido       | `POST /logout`, `POST /email/verification-notification` |
+| `auth:sanctum` + `verified`                  | Token + email verificado  | `POST /purchases`, `GET /tickets/{code}`                |
+| `auth:sanctum` + `verified` + policy `admin` | Token + email + rol admin | `GET /admin/metrics`, etc.                              |
 
 ---
 
@@ -50,12 +50,12 @@ Registro, inicio de sesión, cierre de sesión y verificación de correo. Todos 
 
 ### Páginas
 
-| Ruta frontend | Descripción |
-|---|---|
-| `/register` | Formulario de registro |
-| `/login` | Formulario de inicio de sesión |
-| `/email/verify` | Recibe los query params del enlace de correo y llama a la API |
-| `/email/pending` | Pantalla de "revisa tu bandeja de entrada" post-registro |
+| Ruta frontend    | Descripción                                                   |
+| ---------------- | ------------------------------------------------------------- |
+| `/register`      | Formulario de registro                                        |
+| `/login`         | Formulario de inicio de sesión                                |
+| `/email/verify`  | Recibe los query params del enlace de correo y llama a la API |
+| `/email/pending` | Pantalla de "revisa tu bandeja de entrada" post-registro      |
 
 ### Componentes
 
@@ -85,10 +85,13 @@ Al hacer logout se limpian token y estado. El campo `email_verified_at` **no** s
 // Al montar la página, extraer params del query string y llamar a la API
 const { id, hash, expires, signature } = useSearchParams();
 
-await fetch(`/api/email/verify/${id}/${hash}?expires=${expires}&signature=${signature}`, {
-  method: 'GET',
-  headers: { Authorization: `Bearer ${token}` },
-});
+await fetch(
+  `/api/email/verify/${id}/${hash}?expires=${expires}&signature=${signature}`,
+  {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  },
+);
 // → redirigir a la cartelera tras éxito
 ```
 
@@ -98,19 +101,19 @@ await fetch(`/api/email/verify/${id}/${hash}?expires=${expires}&signature=${sign
 
 ### Archivos involucrados
 
-| Capa | Archivo | Responsabilidad |
-|---|---|---|
-| Controller | `Http/Controllers/Auth/AuthController.php` | register, login, logout |
-| Controller | `Http/Controllers/Auth/EmailVerificationController.php` | send, verify |
-| Request | `Http/Requests/Auth/RegisterRequest.php` | Validación de registro |
-| Request | `Http/Requests/Auth/LoginRequest.php` | Validación de login |
-| DTO | `DTOs/Auth/RegisterDTO.php` | Datos de registro entre capas |
-| DTO | `DTOs/Auth/LoginDTO.php` | Datos de login entre capas |
-| Service | `Services/AuthService.php` | Lógica de negocio de auth |
-| Model | `Models/User.php` | Entidad usuario + `MustVerifyEmail` + `HasApiTokens` |
-| Notification | `Notifications/VerifyEmailNotification.php` | Override del enlace de verificación |
-| Exception | `Exceptions/InvalidCredentialsException.php` | Error 401 auto-renderizable |
-| Resource | `Http/Resources/UserResource.php` | Forma la respuesta JSON del usuario |
+| Capa         | Archivo                                                 | Responsabilidad                                      |
+| ------------ | ------------------------------------------------------- | ---------------------------------------------------- |
+| Controller   | `Http/Controllers/Auth/AuthController.php`              | register, login, logout                              |
+| Controller   | `Http/Controllers/Auth/EmailVerificationController.php` | send, verify                                         |
+| Request      | `Http/Requests/Auth/RegisterRequest.php`                | Validación de registro                               |
+| Request      | `Http/Requests/Auth/LoginRequest.php`                   | Validación de login                                  |
+| DTO          | `DTOs/Auth/RegisterDTO.php`                             | Datos de registro entre capas                        |
+| DTO          | `DTOs/Auth/LoginDTO.php`                                | Datos de login entre capas                           |
+| Service      | `Services/AuthService.php`                              | Lógica de negocio de auth                            |
+| Model        | `Models/User.php`                                       | Entidad usuario + `MustVerifyEmail` + `HasApiTokens` |
+| Notification | `Notifications/VerifyEmailNotification.php`             | Override del enlace de verificación                  |
+| Exception    | `Exceptions/InvalidCredentialsException.php`            | Error 401 auto-renderizable                          |
+| Resource     | `Http/Resources/UserResource.php`                       | Forma la respuesta JSON del usuario                  |
 
 ### Por qué existe `VerifyEmailNotification`
 
@@ -140,6 +143,7 @@ FRONTEND_URL=http://localhost:5173   ← configurable por entorno en .env
 Crea la cuenta, emite el token y envía el correo de verificación.
 
 **Body:**
+
 ```json
 {
   "name": "Juan Pérez",
@@ -150,16 +154,26 @@ Crea la cuenta, emite el token y envía el correo de verificación.
 ```
 
 **201 Created:**
+
 ```json
 {
-  "user": { "id": 1, "name": "Juan Pérez", "email": "juan@example.com", "role": "client" },
+  "user": {
+    "id": 1,
+    "name": "Juan Pérez",
+    "email": "juan@example.com",
+    "role": "client"
+  },
   "token": "1|abc123..."
 }
 ```
 
 **422 Unprocessable** (validación):
+
 ```json
-{ "message": "The email has already been taken.", "errors": { "email": ["The email has already been taken."] } }
+{
+  "message": "The email has already been taken.",
+  "errors": { "email": ["The email has already been taken."] }
+}
 ```
 
 ---
@@ -169,19 +183,27 @@ Crea la cuenta, emite el token y envía el correo de verificación.
 **Seguridad:** Pública. `throttle:5,1`.
 
 **Body:**
+
 ```json
 { "email": "juan@example.com", "password": "password123" }
 ```
 
 **200 OK:**
+
 ```json
 {
-  "user": { "id": 1, "name": "Juan Pérez", "email": "juan@example.com", "role": "client" },
+  "user": {
+    "id": 1,
+    "name": "Juan Pérez",
+    "email": "juan@example.com",
+    "role": "client"
+  },
   "token": "2|xyz789..."
 }
 ```
 
 **401 Unauthorized:**
+
 ```json
 { "message": "Credenciales incorrectas." }
 ```
@@ -195,11 +217,13 @@ Crea la cuenta, emite el token y envía el correo de verificación.
 Revoca solo el token usado en la request. Otros tokens del mismo usuario (otras sesiones) no se ven afectados.
 
 **200 OK:**
+
 ```json
 { "message": "Sesión cerrada correctamente." }
 ```
 
 **401 Unauthorized** (token ausente o inválido):
+
 ```json
 { "message": "Unauthenticated." }
 ```
@@ -213,6 +237,7 @@ Revoca solo el token usado en la request. Otros tokens del mismo usuario (otras 
 Reenvía el correo de verificación. El enlace en el correo apunta a `FRONTEND_URL/email/verify?...`.
 
 **200 OK** (correo enviado):
+
 ```json
 { "message": "Correo de verificación enviado." }
 ```
@@ -227,24 +252,27 @@ Reenvía el correo de verificación. El enlace en el correo apunta a `FRONTEND_U
 
 El frontend llama a este endpoint con el Bearer Token almacenado tras extraer los params del enlace de correo.
 
-| Parámetro | Origen | Descripción |
-|---|---|---|
-| `id` | path | ID del usuario |
-| `hash` | path | `sha1($user->email)` |
-| `expires` | query | Timestamp UNIX de expiración |
-| `signature` | query | Firma HMAC generada por Laravel |
+| Parámetro   | Origen | Descripción                     |
+| ----------- | ------ | ------------------------------- |
+| `id`        | path   | ID del usuario                  |
+| `hash`      | path   | `sha1($user->email)`            |
+| `expires`   | query  | Timestamp UNIX de expiración    |
+| `signature` | query  | Firma HMAC generada por Laravel |
 
 **200 OK:**
+
 ```json
 { "message": "Correo verificado correctamente." }
 ```
 
 **403 Forbidden** (firma inválida, expirada, o hash no coincide):
+
 ```json
 { "message": "Invalid signature." }
 ```
 
 **401 Unauthorized** (sin token):
+
 ```json
 { "message": "Unauthenticated." }
 ```

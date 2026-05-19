@@ -8,9 +8,9 @@ Muestra las películas disponibles y el detalle de cada una con sus funciones. E
 
 ### Páginas
 
-| Ruta | Descripción |
-|---|---|
-| `/` | Cartelera principal (Home) |
+| Ruta          | Descripción                                   |
+| ------------- | --------------------------------------------- |
+| `/`           | Cartelera principal (Home)                    |
 | `/movies/:id` | Detalle de película con funciones disponibles |
 
 ### Componentes
@@ -23,9 +23,11 @@ Muestra las películas disponibles y el detalle de cada una con sus funciones. E
 ### Datos que consume
 
 Del endpoint `GET /movies`:
+
 - `title`, `genre`, `duration_minutes`, `rating`, `poster_url`, `status`
 
 Del endpoint `GET /movies/{id}`:
+
 - Todo lo anterior más `synopsis`, `director`
 - Array `screenings[]` con `id`, `start_time`, `format`, `language_type`, `base_price`, `status`
 - Dentro de cada `screening`: `room.name`, `room.total_seats`, `room.available_seats`
@@ -34,11 +36,11 @@ El usuario selecciona una función (`screening_id`) para continuar al módulo de
 
 ### Responsividad
 
-| Breakpoint | Layout |
-|---|---|
-| Mobile | 1 columna |
-| Tablet | 2–3 columnas |
-| Desktop | 4+ columnas |
+| Breakpoint | Layout       |
+| ---------- | ------------ |
+| Mobile     | 1 columna    |
+| Tablet     | 2–3 columnas |
+| Desktop    | 4+ columnas  |
 
 ---
 
@@ -46,13 +48,13 @@ El usuario selecciona una función (`screening_id`) para continuar al módulo de
 
 ### Archivos involucrados
 
-| Capa | Archivo |
-|---|---|
-| Controller | `Http/Controllers/Movie/MovieController.php` |
-| Service | `Services/MovieService.php` |
+| Capa       | Archivo                                                                               |
+| ---------- | ------------------------------------------------------------------------------------- |
+| Controller | `Http/Controllers/Movie/MovieController.php`                                          |
+| Service    | `Services/MovieService.php`                                                           |
 | Repository | `Repositories/Contracts/MovieRepositoryInterface.php`, `Eloquent/MovieRepository.php` |
-| Models | `Models/Movie.php`, `Models/Screening.php`, `Models/Room.php` |
-| Resource | `Http/Resources/MovieResource.php`, `ScreeningResource.php` |
+| Models     | `Models/Movie.php`, `Models/Screening.php`, `Models/Room.php`                         |
+| Resource   | `Http/Resources/MovieResource.php`, `ScreeningResource.php`                           |
 
 ### Lógica de disponibilidad
 
@@ -77,6 +79,7 @@ CREATE INDEX idx_screenings_movie_start ON screenings (movie_id, start_time, sta
 ### GET `/movies`
 
 **Respuesta 200:**
+
 ```json
 [
   {
@@ -96,6 +99,7 @@ CREATE INDEX idx_screenings_movie_start ON screenings (movie_id, start_time, sta
 ### GET `/movies/{id}`
 
 **Respuesta 200:**
+
 ```json
 {
   "id": 1,
@@ -113,7 +117,7 @@ CREATE INDEX idx_screenings_movie_start ON screenings (movie_id, start_time, sta
       "start_time": "2025-07-25 14:00:00",
       "format": "2D",
       "language_type": "subtitled",
-      "base_price": 90.00,
+      "base_price": 90.0,
       "status": "open",
       "room": {
         "id": 1,

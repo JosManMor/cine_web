@@ -21,6 +21,7 @@ La documentación detallada del proyecto se encuentra en la carpeta `/docs`:
 
 - [Arquitectura del Backend](./docs/backend-architecture.md)
 - [Sistema de Diseño Frontend](./docs/frontend-design-system.md)
+- [Deployment — Simulación de Producción](./docs/deployment-produccion.md)
 
 ---
 
@@ -77,7 +78,21 @@ La documentación detallada del proyecto se encuentra en la carpeta `/docs`:
 
 ---
 
-## 5. Scripts de Automatización (Planeado)
+## 5. Deployment de Producción
+
+Para simular un entorno de producción (sin Mailpit, sin phpMyAdmin, con workers de cola y scheduler):
+
+```bash
+cp .env.prod.example .env.prod   # editar contraseñas, SMTP y APP_URL
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+El entrypoint ejecuta migraciones, seeders y cachea la configuración automáticamente.  
+Ver guía completa en [docs/deployment-produccion.md](./docs/deployment-produccion.md).
+
+---
+
+## 6. Scripts de Automatización (Planeado)
 
 Se tiene previsto incorporar scripts de Bash para mantenimiento; **actualmente no están incluidos en este repositorio**:
 

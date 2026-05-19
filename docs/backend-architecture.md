@@ -181,12 +181,15 @@ Laravel utilizará:
 ## Entidades principales
 
 ### Movie
+
 - id, title, genre, synopsis, duration_minutes, director, rating, poster_url, status, created_at
 
 ### Screening
+
 - id, movie_id, room_id, start_time, base_price, format, language_type, status, created_at
 
 ### Room
+
 - id, name, rows, seats_per_row, status, created_at
 
 La disponibilidad de asientos se calcula como `rooms.rows × rooms.seats_per_row` menos el conteo de `purchase_seats` activos para esa función. No se almacena `available_seats` en ninguna tabla.
