@@ -165,9 +165,35 @@
                                                 "type": "string",
                                                 "example": "Sala 1"
                                             },
-                                            "movie_title": {
+                                            "status": {
+                                                "type": "string",
+                                                "example": "showing",
+                                                "enum": [
+                                                    "showing",
+                                                    "upcoming",
+                                                    "idle"
+                                                ]
+                                            },
+                                            "current_movie": {
                                                 "type": "string",
                                                 "example": "Inferno Nexus",
+                                                "nullable": true
+                                            },
+                                            "current_ends_at": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "example": "2025-07-25 16:18:00",
+                                                "nullable": true
+                                            },
+                                            "next_movie": {
+                                                "type": "string",
+                                                "example": "Hollow Depths",
+                                                "nullable": true
+                                            },
+                                            "next_start_time": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "example": "2025-07-25 18:00:00",
                                                 "nullable": true
                                             },
                                             "occupancy_pct": {
@@ -178,11 +204,9 @@
                                                 "type": "integer",
                                                 "example": 16
                                             },
-                                            "next_start_time": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                                "example": "2025-07-25 14:00:00",
-                                                "nullable": true
+                                            "total_seats": {
+                                                "type": "integer",
+                                                "example": 120
                                             }
                                         },
                                         "type": "object"
