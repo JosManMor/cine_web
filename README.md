@@ -106,6 +106,7 @@ Los scripts viven en [`/scripts`](./scripts/) y están integrados en el flujo de
 
 | Script | Archivo | Ejecución |
 |--------|---------|-----------|
+| Hardening servidor | [`scripts/hardening.sh`](./scripts/hardening.sh) | **Una sola vez**: `sudo bash scripts/hardening.sh` |
 | Watchdog | [`scripts/watchdog.sh`](./scripts/watchdog.sh) | Cron nativo: `*/1 * * * *` — no aplica en Docker |
 | Backup BD | [`scripts/backup.sh`](./scripts/backup.sh) | Automática vía contenedor `cine_cron` a las 02:00 |
 | Alta de staff | [`scripts/staff_creator.sh`](./scripts/staff_creator.sh) | Manual: `docker exec -it cine_app /usr/local/scripts/staff_creator.sh` |

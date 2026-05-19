@@ -534,6 +534,8 @@ done
 
 # 14. Hardening y Seguridad
 
+**Script:** [`scripts/hardening.sh`](../scripts/hardening.sh) — ejecutar una sola vez con `sudo bash scripts/hardening.sh`
+
 # Firewall UFW
 
 ## Política por defecto
