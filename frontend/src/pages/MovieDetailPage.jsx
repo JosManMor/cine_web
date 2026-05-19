@@ -41,14 +41,14 @@ export default function MovieDetailPage({ movie, setPage, setSelectedSchedule })
 
   return (
     <div style={{ minHeight: "100vh", paddingTop: 80 }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 40px" }}>
+      <div className="detail-container" style={{ maxWidth: 900, margin: "0 auto", padding: "40px 40px" }}>
         <button onClick={() => setPage("home")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, cursor: "pointer", marginBottom: 24, fontFamily: "'Open Sans', sans-serif" }}>
           ← Volver a cartelera
         </button>
 
-        <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 40, animation: "fadeUp .5s ease forwards" }}>
+        <div className="detail-grid" style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 40, animation: "fadeUp .5s ease forwards" }}>
           {/* Poster */}
-          <div style={{ height: 420, borderRadius: 8, overflow: "hidden", border: `1px solid ${C.border}` }}>
+          <div className="detail-poster" style={{ height: 420, borderRadius: 8, overflow: "hidden", border: `1px solid ${C.border}` }}>
             {m.poster_url
               ? <img src={m.poster_url} alt={m.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               : <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #3a1a1a, #2a2a3a)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Bebas Neue', sans-serif", fontSize: 80, color: C.grayDarker }}>
@@ -77,7 +77,7 @@ export default function MovieDetailPage({ movie, setPage, setSelectedSchedule })
               )}
             </div>
 
-            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 54, letterSpacing: 3, marginBottom: 8 }}>{m.title}</h1>
+            <h1 className="detail-title" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 54, letterSpacing: 3, marginBottom: 8 }}>{m.title}</h1>
 
             {m.director && (
               <p style={{ color: C.grayDark, fontSize: 13, marginBottom: 16 }}>Dir. {m.director}</p>
@@ -99,7 +99,7 @@ export default function MovieDetailPage({ movie, setPage, setSelectedSchedule })
                   {screenings.map(s => {
                     const isSelected = selectedScreening?.id === s.id;
                     return (
-                      <button key={s.id} onClick={() => setSelectedScreening(s)} style={{
+                      <button key={s.id} onClick={() => setSelectedScreening(s)} className="screening-btn" style={{
                         display: "flex", justifyContent: "space-between", alignItems: "center",
                         padding: "10px 16px", borderRadius: 4, width: "100%", textAlign: "left",
                         border: `1px solid ${isSelected ? C.red : C.border}`,
@@ -144,6 +144,17 @@ export default function MovieDetailPage({ movie, setPage, setSelectedSchedule })
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 600px) {
+          .detail-container { padding: 20px 16px !important; }
+          .detail-grid      { grid-template-columns: 1fr !important; gap: 24px !important; }
+          .detail-poster    { height: 260px !important; }
+          .detail-title     { font-size: 36px !important; }
+          .screening-btn    { flex-wrap: wrap; gap: 6px; }
+          .screening-btn span { flex: 1 1 auto; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -82,6 +82,56 @@ class DatabaseSeeder extends Seeder
                 'poster_url'       => 'https://yt3.googleusercontent.com/8gd4DXWEONw8hQLpRPPOHrc787kR8d-0iE8bLvtyeGfhsWLlAzcLyS9zmT_RlHG48yUQjBl30OlnSuEs=w2880-h1200-p-l90-rj',
                 'status'           => 'active',
             ],
+            [
+                'title'            => 'Dune: Parte Dos',
+                'genre'            => 'Ciencia ficción',
+                'synopsis'         => 'Paul Atreides se une a los Fremen y emprende un viaje espiritual y de guerra para vengar a su familia mientras trata de evitar un futuro que solo él puede ver.',
+                'duration_minutes' => 166,
+                'director'         => 'Denis Villeneuve',
+                'rating'           => 'PG-13',
+                'poster_url'       => 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
+                'status'           => 'active',
+            ],
+            [
+                'title'            => 'Oppenheimer',
+                'genre'            => 'Drama',
+                'synopsis'         => 'La historia del físico J. Robert Oppenheimer y su papel en el desarrollo de la bomba atómica durante la Segunda Guerra Mundial.',
+                'duration_minutes' => 180,
+                'director'         => 'Christopher Nolan',
+                'rating'           => 'R',
+                'poster_url'       => 'https://m.media-amazon.com/images/M/MV5BNTFlZDI1YWQtMTVjNy00YWU1LTg2YjktMTlhYmRiYzQ3NTVhXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg',
+                'status'           => 'active',
+            ],
+            [
+                'title'            => 'Top Gun: Maverick',
+                'genre'            => 'Acción',
+                'synopsis'         => 'Después de más de 30 años de servicio, Pete Mitchell sigue empujando los límites como uno de los mejores aviadores de la Marina, entrenando a una nueva generación de pilotos.',
+                'duration_minutes' => 131,
+                'director'         => 'Joseph Kosinski',
+                'rating'           => 'PG-13',
+                'poster_url'       => 'https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
+                'status'           => 'active',
+            ],
+            [
+                'title'            => 'Avatar: El Camino del Agua',
+                'genre'            => 'Ciencia ficción',
+                'synopsis'         => 'Jake Sully y Neytiri forman una familia y hacen todo lo posible por permanecer juntos cuando los RDA regresan a Pandora y amenazan su nuevo hogar.',
+                'duration_minutes' => 192,
+                'director'         => 'James Cameron',
+                'rating'           => 'PG-13',
+                'poster_url'       => 'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
+                'status'           => 'active',
+            ],
+            [
+                'title'            => 'Interestelar',
+                'genre'            => 'Ciencia ficción',
+                'synopsis'         => 'Un grupo de astronautas viaja a través de un agujero de gusano cerca de Saturno en busca de un nuevo hogar para la humanidad mientras la Tierra agoniza.',
+                'duration_minutes' => 169,
+                'director'         => 'Christopher Nolan',
+                'rating'           => 'PG-13',
+                'poster_url'       => 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+                'status'           => 'active',
+            ],
         ];
 
         foreach ($movies as $data) {
@@ -127,6 +177,26 @@ class DatabaseSeeder extends Seeder
             // La Sombra del Cóndor
             ['title' => 'La Sombra del Cóndor', 'room' => $sala1, 'start_time' => '2026-05-21 17:00:00', 'format' => '2D', 'language_type' => 'subtitled', 'base_price' => 85.00],
             ['title' => 'La Sombra del Cóndor', 'room' => $sala2, 'start_time' => '2026-05-23 20:00:00', 'format' => '2D', 'language_type' => 'dubbed',    'base_price' => 85.00],
+
+            // Dune: Parte Dos
+            ['title' => 'Dune: Parte Dos',      'room' => $sala3, 'start_time' => '2026-05-24 15:00:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 130.00],
+            ['title' => 'Dune: Parte Dos',      'room' => $sala1, 'start_time' => '2026-05-25 19:30:00', 'format' => '2D',   'language_type' => 'dubbed',    'base_price' => 90.00],
+
+            // Oppenheimer
+            ['title' => 'Oppenheimer',          'room' => $sala2, 'start_time' => '2026-05-24 17:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 95.00],
+            ['title' => 'Oppenheimer',          'room' => $sala1, 'start_time' => '2026-05-26 20:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 95.00],
+
+            // Top Gun: Maverick
+            ['title' => 'Top Gun: Maverick',    'room' => $sala3, 'start_time' => '2026-05-25 14:30:00', 'format' => 'IMAX', 'language_type' => 'dubbed',    'base_price' => 130.00],
+            ['title' => 'Top Gun: Maverick',    'room' => $sala2, 'start_time' => '2026-05-27 18:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 85.00],
+
+            // Avatar: El Camino del Agua
+            ['title' => 'Avatar: El Camino del Agua', 'room' => $sala3, 'start_time' => '2026-05-26 16:00:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 140.00],
+            ['title' => 'Avatar: El Camino del Agua', 'room' => $sala2, 'start_time' => '2026-05-28 19:00:00', 'format' => '3D',   'language_type' => 'dubbed',    'base_price' => 110.00],
+
+            // Interestelar
+            ['title' => 'Interestelar',         'room' => $sala3, 'start_time' => '2026-05-27 20:30:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 130.00],
+            ['title' => 'Interestelar',         'room' => $sala1, 'start_time' => '2026-05-29 17:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 90.00],
         ];
 
         foreach ($screenings as $s) {

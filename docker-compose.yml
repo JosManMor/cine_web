@@ -13,6 +13,7 @@ services:
 
     volumes:
       - ./backend:/var/www
+      - ./docker/php/php-dev.ini:/usr/local/etc/php/conf.d/99-dev.ini
 
     environment:
       APP_NAME: ${APP_NAME}
