@@ -25,6 +25,9 @@ if [ "$1" = "php-fpm" ]; then
     echo "[prod] Ejecutando migraciones..."
     php artisan migrate --force
 
+    echo "[prod] Ejecutando seeders..."
+    php artisan db:seed --force
+
     echo "[prod] Cacheando configuración, rutas y vistas..."
     php artisan config:cache
     php artisan route:cache
