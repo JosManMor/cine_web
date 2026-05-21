@@ -21,7 +21,7 @@ class PurchaseService
     {
         $screening = Screening::with('room')->findOrFail($dto->screeningId);
 
-        if ($screening->status !== 'open') {
+        if ($screening->status !== 'open' || $screening->start_time->isPast()) {
             throw new ScreeningNotAvailableException();
         }
 
