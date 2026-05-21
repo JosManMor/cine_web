@@ -20,4 +20,11 @@ if [ -z "$APP_KEY" ]; then
     export APP_KEY
 fi
 
+# ── Base de datos ─────────────────────────────────────────────────────────────
+echo "[entrypoint] Ejecutando migraciones..."
+php artisan migrate --force --no-interaction
+
+echo "[entrypoint] Ejecutando seeders..."
+php artisan db:seed --force --no-interaction
+
 exec "$@"
