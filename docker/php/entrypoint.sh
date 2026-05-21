@@ -20,6 +20,11 @@ if [ -z "$APP_KEY" ]; then
     export APP_KEY
 fi
 
+if [ ! -f vendor/autoload.php ]; then
+    echo "[entrypoint] ERROR: vendor/ not found. Run 'composer install' first." >&2
+    exit 1
+fi
+
 # ── Base de datos ─────────────────────────────────────────────────────────────
 echo "[entrypoint] Ejecutando migraciones..."
 php artisan migrate --force --no-interaction
