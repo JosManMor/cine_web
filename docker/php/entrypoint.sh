@@ -20,23 +20,4 @@ if [ -z "$APP_KEY" ]; then
     export APP_KEY
 fi
 
-# ── .env ─────────────────────────────────────────────────────────────────────
-if [ ! -f .env ]; then
-    cp .env.example .env
-    echo "[entrypoint] .env creado desde .env.example"
-fi
-
-# ── Dependencias PHP (solo si vendor no existe) ───────────────────────────────
-if [ ! -f vendor/autoload.php ]; then
-    echo "[entrypoint] Instalando dependencias composer..."
-    composer install --no-interaction --no-scripts --prefer-dist
-fi
-
-# ── Base de datos ─────────────────────────────────────────────────────────────
-echo "[entrypoint] Ejecutando migraciones..."
-php artisan migrate --force --no-interaction
-
-echo "[entrypoint] Ejecutando seeders..."
-php artisan db:seed --force --no-interaction
-
 exec "$@"
