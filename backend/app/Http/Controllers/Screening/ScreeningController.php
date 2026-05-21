@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Screening;
 
 use App\Http\Controllers\Controller;
-use App\Models\Screening;
+use App\Services\ScreeningService;
 use Illuminate\Http\JsonResponse;
 use OpenApi\Attributes as OA;
 
 class ScreeningController extends Controller
 {
+    public function __construct(private readonly ScreeningService $service) {}
+
     #[OA\Get(
         path: '/screenings/{id}',
         summary: 'Mapa de asientos de una función',
@@ -29,11 +31,7 @@ class ScreeningController extends Controller
     )]
     public function show(int $id): JsonResponse
     {
-        $screening = Screening::with([
-            'movie:id,title,poster_url',
-            'room',
-            'purchaseSeats' => fn ($q) => $q->where('status', 'active')->select('screening_id', 'row', 'seat_number'),
-        ])->findOrFail($id);
+        $screening = $this->service->getSeatMap($id);
 
         return response()->json([
             'id'            => $screening->id,

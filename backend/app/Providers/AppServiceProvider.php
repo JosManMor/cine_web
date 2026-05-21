@@ -6,8 +6,10 @@ use App\Models\Purchase;
 use App\Observers\PurchaseObserver;
 use App\Repositories\Contracts\MovieRepositoryInterface;
 use App\Repositories\Contracts\PurchaseRepositoryInterface;
+use App\Repositories\Contracts\ScreeningRepositoryInterface;
 use App\Repositories\Eloquent\MovieRepository;
 use App\Repositories\Eloquent\PurchaseRepository;
+use App\Repositories\Eloquent\ScreeningRepository;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\ServiceProvider;
 
@@ -17,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(MovieRepositoryInterface::class, MovieRepository::class);
         $this->app->bind(PurchaseRepositoryInterface::class, PurchaseRepository::class);
+        $this->app->bind(ScreeningRepositoryInterface::class, ScreeningRepository::class);
     }
 
     public function boot(): void
