@@ -9,6 +9,7 @@ use App\Exceptions\ScreeningNotAvailableException;
 use App\Models\Purchase;
 use App\Models\PurchaseSeat;
 use App\Models\Screening;
+use Illuminate\Database\Eloquent\Collection;
 use App\Repositories\Contracts\PurchaseRepositoryInterface;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,7 @@ class PurchaseService
     {
         $screening = Screening::with('room')->findOrFail($dto->screeningId);
 
-        if ($screening->status !== 'open') {
+        if ($screening->status !== 'open' || $screening->start_time->isPast()) {
             throw new ScreeningNotAvailableException();
         }
 
@@ -66,5 +67,10 @@ class PurchaseService
 
             return $purchase->fresh();
         });
+    }
+
+    public function activeTicketsForUser(int $userId): Collection
+    {
+        return $this->repository->userActiveTickets($userId);
     }
 }

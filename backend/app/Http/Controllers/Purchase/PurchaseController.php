@@ -105,18 +105,9 @@ class PurchaseController extends Controller
     )]
     public function myTickets(Request $request): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
     {
-        $seats = PurchaseSeat::with([
-            'purchase.user',
-            'purchase.screening.movie',
-            'purchase.screening.room',
-        ])
-            ->where('status', 'active')
-            ->whereNotNull('ticket_code')
-            ->whereHas('purchase', fn ($q) => $q->where('user_id', $request->user()->id))
-            ->orderByDesc('id')
-            ->get();
-
-        return TicketResource::collection($seats);
+        return TicketResource::collection(
+            $this->purchaseService->activeTicketsForUser($request->user()->id)
+        );
     }
 
     public function showTicket(Request $request, string $ticketCode): TicketResource|JsonResponse

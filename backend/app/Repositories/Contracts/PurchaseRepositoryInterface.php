@@ -12,4 +12,6 @@ interface PurchaseRepositoryInterface
     public function findForUser(int $purchaseId, int $userId): ?Purchase;
 
     public function userHistory(int $userId): Collection;
+
+    public function userActiveTickets(int $userId): Collection;
 }

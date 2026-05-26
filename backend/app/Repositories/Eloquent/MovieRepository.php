@@ -11,6 +11,7 @@ class MovieRepository implements MovieRepositoryInterface
     public function allActive(): Collection
     {
         return Movie::where('status', 'active')
+            ->whereHas('screenings', fn($q) => $q->whereNotIn('status', ['cancelled', 'finished'])->where('start_time', '>', now()))
             ->orderBy('title')
             ->get();
     }
@@ -18,7 +19,7 @@ class MovieRepository implements MovieRepositoryInterface
     public function findActiveWithScreenings(int $id): ?Movie
     {
         return Movie::with([
-            'screenings'               => fn($q) => $q->where('status', 'open')->orderBy('start_time'),
+            'screenings'               => fn($q) => $q->whereNotIn('status', ['cancelled', 'finished'])->where('start_time', '>', now())->orderBy('start_time'),
             'screenings.room',
             'screenings.purchaseSeats' => fn($q) => $q->where('status', 'active'),
         ])
