@@ -44,11 +44,22 @@ function RoomCard({ r }) {
   const col       = r.occupancy_pct > 80 ? C.red : r.occupancy_pct > 50 ? "#EF9F27" : C.green;
   const statusCol = STATUS_COLOR[r.status];
 
+  const ariaLabel = [
+    `${r.room}, estado: ${STATUS_LABEL[r.status]}.`,
+    r.status === "showing" ? `Proyectando: ${r.current_movie}. ${minutesLeft(r.current_ends_at) ?? ""}.` : "",
+    r.status === "upcoming" ? `Próxima: ${r.next_movie} a las ${fmtTime(r.next_start_time)}, ${minutesUntil(r.next_start_time) ?? ""}.` : "",
+    r.status !== "idle" ? `Ocupación: ${r.occupancy_pct}%, ${r.available_seats} de ${r.total_seats} asientos disponibles.` : "Sin funciones programadas.",
+  ].filter(Boolean).join(" ");
+
   return (
-    <div style={{
-      background: C.surface ?? "#282424", border: `1px solid ${C.border}`,
-      borderRadius: 8, padding: "14px 16px",
-    }}>
+    <div
+      tabIndex={0}
+      aria-label={ariaLabel}
+      style={{
+        background: C.surface ?? "#282424", border: `1px solid ${C.border}`,
+        borderRadius: 8, padding: "14px 16px",
+      }}
+    >
       {/* Room name + status badge */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 13 }}>{r.room}</span>
@@ -117,7 +128,11 @@ const TODAY = new Date().toLocaleDateString("es-MX", {
 
 function MetricCard({ icon, label, value, sub }) {
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "18px 20px" }}>
+    <div
+      tabIndex={0}
+      aria-label={`${label}: ${value}${sub ? ". " + sub : ""}`}
+      style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "18px 20px" }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
         <span style={{ fontSize: 11, color: C.gray, fontFamily: "'Montserrat', sans-serif", textTransform: "uppercase", letterSpacing: .5 }}>{label}</span>
         <span style={{ fontSize: 20 }}>{icon}</span>
@@ -285,6 +300,8 @@ export default function AdminPage({ user, setPage }) {
               {activity.map((a, i) => (
                 <div
                   key={i}
+                  tabIndex={0}
+                  aria-label={`${a.type === "success" ? "Venta exitosa" : "Evento"}: ${a.message}. ${a.time}`}
                   style={{
                     display: "flex", alignItems: "flex-start", gap: 10,
                     padding: "8px 0", borderBottom: `1px solid ${C.border}`,

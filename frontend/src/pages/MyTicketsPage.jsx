@@ -31,7 +31,7 @@ function TicketCard({ ticket, expanded, onToggle }) {
         tabIndex={0}
         role="button"
         aria-expanded={expanded}
-        aria-label={`Ticket para ${ticket.movie_title}, ${fmtDateTime(ticket.screening_start_time)}, ${ticket.seats.length} asientos`}
+        aria-label={`Ticket para ${ticket.movie_title}, ${fmtDateTime(ticket.screening_start_time)}, asiento ${ticket.row ?? ""}${ticket.seat_number ?? ""}`}
         style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", cursor: "pointer" }}
       >
         {/* Poster */}
@@ -47,7 +47,7 @@ function TicketCard({ ticket, expanded, onToggle }) {
             {ticket.movie_title}
           </p>
           <p style={{ color: C.gray, fontSize: 12, marginTop: 3 }}>
-            {fmtDateTime(ticket.start_time)} · {ticket.room}
+            {fmtDateTime(ticket.screening_start_time)} · {ticket.room}
           </p>
           <p style={{ color: C.gray, fontSize: 12, marginTop: 2 }}>
             Asiento {ticket.row}{ticket.seat_number} · {ticket.format} {lang ? `· ${lang}` : ""}
@@ -84,7 +84,10 @@ function TicketCard({ ticket, expanded, onToggle }) {
             <div style={{ background: "#FFFFFF", padding: 7, borderRadius: 6, flexShrink: 0 }}>
               <QRCode code={ticket.ticket_code} />
             </div>
-            <div>
+            <div
+              tabIndex={0}
+              aria-label={`Código de ticket: ${ticket.ticket_code}. Comprador: ${ticket.user_name}. Comprado el ${fmtDateTime(ticket.purchased_at)}.`}
+            >
               <p style={{ fontSize: 10, color: C.grayDark, letterSpacing: 1, textTransform: "uppercase", marginBottom: 5, fontFamily: "'Montserrat', sans-serif" }}>
                 Código de ticket
               </p>

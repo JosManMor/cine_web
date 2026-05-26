@@ -6,7 +6,7 @@ const LANG_LABEL    = { original: "Original", dubbed: "Doblada", subtitled: "Sub
 
 function fmtDateTime(dateStr) {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleString("es-MX", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+  return new Date(dateStr).toLocaleString("es-MX", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 function Row({ label, value, highlight }) {
@@ -30,6 +30,19 @@ export default function TicketPage({ movie, schedule, purchaseResult, user, setP
   const isSingle    = seats.length === 1;
   const format      = [schedule?.format, LANG_LABEL[schedule?.language_type] ?? schedule?.language_type].filter(Boolean).join(" · ") || "—";
 
+  const summaryLabel = [
+    `Compra registrada. Resumen de tu pedido número ${purchase_id}.`,
+    `Película: ${movie?.title ?? "Desconocida"}.`,
+    movie?.genre ? `Género: ${movie.genre}.` : "",
+    `Sala: ${schedule?.room?.name ?? "—"}.`,
+    `Fecha y hora: ${fmtDateTime(schedule?.start_time)}.`,
+    `Formato: ${format}.`,
+    `${seats.length > 1 ? "Asientos" : "Asiento"}: ${seatLabels}.`,
+    `Comprador: ${user?.name ?? "—"}.`,
+    `Método de pago: ${PAYMENT_LABEL[payment_method] ?? payment_method}.`,
+    `Total a pagar: ${Number(total).toFixed(2)} pesos mexicanos.`,
+  ].filter(Boolean).join(" ");
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "100px 24px 40px" }}>
       <div style={{ width: "100%", maxWidth: 460, animation: "ticketSlide .5s cubic-bezier(.22,.68,0,1.2) forwards" }}>
@@ -42,7 +55,12 @@ export default function TicketPage({ movie, schedule, purchaseResult, user, setP
         </div>
 
         {/* Tarjeta resumen */}
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+        <div
+          tabIndex={-1}
+          ref={el => el?.focus()}
+          aria-label={summaryLabel}
+          style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", outline: "none" }}
+        >
 
           {/* Header película */}
           <div style={{ display: "flex", gap: 14, alignItems: "center", padding: "18px 20px", borderBottom: `1px solid ${C.border}` }}>
