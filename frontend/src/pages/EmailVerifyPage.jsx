@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { C } from "../constants/theme";
-import Spinner from "../components/ui/Spinner";
+import SmallSpinner from "../components/ui/SmallSpinner";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import { verifyEmail } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
@@ -50,7 +50,7 @@ export default function EmailVerifyPage({ setPage, addToast }) {
         {status === "loading" && (
           <>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-              <Spinner />
+              <SmallSpinner />
             </div>
             <p style={{ color: C.gray, fontSize: 14 }}>Verificando tu correo...</p>
           </>

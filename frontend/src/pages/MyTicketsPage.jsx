@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { C } from "../constants/theme";
 import { getMyTickets } from "../api/purchases";
 import QRCode from "../components/QRCode";
-import Spinner from "../components/ui/Spinner";
+import SmallSpinner from "../components/ui/SmallSpinner";
 import BtnPrimary from "../components/ui/BtnPrimary";
 
 const LANG_LABEL = { original: "Original", dubbed: "Doblada", subtitled: "Subtitulada" };
 
 function fmtDateTime(dateStr) {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleString("es-MX", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+  return new Date(dateStr).toLocaleString("es-MX", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 function TicketCard({ ticket, expanded, onToggle }) {
@@ -21,12 +21,17 @@ function TicketCard({ ticket, expanded, onToggle }) {
         background: C.card, border: `1px solid ${expanded ? C.green : C.border}`,
         borderRadius: 10, overflow: "hidden",
         transition: "border-color .2s, box-shadow .2s",
-        boxShadow: expanded ? `0 0 0 1px ${C.green}22, 0 8px 32px rgba(0,0,0,.5)` : "none",
+        boxShadow: expanded ? `0 0 0 1px ${C.greenGlow}, 0 8px 32px ${C.shadow}` : "none",
       }}
     >
       {/* Fila clickeable */}
       <div
         onClick={onToggle}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+        tabIndex={0}
+        role="button"
+        aria-expanded={expanded}
+        aria-label={`Ticket para ${ticket.movie_title}, ${fmtDateTime(ticket.screening_start_time)}, ${ticket.seats.length} asientos`}
         style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", cursor: "pointer" }}
       >
         {/* Poster */}
@@ -76,7 +81,7 @@ function TicketCard({ ticket, expanded, onToggle }) {
 
           {/* QR + código */}
           <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 20 }}>
-            <div style={{ background: C.white, padding: 7, borderRadius: 6, flexShrink: 0 }}>
+            <div style={{ background: "#FFFFFF", padding: 7, borderRadius: 6, flexShrink: 0 }}>
               <QRCode code={ticket.ticket_code} />
             </div>
             <div>
@@ -127,7 +132,7 @@ export default function MyTicketsPage({ setPage }) {
 
         {loading && (
           <div style={{ display: "flex", justifyContent: "center", padding: 80 }}>
-            <Spinner />
+            <SmallSpinner />
           </div>
         )}
 
