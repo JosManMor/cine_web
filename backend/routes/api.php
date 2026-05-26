@@ -40,4 +40,5 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('metrics',  [AdminController::class, 'metrics']);
     Route::get('activity', [AdminController::class, 'activity']);
     Route::get('rooms',    [AdminController::class, 'rooms']);
+    Route::get('system',   [AdminController::class, 'system']);
 });

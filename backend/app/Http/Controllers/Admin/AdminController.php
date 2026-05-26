@@ -122,4 +122,32 @@ class AdminController extends Controller
     {
         return response()->json($this->adminService->rooms());
     }
+
+    #[OA\Get(
+        path: '/admin/system',
+        summary: 'Estadísticas de recursos del servidor',
+        description: 'Devuelve el porcentaje de uso de CPU y memoria RAM del servidor.',
+        security: [['bearerAuth' => []]],
+        tags: ['Admin'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Recursos obtenidos correctamente',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'cpu_percent', type: 'integer', example: 45),
+                        new OA\Property(property: 'cpu_label',   type: 'string',  example: '45%'),
+                        new OA\Property(property: 'ram_percent', type: 'integer', example: 68),
+                        new OA\Property(property: 'ram_label',   type: 'string',  example: '1.4 GB / 2.0 GB'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'No autenticado'),
+            new OA\Response(response: 403, description: 'Acceso denegado — no es admin'),
+        ]
+    )]
+    public function system(): JsonResponse
+    {
+        return response()->json($this->adminService->systemStats());
+    }
 }

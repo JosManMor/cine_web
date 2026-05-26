@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { C } from "../constants/theme";
-import { getAdminMetrics, getAdminActivity, getAdminRooms } from "../api/admin";
+import { getAdminMetrics, getAdminActivity, getAdminRooms, getAdminSystem } from "../api/admin";
 import Spinner from "../components/ui/Spinner";
 import BtnPrimary from "../components/ui/BtnPrimary";
 
@@ -44,11 +44,22 @@ function RoomCard({ r }) {
   const col       = r.occupancy_pct > 80 ? C.red : r.occupancy_pct > 50 ? "#EF9F27" : C.green;
   const statusCol = STATUS_COLOR[r.status];
 
+  const ariaLabel = [
+    `${r.room}, estado: ${STATUS_LABEL[r.status]}.`,
+    r.status === "showing" ? `Proyectando: ${r.current_movie}. ${minutesLeft(r.current_ends_at) ?? ""}.` : "",
+    r.status === "upcoming" ? `Próxima: ${r.next_movie} a las ${fmtTime(r.next_start_time)}, ${minutesUntil(r.next_start_time) ?? ""}.` : "",
+    r.status !== "idle" ? `Ocupación: ${r.occupancy_pct}%, ${r.available_seats} de ${r.total_seats} asientos disponibles.` : "Sin funciones programadas.",
+  ].filter(Boolean).join(" ");
+
   return (
-    <div style={{
-      background: C.surface ?? "#282424", border: `1px solid ${C.border}`,
-      borderRadius: 8, padding: "14px 16px",
-    }}>
+    <div
+      tabIndex={0}
+      aria-label={ariaLabel}
+      style={{
+        background: C.surface ?? "#282424", border: `1px solid ${C.border}`,
+        borderRadius: 8, padding: "14px 16px",
+      }}
+    >
       {/* Room name + status badge */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 13 }}>{r.room}</span>
@@ -117,7 +128,11 @@ const TODAY = new Date().toLocaleDateString("es-MX", {
 
 function MetricCard({ icon, label, value, sub }) {
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "18px 20px" }}>
+    <div
+      tabIndex={0}
+      aria-label={`${label}: ${value}${sub ? ". " + sub : ""}`}
+      style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "18px 20px" }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
         <span style={{ fontSize: 11, color: C.gray, fontFamily: "'Montserrat', sans-serif", textTransform: "uppercase", letterSpacing: .5 }}>{label}</span>
         <span style={{ fontSize: 20 }}>{icon}</span>
@@ -132,6 +147,187 @@ function ActivityDot({ type }) {
   const color = type === "success" ? C.green : C.red;
   return (
     <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, marginTop: 5, flexShrink: 0 }} />
+  );
+}
+
+function SegmentedBar({ percent, color }) {
+  const numSegments = 20;
+  const activeSegments = Math.round((percent / 100) * numSegments);
+
+  return (
+    <div style={{ display: "flex", gap: 3, width: "100%", height: 10, marginTop: 4 }}>
+      {Array.from({ length: numSegments }).map((_, idx) => {
+        const isActive = idx < activeSegments;
+        return (
+          <div
+            key={idx}
+            style={{
+              flex: 1,
+              height: "100%",
+              background: isActive ? color : "var(--c-grayDarker)",
+              borderRadius: 1,
+              transition: "background 0.3s ease",
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function ServerMonitor() {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const fetchStats = useCallback(() => {
+    getAdminSystem()
+      .then((data) => {
+        setStats(data);
+        setError(false);
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 3000);
+    return () => clearInterval(interval);
+  }, [fetchStats]);
+
+  if (loading && !stats) {
+    return (
+      <div
+        style={{
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          padding: "16px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: 82,
+        }}
+      >
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (error && !stats) {
+    return (
+      <div
+        style={{
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          padding: "16px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 20,
+          minHeight: 82,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+          <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 13, color: C.red }}>
+            Error al cargar recursos del servidor
+          </h3>
+        </div>
+        <button
+          onClick={fetchStats}
+          style={{
+            padding: "4px 10px",
+            borderRadius: 4,
+            border: `1px solid ${C.border}`,
+            background: "transparent",
+            color: C.gray,
+            cursor: "pointer",
+            fontSize: 11,
+          }}
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
+  const { cpu_percent = 0, cpu_label = "0%", ram_percent = 0, ram_label = "0 GB / 0 GB" } = stats || {};
+
+  const getBarColor = (pct) => {
+    if (pct > 80) return C.red;
+    if (pct > 50) return "#EF9F27";
+    return C.green;
+  };
+
+  const cpuColor = getBarColor(cpu_percent);
+  const ramColor = getBarColor(ram_percent);
+
+  const ariaLabel = `Recursos del servidor: Uso de CPU al ${cpu_percent} por ciento, Uso de memoria RAM al ${ram_percent} por ciento, equivalente a ${ram_label}.`;
+
+  return (
+    <div
+      tabIndex={0}
+      aria-label={ariaLabel}
+      style={{
+        background: C.card,
+        border: `1px solid ${C.border}`,
+        borderRadius: 10,
+        padding: "16px 20px",
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 20,
+        boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+      }}
+    >
+      {/* Title & Status */}
+      <div style={{ minWidth: 160 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+          <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 13 }}>
+            Consumo del Servidor
+          </h3>
+        </div>
+        <span style={{
+          fontSize: 9,
+          fontFamily: "'Montserrat', sans-serif",
+          fontWeight: 700,
+          color: C.green,
+          background: C.greenDim,
+          padding: "2px 6px",
+          borderRadius: 3,
+          letterSpacing: 0.5,
+          display: "inline-block",
+        }}>
+          MONITOREO EN VIVO
+        </span>
+      </div>
+
+      {/* Progress Bars */}
+      <div style={{ display: "flex", flex: 1, minWidth: 280, gap: 24, flexWrap: "wrap" }}>
+        {/* CPU */}
+        <div style={{ flex: 1, minWidth: 130 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 2 }}>
+            <span style={{ color: C.gray, fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>PROCESADOR (CPU)</span>
+            <span style={{ color: cpuColor, fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{cpu_label}</span>
+          </div>
+          <SegmentedBar percent={cpu_percent} color={cpuColor} />
+        </div>
+
+        {/* RAM */}
+        <div style={{ flex: 1, minWidth: 130 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 2 }}>
+            <span style={{ color: C.gray, fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>MEMORIA (RAM)</span>
+            <span style={{ color: ramColor, fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{ram_label} ({ram_percent}%)</span>
+          </div>
+          <SegmentedBar percent={ram_percent} color={ramColor} />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -222,6 +418,11 @@ export default function AdminPage({ user, setPage }) {
           />
         </div>
 
+        {/* Server Monitor */}
+        <div style={{ marginBottom: 24 }}>
+          <ServerMonitor />
+        </div>
+
         {/* Chart + Rooms */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
 
@@ -285,6 +486,8 @@ export default function AdminPage({ user, setPage }) {
               {activity.map((a, i) => (
                 <div
                   key={i}
+                  tabIndex={0}
+                  aria-label={`${a.type === "success" ? "Venta exitosa" : "Evento"}: ${a.message}. ${a.time}`}
                   style={{
                     display: "flex", alignItems: "flex-start", gap: 10,
                     padding: "8px 0", borderBottom: `1px solid ${C.border}`,
