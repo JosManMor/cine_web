@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Movie\MovieController;
@@ -32,4 +33,11 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/purchases',             [PurchaseController::class, 'store']);
     Route::get('/my-tickets',             [PurchaseController::class, 'myTickets']);
     Route::get('/tickets/{ticket_code}',  [PurchaseController::class, 'showTicket']);
+});
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
+    Route::get('metrics',  [AdminController::class, 'metrics']);
+    Route::get('activity', [AdminController::class, 'activity']);
+    Route::get('rooms',    [AdminController::class, 'rooms']);
 });
