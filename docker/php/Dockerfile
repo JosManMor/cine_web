@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpng-dev \
     libonig-dev \
-    libxml2-dev
+    libxml2-dev \
+    libicu-dev
 
 RUN docker-php-ext-install \
     pdo \
@@ -16,7 +17,8 @@ RUN docker-php-ext-install \
     mbstring \
     zip \
     exif \
-    pcntl
+    pcntl \
+    intl
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 

@@ -157,46 +157,46 @@ class DatabaseSeeder extends Seeder
         // Las fechas son fijas para que firstOrCreate sea idempotente.
         $screenings = [
             // Inferno Nexus
-            ['title' => 'Inferno Nexus',    'room' => $sala1, 'start_time' => '2026-05-19 14:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 90.00],
-            ['title' => 'Inferno Nexus',    'room' => $sala3, 'start_time' => '2026-05-19 17:30:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 130.00],
-            ['title' => 'Inferno Nexus',    'room' => $sala1, 'start_time' => '2026-05-20 21:00:00', 'format' => '2D',   'language_type' => 'dubbed',    'base_price' => 90.00],
+            ['title' => 'Inferno Nexus',    'room' => $sala1, 'start_time' => '2026-06-02 14:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 90.00],
+            ['title' => 'Inferno Nexus',    'room' => $sala3, 'start_time' => '2026-06-02 17:30:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 130.00],
+            ['title' => 'Inferno Nexus',    'room' => $sala1, 'start_time' => '2026-06-03 21:00:00', 'format' => '2D',   'language_type' => 'dubbed',    'base_price' => 90.00],
 
             // Hollow Depths
-            ['title' => 'Hollow Depths',    'room' => $sala2, 'start_time' => '2026-05-19 16:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 80.00],
-            ['title' => 'Hollow Depths',    'room' => $sala2, 'start_time' => '2026-05-20 20:00:00', 'format' => '3D',   'language_type' => 'subtitled', 'base_price' => 100.00],
-            ['title' => 'Hollow Depths',    'room' => $sala1, 'start_time' => '2026-05-21 23:00:00', 'format' => '2D',   'language_type' => 'dubbed',    'base_price' => 80.00],
+            ['title' => 'Hollow Depths',    'room' => $sala2, 'start_time' => '2026-06-02 16:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 80.00],
+            ['title' => 'Hollow Depths',    'room' => $sala2, 'start_time' => '2026-06-03 20:00:00', 'format' => '3D',   'language_type' => 'subtitled', 'base_price' => 100.00],
+            ['title' => 'Hollow Depths',    'room' => $sala1, 'start_time' => '2026-06-04 23:00:00', 'format' => '2D',   'language_type' => 'dubbed',    'base_price' => 80.00],
 
             // Última Vuelta
-            ['title' => 'Última Vuelta',    'room' => $sala2, 'start_time' => '2026-05-19 13:00:00', 'format' => '2D',   'language_type' => 'dubbed',    'base_price' => 75.00],
-            ['title' => 'Última Vuelta',    'room' => $sala1, 'start_time' => '2026-05-20 16:30:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 75.00],
+            ['title' => 'Última Vuelta',    'room' => $sala2, 'start_time' => '2026-06-02 13:00:00', 'format' => '2D',   'language_type' => 'dubbed',    'base_price' => 75.00],
+            ['title' => 'Última Vuelta',    'room' => $sala1, 'start_time' => '2026-06-03 16:30:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 75.00],
 
             // Ecos del Vacío
-            ['title' => 'Ecos del Vacío',   'room' => $sala3, 'start_time' => '2026-05-21 15:00:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 130.00],
-            ['title' => 'Ecos del Vacío',   'room' => $sala2, 'start_time' => '2026-05-22 18:30:00', 'format' => '3D',   'language_type' => 'subtitled', 'base_price' => 100.00],
+            ['title' => 'Ecos del Vacío',   'room' => $sala3, 'start_time' => '2026-06-04 15:00:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 130.00],
+            ['title' => 'Ecos del Vacío',   'room' => $sala2, 'start_time' => '2026-06-05 18:30:00', 'format' => '3D',   'language_type' => 'subtitled', 'base_price' => 100.00],
 
             // La Sombra del Cóndor
-            ['title' => 'La Sombra del Cóndor', 'room' => $sala1, 'start_time' => '2026-05-21 17:00:00', 'format' => '2D', 'language_type' => 'subtitled', 'base_price' => 85.00],
-            ['title' => 'La Sombra del Cóndor', 'room' => $sala2, 'start_time' => '2026-05-23 20:00:00', 'format' => '2D', 'language_type' => 'dubbed',    'base_price' => 85.00],
+            ['title' => 'La Sombra del Cóndor', 'room' => $sala1, 'start_time' => '2026-06-04 17:00:00', 'format' => '2D', 'language_type' => 'subtitled', 'base_price' => 85.00],
+            ['title' => 'La Sombra del Cóndor', 'room' => $sala2, 'start_time' => '2026-05-30 20:00:00', 'format' => '2D', 'language_type' => 'dubbed',    'base_price' => 85.00],
 
             // Dune: Parte Dos
-            ['title' => 'Dune: Parte Dos',      'room' => $sala3, 'start_time' => '2026-05-24 15:00:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 130.00],
-            ['title' => 'Dune: Parte Dos',      'room' => $sala1, 'start_time' => '2026-05-25 19:30:00', 'format' => '2D',   'language_type' => 'dubbed',    'base_price' => 90.00],
+            ['title' => 'Dune: Parte Dos',      'room' => $sala3, 'start_time' => '2026-05-31 15:00:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 130.00],
+            ['title' => 'Dune: Parte Dos',      'room' => $sala1, 'start_time' => '2026-06-01 19:30:00', 'format' => '2D',   'language_type' => 'dubbed',    'base_price' => 90.00],
 
             // Oppenheimer
-            ['title' => 'Oppenheimer',          'room' => $sala2, 'start_time' => '2026-05-24 17:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 95.00],
-            ['title' => 'Oppenheimer',          'room' => $sala1, 'start_time' => '2026-05-26 20:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 95.00],
+            ['title' => 'Oppenheimer',          'room' => $sala2, 'start_time' => '2026-05-31 17:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 95.00],
+            ['title' => 'Oppenheimer',          'room' => $sala1, 'start_time' => '2026-06-02 20:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 95.00],
 
             // Top Gun: Maverick
-            ['title' => 'Top Gun: Maverick',    'room' => $sala3, 'start_time' => '2026-05-25 14:30:00', 'format' => 'IMAX', 'language_type' => 'dubbed',    'base_price' => 130.00],
-            ['title' => 'Top Gun: Maverick',    'room' => $sala2, 'start_time' => '2026-05-27 18:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 85.00],
+            ['title' => 'Top Gun: Maverick',    'room' => $sala3, 'start_time' => '2026-06-01 14:30:00', 'format' => 'IMAX', 'language_type' => 'dubbed',    'base_price' => 130.00],
+            ['title' => 'Top Gun: Maverick',    'room' => $sala2, 'start_time' => '2026-06-03 18:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 85.00],
 
             // Avatar: El Camino del Agua
-            ['title' => 'Avatar: El Camino del Agua', 'room' => $sala3, 'start_time' => '2026-05-26 16:00:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 140.00],
-            ['title' => 'Avatar: El Camino del Agua', 'room' => $sala2, 'start_time' => '2026-05-28 19:00:00', 'format' => '3D',   'language_type' => 'dubbed',    'base_price' => 110.00],
+            ['title' => 'Avatar: El Camino del Agua', 'room' => $sala3, 'start_time' => '2026-06-02 16:00:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 140.00],
+            ['title' => 'Avatar: El Camino del Agua', 'room' => $sala2, 'start_time' => '2026-06-04 19:00:00', 'format' => '3D',   'language_type' => 'dubbed',    'base_price' => 110.00],
 
             // Interestelar
-            ['title' => 'Interestelar',         'room' => $sala3, 'start_time' => '2026-05-27 20:30:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 130.00],
-            ['title' => 'Interestelar',         'room' => $sala1, 'start_time' => '2026-05-29 17:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 90.00],
+            ['title' => 'Interestelar',         'room' => $sala3, 'start_time' => '2026-06-03 20:30:00', 'format' => 'IMAX', 'language_type' => 'subtitled', 'base_price' => 130.00],
+            ['title' => 'Interestelar',         'room' => $sala1, 'start_time' => '2026-06-05 17:00:00', 'format' => '2D',   'language_type' => 'subtitled', 'base_price' => 90.00],
         ];
 
         foreach ($screenings as $s) {
