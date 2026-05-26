@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { C } from "../constants/theme";
-import { getAdminMetrics, getAdminActivity, getAdminRooms } from "../api/admin";
+import { getAdminMetrics, getAdminActivity, getAdminRooms, getAdminSystem } from "../api/admin";
 import Spinner from "../components/ui/Spinner";
 import BtnPrimary from "../components/ui/BtnPrimary";
 
@@ -150,6 +150,187 @@ function ActivityDot({ type }) {
   );
 }
 
+function SegmentedBar({ percent, color }) {
+  const numSegments = 20;
+  const activeSegments = Math.round((percent / 100) * numSegments);
+
+  return (
+    <div style={{ display: "flex", gap: 3, width: "100%", height: 10, marginTop: 4 }}>
+      {Array.from({ length: numSegments }).map((_, idx) => {
+        const isActive = idx < activeSegments;
+        return (
+          <div
+            key={idx}
+            style={{
+              flex: 1,
+              height: "100%",
+              background: isActive ? color : "var(--c-grayDarker)",
+              borderRadius: 1,
+              transition: "background 0.3s ease",
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function ServerMonitor() {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const fetchStats = useCallback(() => {
+    getAdminSystem()
+      .then((data) => {
+        setStats(data);
+        setError(false);
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 3000);
+    return () => clearInterval(interval);
+  }, [fetchStats]);
+
+  if (loading && !stats) {
+    return (
+      <div
+        style={{
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          padding: "16px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: 82,
+        }}
+      >
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (error && !stats) {
+    return (
+      <div
+        style={{
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          padding: "16px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 20,
+          minHeight: 82,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+          <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 13, color: C.red }}>
+            Error al cargar recursos del servidor
+          </h3>
+        </div>
+        <button
+          onClick={fetchStats}
+          style={{
+            padding: "4px 10px",
+            borderRadius: 4,
+            border: `1px solid ${C.border}`,
+            background: "transparent",
+            color: C.gray,
+            cursor: "pointer",
+            fontSize: 11,
+          }}
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
+  const { cpu_percent = 0, cpu_label = "0%", ram_percent = 0, ram_label = "0 GB / 0 GB" } = stats || {};
+
+  const getBarColor = (pct) => {
+    if (pct > 80) return C.red;
+    if (pct > 50) return "#EF9F27";
+    return C.green;
+  };
+
+  const cpuColor = getBarColor(cpu_percent);
+  const ramColor = getBarColor(ram_percent);
+
+  const ariaLabel = `Recursos del servidor: Uso de CPU al ${cpu_percent} por ciento, Uso de memoria RAM al ${ram_percent} por ciento, equivalente a ${ram_label}.`;
+
+  return (
+    <div
+      tabIndex={0}
+      aria-label={ariaLabel}
+      style={{
+        background: C.card,
+        border: `1px solid ${C.border}`,
+        borderRadius: 10,
+        padding: "16px 20px",
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 20,
+        boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+      }}
+    >
+      {/* Title & Status */}
+      <div style={{ minWidth: 160 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+          <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 13 }}>
+            Consumo del Servidor
+          </h3>
+        </div>
+        <span style={{
+          fontSize: 9,
+          fontFamily: "'Montserrat', sans-serif",
+          fontWeight: 700,
+          color: C.green,
+          background: C.greenDim,
+          padding: "2px 6px",
+          borderRadius: 3,
+          letterSpacing: 0.5,
+          display: "inline-block",
+        }}>
+          MONITOREO EN VIVO
+        </span>
+      </div>
+
+      {/* Progress Bars */}
+      <div style={{ display: "flex", flex: 1, minWidth: 280, gap: 24, flexWrap: "wrap" }}>
+        {/* CPU */}
+        <div style={{ flex: 1, minWidth: 130 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 2 }}>
+            <span style={{ color: C.gray, fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>PROCESADOR (CPU)</span>
+            <span style={{ color: cpuColor, fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{cpu_label}</span>
+          </div>
+          <SegmentedBar percent={cpu_percent} color={cpuColor} />
+        </div>
+
+        {/* RAM */}
+        <div style={{ flex: 1, minWidth: 130 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 2 }}>
+            <span style={{ color: C.gray, fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>MEMORIA (RAM)</span>
+            <span style={{ color: ramColor, fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{ram_label} ({ram_percent}%)</span>
+          </div>
+          <SegmentedBar percent={ram_percent} color={ramColor} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage({ user, setPage }) {
   const [metrics,  setMetrics]  = useState(null);
   const [activity, setActivity] = useState([]);
@@ -235,6 +416,11 @@ export default function AdminPage({ user, setPage }) {
             value={metrics.top_movie?.title ?? "—"}
             sub={metrics.top_movie ? `${metrics.top_movie.tickets_sold} boletos` : undefined}
           />
+        </div>
+
+        {/* Server Monitor */}
+        <div style={{ marginBottom: 24 }}>
+          <ServerMonitor />
         </div>
 
         {/* Chart + Rooms */}
