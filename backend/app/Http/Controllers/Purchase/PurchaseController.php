@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Purchase\PurchaseRequest;
 use App\Http\Resources\PurchaseResource;
 use App\Http\Resources\TicketResource;
+use App\Models\PurchaseSeat;
 use App\Services\PurchaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
