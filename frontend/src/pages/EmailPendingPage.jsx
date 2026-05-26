@@ -2,7 +2,7 @@ import { useState } from "react";
 import { C } from "../constants/theme";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import BtnSecondary from "../components/ui/BtnSecondary";
-import Spinner from "../components/ui/Spinner";
+import SmallSpinner from "../components/ui/SmallSpinner";
 import { resendVerification } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
@@ -46,7 +46,7 @@ export default function EmailPendingPage({ setPage, addToast }) {
           <p style={{ color: C.gray, fontSize: 13, marginBottom: 16 }}>¿No llegó? Revisa tu carpeta de spam o solicita un nuevo correo.</p>
           {loading
             ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-                <Spinner />
+                <SmallSpinner />
                 <span style={{ color: C.gray, fontSize: 14 }}>Enviando...</span>
               </div>
             : <BtnPrimary onClick={handleResend} style={{ width: "100%", padding: 12, fontSize: 14 }}>

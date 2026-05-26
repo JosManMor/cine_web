@@ -26,6 +26,10 @@ export default function HeroCarousel({ carousel, featuredIndex, setFeaturedIndex
         <p style={{ color: C.gray, fontSize: 15, maxWidth: 500, lineHeight: 1.7, marginBottom: 24 }}>{featured.synopsis ?? ""}</p>
         <span
           onClick={() => { setSelectedMovie(featured); setPage("movie-detail"); }}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedMovie(featured); setPage("movie-detail"); } }}
+          tabIndex={0}
+          role="link"
+          aria-label={`Ver detalles de ${featured.title}`}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, color: C.white, fontSize: 14, fontFamily: "'Montserrat', sans-serif", fontWeight: 600, cursor: "pointer", borderBottom: `1px solid ${C.white}40`, paddingBottom: 2, transition: "border-color .2s, color .2s" }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = C.white; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = `${C.white}40`; }}
@@ -36,7 +40,7 @@ export default function HeroCarousel({ carousel, featuredIndex, setFeaturedIndex
 
       <div style={{ position: "absolute", bottom: 28, right: 60, display: "flex", gap: 8, alignItems: "center" }}>
         {carousel.map((_, i) => (
-          <button key={i} onClick={() => setFeaturedIndex(i)} style={{
+          <button key={i} onClick={() => setFeaturedIndex(i)} aria-label={`Ver película destacada ${i + 1}`} style={{
             width: i === featuredIndex ? 28 : 8, height: 8, borderRadius: 4, padding: 0,
             background: i === featuredIndex ? C.red : C.border,
             border: "none", cursor: "pointer", transition: "all .35s",
