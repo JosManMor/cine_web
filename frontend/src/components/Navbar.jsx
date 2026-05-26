@@ -1,6 +1,123 @@
 import { useState, useEffect, useRef } from "react";
 import { C } from "../constants/theme";
 import BtnPrimary from "./ui/BtnPrimary";
+import { useTheme } from "../context/ThemeContext";
+import logo from "../assets/logo.png";
+
+const SunIcon = ({ size = 14, color = "currentColor", style }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+  >
+    <circle cx="12" cy="12" r="5" />
+    <line x1="12" y1="1" x2="12" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="23" />
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+    <line x1="1" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="12" x2="23" y2="12" />
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+  </svg>
+);
+
+const MoonIcon = ({ size = 14, color = "currentColor", style }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke={color}
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+  >
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+function ThemeToggle({ style }) {
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
+
+  return (
+    <button
+      onClick={toggleTheme}
+      aria-label="Cambiar tema"
+      style={{
+        width: 56,
+        height: 30,
+        borderRadius: 15,
+        padding: 3,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        position: "relative",
+        background: isDark ? "#121212" : "#E5E5EA",
+        border: `1px solid ${isDark ? "#3D3939" : "#D1D1D6"}`,
+        boxShadow: isDark ? "inset 0 2px 4px rgba(0,0,0,0.6)" : "inset 0 2px 4px rgba(0,0,0,0.06)",
+        outline: "none",
+        flexShrink: 0,
+        ...style
+      }}
+    >
+      <div style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", pointerEvents: "none", opacity: isDark ? 0.3 : 0 }}>
+        <SunIcon size={13} color="#F59E0B" />
+      </div>
+      <div style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", pointerEvents: "none", opacity: isDark ? 0 : 0.4 }}>
+        <MoonIcon size={12} color="#A1A1AA" />
+      </div>
+
+      <div
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          background: isDark ? "#E50914" : "#F59E0B",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "absolute",
+          left: 3,
+          transform: isDark ? "translateX(28px)" : "translateX(0)",
+          transition: "transform 0.45s cubic-bezier(0.25, 0.8, 0.25, 1.25), background-color 0.3s ease, box-shadow 0.3s",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.3)"
+        }}
+      >
+        <SunIcon
+          size={12}
+          color="#FFFFFF"
+          style={{
+            position: "absolute",
+            opacity: isDark ? 0 : 1,
+            transform: isDark ? "rotate(-180deg) scale(0.6)" : "rotate(0) scale(1)",
+            transition: "transform 0.45s cubic-bezier(0.25, 0.8, 0.25, 1.25), opacity 0.3s"
+          }}
+        />
+        <MoonIcon
+          size={11}
+          color="#FFFFFF"
+          style={{
+            position: "absolute",
+            opacity: isDark ? 1 : 0,
+            transform: isDark ? "rotate(0) scale(1)" : "rotate(180deg) scale(0.6)",
+            transition: "transform 0.45s cubic-bezier(0.25, 0.8, 0.25, 1.25), opacity 0.3s"
+          }}
+        />
+      </div>
+    </button>
+  );
+}
 
 export default function Navbar({ page, setPage, user, onLogout }) {
   const [sideOpen, setSideOpen] = useState(false);
@@ -59,16 +176,23 @@ export default function Navbar({ page, setPage, user, onLogout }) {
 
   return (
     <>
-      <nav style={{ background: "linear-gradient(to bottom, rgba(0,0,0,.95), rgba(10,10,10,0))", position: "fixed", top: 0, left: 0, right: 0, zIndex: 200, padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <nav style={{ background: C.navBg, borderBottom: `1px solid ${C.navBorder}`, position: "fixed", top: 0, left: 0, right: 0, zIndex: 200, padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 
         {/* Logo */}
-        <div onClick={() => setPage("home")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 32, background: C.red, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🎬</div>
+        <div 
+          onClick={() => setPage("home")} 
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPage("home"); } }}
+          tabIndex={0}
+          role="link"
+          aria-label="Ir a inicio"
+          style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+          <img src={logo} alt="" style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 4 }} />
           <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 2, color: C.white }}>CINE SENDERA</span>
         </div>
 
         {/* Desktop nav */}
-        <div className="nav-desktop" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="nav-desktop" style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <ThemeToggle />
           {user ? (
             <>
               {user.role === "admin" && (
@@ -80,9 +204,15 @@ export default function Navbar({ page, setPage, user, onLogout }) {
               <div ref={profileRef} style={{ position: "relative" }}>
                 <div
                   onClick={() => setProfileOpen(v => !v)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setProfileOpen(v => !v); } }}
+                  tabIndex={0}
+                  role="button"
+                  aria-expanded={profileOpen}
+                  aria-haspopup="menu"
+                  aria-label="Menú de usuario"
                   style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8, padding: "6px 14px", borderRadius: 4, background: C.card, border: `1px solid ${profileOpen ? C.red : C.border}`, cursor: "pointer", userSelect: "none", transition: "border-color .2s" }}
                 >
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{user.name[0]}</div>
+                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#FFFFFF" }}>{user.name[0]}</div>
                   <span style={{ fontSize: 13, color: C.gray }}>{user.name}</span>
                   <span style={{ fontSize: 10, color: C.grayDark, transition: "transform .2s", display: "inline-block", transform: profileOpen ? "rotate(180deg)" : "none" }}>▼</span>
                 </div>
@@ -133,15 +263,18 @@ export default function Navbar({ page, setPage, user, onLogout }) {
 
       {/* Sidebar */}
       <aside
-        style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 280, background: C.surface, zIndex: 220, transform: sideOpen ? "translateX(0)" : "translateX(100%)", transition: "transform .3s cubic-bezier(.4,0,.2,1)", display: "flex", flexDirection: "column", padding: "24px 28px", overflowY: "auto" }}
+        style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 280, background: C.surface, zIndex: 220, transform: sideOpen ? "translateX(0)" : "translateX(100%)", visibility: sideOpen ? "visible" : "hidden", transition: `transform .3s cubic-bezier(.4,0,.2,1), visibility 0s linear ${sideOpen ? "0s" : "0.3s"}`, display: "flex", flexDirection: "column", padding: "24px 28px", overflowY: "auto" }}
       >
         {/* Sidebar header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 26, height: 26, background: C.red, borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🎬</div>
+            <img src={logo} alt="Cine Sendera" style={{ width: 26, height: 26, objectFit: "contain", borderRadius: 3 }} />
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2, color: C.white }}>CINE SENDERA</span>
           </div>
-          <button onClick={() => setSideOpen(false)} aria-label="Cerrar" style={{ background: "none", border: "none", color: C.gray, fontSize: 22, cursor: "pointer", lineHeight: 1 }}>✕</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <ThemeToggle />
+            <button onClick={() => setSideOpen(false)} aria-label="Cerrar" style={{ background: "none", border: "none", color: C.gray, fontSize: 22, cursor: "pointer", lineHeight: 1 }}>✕</button>
+          </div>
         </div>
 
         {/* User info con dropdown */}
@@ -149,9 +282,15 @@ export default function Navbar({ page, setPage, user, onLogout }) {
           <div ref={sideProfileRef} style={{ position: "relative", marginBottom: 24 }}>
             <div
               onClick={() => setSideProfileOpen(v => !v)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSideProfileOpen(v => !v); } }}
+              tabIndex={0}
+              role="button"
+              aria-expanded={sideProfileOpen}
+              aria-haspopup="menu"
+              aria-label="Menú de usuario"
               style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: sideProfileOpen ? "6px 6px 0 0" : 6, background: C.card, border: `1px solid ${sideProfileOpen ? C.red : C.border}`, cursor: "pointer", userSelect: "none", transition: "border-color .2s" }}
             >
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{user.name[0]}</div>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, flexShrink: 0, color: "#FFFFFF" }}>{user.name[0]}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, color: C.white, fontWeight: 600 }}>{user.name}</div>
               </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { C } from "../constants/theme";
 import { getScreening } from "../api/purchases";
 import BtnPrimary from "../components/ui/BtnPrimary";
-import Spinner from "../components/ui/Spinner";
+import SmallSpinner from "../components/ui/SmallSpinner";
 
 const LANG_LABEL = { original: "Original", dubbed: "Doblada", subtitled: "Subtitulada" };
 
@@ -92,7 +92,7 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user, se
             {/* Cargando */}
             {fetchLoading && (
               <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
-                <Spinner />
+                <SmallSpinner />
               </div>
             )}
 
@@ -114,6 +114,11 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user, se
                         <div
                           key={`${rowLabel}-${seatNum}`}
                           onClick={() => toggleSeat(rowLabel, seatNum)}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSeat(rowLabel, seatNum); } }}
+                          tabIndex={status === "occupied" ? -1 : 0}
+                          role="checkbox"
+                          aria-checked={status === "selected"}
+                          aria-label={`Asiento ${rowLabel}${seatNum}, ${status === "occupied" ? "ocupado" : status === "selected" ? "seleccionado" : "disponible"}`}
                           title={`${rowLabel}${seatNum}`}
                           style={{
                             width: 26, height: 22, borderRadius: "4px 4px 2px 2px",
@@ -193,7 +198,7 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user, se
 
             {confirming
               ? <div style={{ display: "flex", justifyContent: "center", padding: 24, background: C.card, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                  <Spinner />
+                  <SmallSpinner />
                 </div>
               : <BtnPrimary onClick={handleConfirm} disabled={!selected.length || fetchLoading} style={{ width: "100%", padding: 14, fontSize: 14 }}>
                   Confirmar {selected.length > 0 ? `(${selected.length})` : ""}

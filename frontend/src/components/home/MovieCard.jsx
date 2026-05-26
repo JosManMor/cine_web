@@ -8,6 +8,10 @@ export default function MovieCard({ movie, index, onClick }) {
   return (
     <div
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
+      tabIndex={0}
+      role="button"
+      aria-label={`Película: ${movie.title}, ${movie.genre || "Sin género"}, ${movie.duration_minutes ? fmtDuration(movie.duration_minutes) : "Duración no especificada"}${movie.rating ? `, Clasificación ${movie.rating}` : ""}`}
       style={{ background: C.card, borderRadius: 8, overflow: "hidden", border: `1px solid ${C.border}`, cursor: "pointer", animation: `fadeUp .5s ease ${index * 0.1}s both`, transition: "box-shadow .25s, transform .25s", transform: hovered ? "translateY(-4px)" : "translateY(0)", boxShadow: hovered ? "0 16px 48px rgba(0,0,0,.7)" : "none" }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
