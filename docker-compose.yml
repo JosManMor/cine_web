@@ -169,7 +169,31 @@ services:
 
     networks:
       - cine_network
+  frontend:
+    image: node:20-alpine
 
+    container_name: cine_frontend
+
+    working_dir: /app
+
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+
+    environment:
+      VITE_PROXY_TARGET: http://apache
+
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+    ports:
+      - "5173:5173"
+
+    depends_on:
+      - apache
+
+    networks:
+      - cine_network
+      
 volumes:
   mysql_data:
 
