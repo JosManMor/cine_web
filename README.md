@@ -168,3 +168,13 @@ Configuración aplicada directamente sobre el servidor Ubuntu:
 | Protección CSRF | Middleware integrado de Laravel |
 | Anti-sobreventa de boletos | Transacción DB + `UNIQUE` constraint en `purchase_seats` |
 | Rate limiting en login | `throttle:5,1` en rutas de autenticación |
+
+## Versiones de imágenes
+
+| Servicio   | Imagen                    |
+|------------|---------------------------|
+| MySQL      | mysql:8.0                 |
+| Apache     | httpd:2.4                 |
+| phpMyAdmin | phpmyadmin/phpmyadmin:5.2 |
+| Mailpit    | axllent/mailpit:v1.21     |
+| Composer   | composer:2                |

@@ -1,5 +1,19 @@
 services:
 
+  redis:
+    image: redis:7-alpine
+    container_name: cine_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - cine_network
+
   app:
     build:
       context: .
@@ -81,6 +95,8 @@ services:
       L5_SWAGGER_GENERATE_ALWAYS: ${L5_SWAGGER_GENERATE_ALWAYS}
 
     depends_on:
+      redis:
+        condition: service_healthy
       mysql:
         condition: service_healthy
 
@@ -137,7 +153,7 @@ services:
       - cine_network
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+    image: phpmyadmin/phpmyadmin:5.2.3
 
     container_name: cine_phpmyadmin
 
@@ -157,7 +173,7 @@ services:
       - cine_network
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.31.4
 
     container_name: cine_mailpit
 
@@ -172,6 +188,7 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:
 
 networks:
   cine_network:
