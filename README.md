@@ -168,3 +168,13 @@ Configuración aplicada directamente sobre el servidor Ubuntu:
 | Protección CSRF | Middleware integrado de Laravel |
 | Anti-sobreventa de boletos | Transacción DB + `UNIQUE` constraint en `purchase_seats` |
 | Rate limiting en login | `throttle:5,1` en rutas de autenticación |
+
+### Frontend (Vite) en Docker
+
+`docker compose up -d` también levanta el frontend (React + Vite) en http://localhost:5173.
+Ya no hace falta instalar Node ni correr `npm run dev` en tu máquina.
+
+- La primera vez tarda un poco porque el contenedor ejecuta `npm ci`.
+- Las llamadas a `/api` pasan por el proxy de Vite hacia el contenedor `apache` (variable `VITE_PROXY_TARGET`).
+- Si corres el frontend fuera de Docker (`npm run dev` en `frontend/`), el proxy usa `http://localhost` por defecto.
+- Ver logs: `docker compose logs frontend -f`
