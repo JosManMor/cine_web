@@ -56,13 +56,15 @@ docker compose up -d
 cd frontend && npm install && npm run dev
 ```
 
-El entrypoint ejecuta automáticamente migraciones y seeders al arrancar.  
+> **Nota sobre variables de entorno:** El servicio `app` carga sus variables automáticamente vía `env_file: .env`. Los comentarios en `.env` deben ir en su propia línea (`# comentario`), nunca al final de una línea con valor.
+
+El entrypoint ejecuta automáticamente migraciones y seeders al arrancar. Los servicios inician en orden estricto mediante `depends_on` con condiciones `service_healthy`.  
 Accesos disponibles:
 
 | Servicio    | URL                        |
 |-------------|----------------------------|
 | App         | http://localhost            |
-| phpMyAdmin  | http://localhost:8080       |
+| phpMyAdmin  | http://localhost:8080 (o `:8081` si se define `FORWARD_PMA_PORT`) |
 | Mailpit     | http://localhost:8025       |
 | Frontend dev| http://localhost:5173       |
 
@@ -74,13 +76,16 @@ El proyecto usa múltiples contenedores siguiendo el principio de **un proceso p
 
 ### Desarrollo (`docker-compose.yml`)
 
-| Contenedor      | Imagen            | Responsabilidad                                      |
-|-----------------|-------------------|------------------------------------------------------|
-| `cine_app`      | PHP-FPM 8.3       | Ejecuta Laravel; procesa las peticiones PHP          |
-| `cine_apache`   | httpd:2.4         | Servidor web; recibe HTTP y reenvía a PHP-FPM        |
-| `cine_mysql`    | mysql:8.0         | Base de datos; separado para persistir datos con volumen |
-| `cine_phpmyadmin` | phpmyadmin      | GUI de base de datos; solo en desarrollo             |
-| `cine_mailpit`  | axllent/mailpit   | Captura correos salientes sin enviarlos; solo en desarrollo |
+| Contenedor        | Imagen            | Responsabilidad                                          | Healthcheck                                    |
+|-------------------|-------------------|----------------------------------------------------------|------------------------------------------------|
+| `cine_mysql`      | mysql:8.0         | Base de datos; persiste datos con volumen `mysql_data`    | `mysqladmin ping`                              |
+| `cine_app`        | PHP-FPM 8.3       | Ejecuta Laravel; procesa peticiones PHP                  | Socket `:9000` (tras migraciones/seeders)      |
+| `cine_apache`     | httpd:2.4         | Servidor web; recibe HTTP y reenvía a PHP-FPM            | HTTP GET `/up` vía `/dev/tcp`                  |
+| `cine_phpmyadmin` | phpmyadmin        | GUI de base de datos; espera a que MySQL esté *healthy*  | -                                              |
+| `cine_mailpit`    | axllent/mailpit   | Captura correos salientes; solo en desarrollo            | Healthcheck nativo                             |
+
+> **Control del orden de arranque (`depends_on` + `healthcheck`):**  
+> `app` espera a que `mysql` esté en estado `healthy`. `apache` espera a que `app` esté en estado `healthy` (evitando errores `502 Bad Gateway` durante el arranque). `phpmyadmin` espera a que `mysql` esté `healthy`.
 
 > **¿Por qué Apache y PHP-FPM separados?**  
 > PHP-FPM gestiona procesos PHP de forma eficiente (pool de workers) mientras Apache sirve archivos estáticos directamente sin pasar por PHP. Esta separación refleja el stack LAMP real de producción.
