@@ -22,6 +22,13 @@ services:
       mysql:
         condition: service_healthy
 
+    healthcheck:
+      test: ["CMD", "php", "-r", "$$fp = @fsockopen('127.0.0.1', 9000); exit($$fp ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
     networks:
       - cine_network
 
@@ -40,7 +47,15 @@ services:
       - ./docker/apache/000-default.conf:/usr/local/apache2/conf/httpd.conf
 
     depends_on:
-      - app
+      app:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/80 && printf \"GET /up HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && read -r line <&3 && [[ \"$$line\" =~ 200 ]]'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
     networks:
       - cine_network
@@ -89,7 +104,8 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
 
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
 
     networks:
       - cine_network
