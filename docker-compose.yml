@@ -4,7 +4,12 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
 
+    user: "${UID:-1000}:${GID:-1000}"
+    
     container_name: cine_app
 
     restart: unless-stopped
