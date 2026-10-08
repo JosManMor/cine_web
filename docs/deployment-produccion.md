@@ -9,14 +9,15 @@ Este documento describe cómo levantar y mantener el entorno de producción simu
 | Aspecto              | Desarrollo (`docker-compose.yml`) | Producción (`docker-compose.prod.yml`) |
 | -------------------- | --------------------------------- | -------------------------------------- |
 | Código fuente        | Bind-mount (`./backend`)          | Baked en la imagen                     |
-| Frontend             | Vite dev server                   | Build estático en `public/build/`      |
+| Frontend             | Servicio `frontend` (Vite`:5173`) | Build estático en `public/build/`      |
 | PHP vendor           | Montado desde host                | Instalado sin `--dev` en la imagen     |
 | Base de datos        | Expuesta en el host (`:3306`)     | Solo accesible en red interna          |
 | phpMyAdmin / Mailpit | Incluidos                         | Excluidos                              |
 | Queue worker         | No incluido                       | Contenedor `queue` dedicado            |
 | Scheduler            | No incluido                       | Contenedor `scheduler` dedicado        |
 | OPcache              | Desactivado                       | Activado y optimizado                  |
-
+| Usuario app	         |  www-data ( UID/GID del host)	   | Por defecto de la imagen               |
+| Variables UID/GID	   | Requeridas (.env)	               | No aplican                             |
 ---
 
 ## Requisitos previos
