@@ -15,9 +15,12 @@ export default defineConfig(({ mode }) => ({
   },
 
   server: {
+    host: true, // NUEVO
+    watch: { usePolling: true }, // NUEVO: recarga en caliente dentro de Docker
     proxy: {
       "/api": {
-        target: "http://localhost",
+        // NUEVO: usa la variable en Docker; fuera de Docker sigue en localhost
+        target: process.env.VITE_PROXY_TARGET || "http://localhost",
         changeOrigin: true,
       },
     },
