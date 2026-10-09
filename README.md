@@ -21,6 +21,7 @@ La documentación detallada se encuentra en `/docs`:
 - [Sistema de Diseño Frontend](./docs/frontend-design-system.md)
 - [Entorno de Desarrollo y Orquestación Docker](./docs/docker-entorno-desarrollo.md)
 - [Deployment — Simulación de Producción](./docs/deployment-produccion.md)
+- [Examen Teórico y Memoria Técnica de Implementación](./docs/examen-teorico-resumen-implementacion.md)
 
 ---
 
