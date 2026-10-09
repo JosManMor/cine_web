@@ -168,3 +168,26 @@ Configuración aplicada directamente sobre el servidor Ubuntu:
 | Protección CSRF | Middleware integrado de Laravel |
 | Anti-sobreventa de boletos | Transacción DB + `UNIQUE` constraint en `purchase_seats` |
 | Rate limiting en login | `throttle:5,1` en rutas de autenticación |
+
+### Permisos de archivos (Docker dev)
+
+El contenedor `app` corre con el UID/GID de tu usuario para no crear archivos de root en `./backend`.
+Configúralos en `.env` (copia de `.env.example`):
+
+    id -u   # tu UID
+    id -g   # tu GID
+
+Si ya tienes archivos creados como root por una versión anterior:
+
+    sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache backend/vendor
+
+Luego reconstruye: `docker compose build app && docker compose up -d`
+
+
+**Obligatorio si ya tenías el proyecto clonado antes de este cambio** y `backend/storage`,
+`backend/bootstrap/cache` o `backend/vendor` fueron creados por root. Corrígelo una vez:
+
+    sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache backend/vendor
+
+Luego reconstruye: `docker compose build app && docker compose up -d`.
+Si no lo haces, el contenedor `app` terminará con un mensaje de error de permisos.
