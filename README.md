@@ -19,6 +19,7 @@ La documentación detallada se encuentra en `/docs`:
 
 - [Arquitectura del Backend](./docs/backend-architecture.md)
 - [Sistema de Diseño Frontend](./docs/frontend-design-system.md)
+- [Entorno de Desarrollo y Orquestación Docker](./docs/docker-entorno-desarrollo.md)
 - [Deployment — Simulación de Producción](./docs/deployment-produccion.md)
 
 ---
