@@ -157,7 +157,7 @@ services:
       - cine_network
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+    image: phpmyadmin/phpmyadmin:5.2.3
 
     container_name: cine_phpmyadmin
 
@@ -177,7 +177,7 @@ services:
       - cine_network
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.31.4
 
     container_name: cine_mailpit
 

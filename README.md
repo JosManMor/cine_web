@@ -191,3 +191,13 @@ Luego reconstruye: `docker compose build app && docker compose up -d`
 
 Luego reconstruye: `docker compose build app && docker compose up -d`.
 Si no lo haces, el contenedor `app` terminará con un mensaje de error de permisos.
+
+## Versiones de imágenes
+
+| Servicio   | Imagen                    |
+|------------|---------------------------|
+| MySQL      | mysql:8.0                 |
+| Apache     | httpd:2.4                 |
+| phpMyAdmin | phpmyadmin/phpmyadmin:5.2 |
+| Mailpit    | axllent/mailpit:v1.21     |
+| Composer   | composer:2                |
