@@ -3,11 +3,6 @@ set -e
 
 cd /var/www
 
-if [ ! -w storage ] || [ ! -w bootstrap/cache ]; then
-    echo "[entrypoint] ERROR: storage/ no es escribible por $(id -u). Ejecuta en el host: sudo chown -R \$USER:\$USER backend/storage backend/bootstrap/cache backend/vendor" >&2
-    exit 1
-fi
-
 # ── APP_KEY ──────────────────────────────────────────────────────────────────
 if [ -z "$APP_KEY" ]; then
     if [ -f .env ]; then

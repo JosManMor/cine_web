@@ -123,14 +123,3 @@ Tests use in-memory SQLite regardless of the `.env` DB setting (configured in `p
 `scripts/staff_creator.sh` — bulk Linux user creation for staff
 
 Cron: watchdog every minute (`*/1 * * * *`), backup at 2 AM (`0 2 * * *`).
-
-## Development Setup
-
-```bash
-# Start all services (PHP app, Apache :80, MySQL :3306, phpMyAdmin :8080,
-# Mailpit :8025, Vite frontend :5173)
-docker compose up -d
-
-# First-time setup inside the PHP container (mounts backend/ as /var/www)
-docker compose run --rm --entrypoint sh app -c "composer install"
-```

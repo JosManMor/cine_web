@@ -37,7 +37,6 @@ El sistema debe permitir:
 
 # 2. Arquitectura General
 
-
 ## Arquitectura propuesta
 
 Se recomienda utilizar:
@@ -48,16 +47,7 @@ Se recomienda utilizar:
 - API REST interna
 - MySQL como persistencia
 - Redis opcional para cache
-- Docker para desarrollo (ver sección 2.1)
-
-## 2.1 Entorno de desarrollo con Docker
-
-`docker compose up -d` levanta: `frontend` (Vite, :5173), `apache` (:80), `app` (PHP-FPM), `mysql` (:3306), `phpmyadmin` (:8080) y `mailpit` (:8025).
-
-- El frontend corre en Docker; no hace falta instalar Node en el host.
-- El proxy `/api` de Vite apunta a `http://apache` (variable `VITE_PROXY_TARGET`).
-- El contenedor `app` corre como `www-data` con el UID/GID del host (`HOST_UID` y `HOST_GID` en `.env`, obtenidos con `id -u` e `id -g`), para que los archivos de `./backend` no queden como root.
-- Si `backend/storage` ya fue creado por root: `sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache backend/vendor`.
+- Docker opcional para desarrollo
 
 ---
 
@@ -595,12 +585,6 @@ APP_DEBUG=false
 DB_DATABASE=cine_db
 DB_USERNAME=cine_user
 DB_PASSWORD=strong_password
-```
-## Variables solo para desarrollo con Docker
-
-```env
-HOST_UID=1000
-HOST_GID=1000
 ```
 
 ---
