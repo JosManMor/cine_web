@@ -169,12 +169,25 @@ Configuración aplicada directamente sobre el servidor Ubuntu:
 | Anti-sobreventa de boletos | Transacción DB + `UNIQUE` constraint en `purchase_seats` |
 | Rate limiting en login | `throttle:5,1` en rutas de autenticación |
 
-### Frontend (Vite) en Docker
+### Permisos de archivos (Docker dev)
 
-`docker compose up -d` también levanta el frontend (React + Vite) en http://localhost:5173.
-Ya no hace falta instalar Node ni correr `npm run dev` en tu máquina.
+El contenedor `app` corre con el UID/GID de tu usuario para no crear archivos de root en `./backend`.
+Configúralos en `.env` (copia de `.env.example`):
 
-- La primera vez tarda un poco porque el contenedor ejecuta `npm ci`.
-- Las llamadas a `/api` pasan por el proxy de Vite hacia el contenedor `apache` (variable `VITE_PROXY_TARGET`).
-- Si corres el frontend fuera de Docker (`npm run dev` en `frontend/`), el proxy usa `http://localhost` por defecto.
-- Ver logs: `docker compose logs frontend -f`
+    id -u   # tu UID
+    id -g   # tu GID
+
+Si ya tienes archivos creados como root por una versión anterior:
+
+    sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache backend/vendor
+
+Luego reconstruye: `docker compose build app && docker compose up -d`
+
+
+**Obligatorio si ya tenías el proyecto clonado antes de este cambio** y `backend/storage`,
+`backend/bootstrap/cache` o `backend/vendor` fueron creados por root. Corrígelo una vez:
+
+    sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache backend/vendor
+
+Luego reconstruye: `docker compose build app && docker compose up -d`.
+Si no lo haces, el contenedor `app` terminará con un mensaje de error de permisos.
