@@ -79,14 +79,16 @@ El proyecto usa múltiples contenedores siguiendo el principio de **un proceso p
 
 | Contenedor        | Imagen            | Responsabilidad                                          | Healthcheck                                    |
 |-------------------|-------------------|----------------------------------------------------------|------------------------------------------------|
+| `cine_redis`      | redis:7-alpine    | Servidor de caché en memoria y sesiones                  | `redis-cli ping`                               |
 | `cine_mysql`      | mysql:8.0         | Base de datos; persiste datos con volumen `mysql_data`    | `mysqladmin ping`                              |
 | `cine_app`        | PHP-FPM 8.3       | Ejecuta Laravel; procesa peticiones PHP                  | Socket `:9000` (tras migraciones/seeders)      |
 | `cine_apache`     | httpd:2.4         | Servidor web; recibe HTTP y reenvía a PHP-FPM            | HTTP GET `/up` vía `/dev/tcp`                  |
-| `cine_phpmyadmin` | phpmyadmin        | GUI de base de datos; espera a que MySQL esté *healthy*  | -                                              |
+| `cine_phpmyadmin` | phpmyadmin:5.2.3  | GUI de base de datos; espera a que MySQL esté *healthy*  | -                                              |
 | `cine_mailpit`    | axllent/mailpit   | Captura correos salientes; solo en desarrollo            | Healthcheck nativo                             |
+| `cine_frontend`   | node:20-alpine    | Servidor de desarrollo Vite con hot-reload para React    | -                                              |
 
 > **Control del orden de arranque (`depends_on` + `healthcheck`):**  
-> `app` espera a que `mysql` esté en estado `healthy`. `apache` espera a que `app` esté en estado `healthy` (evitando errores `502 Bad Gateway` durante el arranque). `phpmyadmin` espera a que `mysql` esté `healthy`.
+> `app` espera a que `mysql` y `redis` estén en estado `healthy`. `apache` espera a que `app` esté en estado `healthy` (evitando errores `502 Bad Gateway` durante el arranque). `phpmyadmin` espera a que `mysql` esté `healthy`.
 
 > **¿Por qué Apache y PHP-FPM separados?**  
 > PHP-FPM gestiona procesos PHP de forma eficiente (pool de workers) mientras Apache sirve archivos estáticos directamente sin pasar por PHP. Esta separación refleja el stack LAMP real de producción.

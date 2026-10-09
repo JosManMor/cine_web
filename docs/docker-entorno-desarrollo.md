@@ -13,10 +13,12 @@ graph TD
     Client[Navegador / Cliente HTTP] -->|:80| Apache[cine_apache<br/>httpd:2.4]
     Client -->|:8080 / FORWARD_PMA_PORT| PMA[cine_phpmyadmin<br/>phpMyAdmin]
     Client -->|:8025| Mailpit[cine_mailpit<br/>Web UI Correo]
-    Client -->|:5173| Vite[Frontend Dev Server<br/>React 18 + Vite]
+    Client -->|:5173| Frontend[cine_frontend<br/>React 18 + Vite]
 
+    Frontend -->|Proxy API :80| Apache
     Apache -->|FastCGI :9000| App[cine_app<br/>PHP-FPM 8.3 + Laravel]
     App -->|MySQL :3306| MySQL[(cine_mysql<br/>MySQL 8.0)]
+    App -->|Redis :6379| Redis[(cine_redis<br/>Redis 7)]
     PMA -->|MySQL :3306| MySQL
     App -->|SMTP :1025| Mailpit
 
@@ -24,8 +26,10 @@ graph TD
         Apache
         App
         MySQL
+        Redis
         PMA
         Mailpit
+        Frontend
     end
 ```
 
@@ -33,11 +37,13 @@ graph TD
 
 | Servicio | Contenedor | Imagen / Base | Puerto Interno | Puerto Host | Responsabilidad Principal |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| `redis` | `cine_redis` | `redis:7-alpine` | `6379` | No expuesto al host | Cache en memoria y sesiones con volumen `redis_data`. |
 | `app` | `cine_app` | `docker/php/Dockerfile` (PHP 8.3-FPM) | `9000` | No expuesto al host | Ejecuta Laravel, procesa peticiones FastCGI, corre migraciones y seeders. |
 | `apache` | `cine_apache` | `httpd:2.4` | `80` | `80:80` | Servidor web perimetral. Sirve estáticos y reenvía rutas dinámicas a `cine_app:9000`. |
 | `mysql` | `cine_mysql` | `mysql:8.0` | `3306` | `${FORWARD_DB_PORT:-3306}:3306` | Base de datos relacional con volumen persistente `mysql_data`. |
-| `phpmyadmin` | `cine_phpmyadmin` | `phpmyadmin/phpmyadmin` | `80` | `${FORWARD_PMA_PORT:-8080}:80` | Interfaz web de administración de base de datos. |
-| `mailpit` | `cine_mailpit` | `axllent/mailpit:latest` | `1025` (SMTP), `8025` (UI) | `1025:1025`, `8025:8025` | Servidor SMTP local para captura e inspección de emails generados por el sistema. |
+| `phpmyadmin` | `cine_phpmyadmin` | `phpmyadmin/phpmyadmin:5.2.3` | `80` | `${FORWARD_PMA_PORT:-8080}:80` | Interfaz web de administración de base de datos. |
+| `mailpit` | `cine_mailpit` | `axllent/mailpit:v1.31.4` | `1025` (SMTP), `8025` (UI) | `1025:1025`, `8025:8025` | Servidor SMTP local para captura e inspección de emails generados por el sistema. |
+| `frontend` | `cine_frontend` | `node:20-alpine` | `5173` | `5173:5173` | Servidor de desarrollo Vite con hot-reload para React. |
 
 ---
 
@@ -165,7 +171,17 @@ healthcheck:
 - **Mecanismo:** `mysqladmin ping` verifica que el motor InnoDB y el socket TCP de MySQL respondan a consultas autenticadas.
 - **`start_period: 30s`:** Ventana de gracia para que MySQL realice la inicialización de archivos de datos sin marcar fallos prematuros.
 
-#### 2. Backend PHP-FPM (`cine_app`)
+#### 2. Servidor de Cache (`cine_redis`)
+```yaml
+healthcheck:
+  test: ["CMD", "redis-cli", "ping"]
+  interval: 10s
+  timeout: 3s
+  retries: 5
+```
+- **Mecanismo:** `redis-cli ping` comprueba que la instancia en memoria responda con `PONG`.
+
+#### 3. Backend PHP-FPM (`cine_app`)
 ```yaml
 healthcheck:
   test: ["CMD", "php", "-r", "$$fp = @fsockopen('127.0.0.1', 9000); exit($$fp ? 0 : 1);"]
@@ -179,11 +195,13 @@ healthcheck:
 - **Dependencia de arranque:**
   ```yaml
   depends_on:
+    redis:
+      condition: service_healthy
     mysql:
       condition: service_healthy
   ```
 
-#### 3. Servidor Web Apache (`cine_apache`)
+#### 4. Servidor Web Apache (`cine_apache`)
 ```yaml
 healthcheck:
   test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/80 && printf \"GET /up HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && read -r line <&3 && [[ \"$$line\" =~ 200 ]]'"]
