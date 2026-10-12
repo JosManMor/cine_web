@@ -12,7 +12,7 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - cine_network
+      - backend_net
 
   app:
     build:
@@ -52,7 +52,8 @@ services:
       start_period: 30s
 
     networks:
-      - cine_network
+      - frontend_net
+      - backend_net
 
   apache:
     image: httpd:2.4
@@ -80,7 +81,7 @@ services:
       start_period: 10s
 
     networks:
-      - cine_network
+      - frontend_net
 
   mysql:
     image: mysql:8.0
@@ -109,7 +110,7 @@ services:
       - mysql_data:/var/lib/mysql
 
     networks:
-      - cine_network
+      - backend_net
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:5.2.3
@@ -130,7 +131,7 @@ services:
         condition: service_healthy
 
     networks:
-      - cine_network
+      - backend_net
 
   mailpit:
     image: axllent/mailpit:v1.31.4
@@ -144,7 +145,8 @@ services:
       - "8025:8025"
 
     networks:
-      - cine_network
+      - backend_net
+
   frontend:
     image: node:20-alpine
 
@@ -171,12 +173,13 @@ services:
         condition: service_healthy
 
     networks:
-      - cine_network
-      
+      - frontend_net
+
 volumes:
   mysql_data:
   redis_data:
   frontend_node_modules:
 
 networks:
-  cine_network:
+  frontend_net:
+  backend_net:
