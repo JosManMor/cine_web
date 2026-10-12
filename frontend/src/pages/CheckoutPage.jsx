@@ -2,7 +2,7 @@ import { useState } from "react";
 import { C } from "../constants/theme";
 import { createPurchase } from "../api/purchases";
 import BtnPrimary from "../components/ui/BtnPrimary";
-import Spinner from "../components/ui/Spinner";
+import SmallSpinner from "../components/ui/SmallSpinner";
 
 const PAYMENT_METHODS = [
   { id: "cash",   label: "Efectivo" },
@@ -12,7 +12,7 @@ const PAYMENT_METHODS = [
 
 function fmtDateTime(dateStr) {
   if (!dateStr) return "";
-  return new Date(dateStr).toLocaleString("es-MX", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+  return new Date(dateStr).toLocaleString("es-MX", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 export default function CheckoutPage({ movie, schedule, user, selectedSeats = [], setPage, addToast, setPurchaseResult }) {
@@ -67,11 +67,11 @@ export default function CheckoutPage({ movie, schedule, user, selectedSeats = []
 
   if (done) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", paddingTop: 64, flexDirection: "column", gap: 16, animation: "popIn .4s ease forwards" }}>
+      <div tabIndex={-1} ref={el => el?.focus()} aria-label="¡Compra registrada con éxito! Generando comprobante." style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", paddingTop: 64, flexDirection: "column", gap: 16, animation: "popIn .4s ease forwards", outline: "none" }}>
         <div style={{ width: 72, height: 72, background: C.green, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34 }}>✓</div>
         <p style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 20 }}>¡Compra registrada!</p>
         <p style={{ color: C.gray, fontSize: 14 }}>Generando comprobante...</p>
-        <Spinner />
+        <SmallSpinner />
       </div>
     );
   }
@@ -83,7 +83,11 @@ export default function CheckoutPage({ movie, schedule, user, selectedSeats = []
         <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, letterSpacing: 3, marginBottom: 28 }}>CONFIRMAR COMPRA</h2>
 
         {/* Resumen */}
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 20 }}>
+        <div 
+          tabIndex={0}
+          aria-label={`Resumen de orden: Película ${movie?.title ?? "Desconocida"}, ${schedule?.room?.name ?? "Sala"}, ${fmtDateTime(schedule?.start_time)}, ${selectedSeats.length} asientos: ${seatLabels}. Precio por asiento ${unitPrice.toFixed(2)} pesos mexicanos. Total a pagar ${total.toFixed(2)} pesos mexicanos.`}
+          style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 20 }}
+        >
           <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 14, marginBottom: 14, color: C.gray, textTransform: "uppercase", letterSpacing: 1 }}>Resumen de orden</h3>
           <div style={{ display: "flex", gap: 16, alignItems: "center", paddingBottom: 16, marginBottom: 16, borderBottom: `1px solid ${C.border}` }}>
             <div style={{ width: 60, height: 80, background: C.surface, borderRadius: 6, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -141,8 +145,8 @@ export default function CheckoutPage({ movie, schedule, user, selectedSeats = []
         </div>
 
         {loading
-          ? <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 32, background: C.card, borderRadius: 10, border: `1px solid ${C.border}` }}>
-              <Spinner />
+          ? <div tabIndex={-1} ref={el => el?.focus()} aria-label="Procesando compra, por favor espere. No cierre esta ventana." style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 32, background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, outline: "none" }}>
+              <SmallSpinner />
               <p style={{ color: C.gray, fontSize: 14, animation: "shimmer 1s ease infinite" }}>Procesando compra...</p>
               <p style={{ color: C.grayDark, fontSize: 12 }}>No cierres esta ventana</p>
             </div>

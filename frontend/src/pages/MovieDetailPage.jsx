@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { C } from "../constants/theme";
 import { getMovie } from "../api/movies";
 import BtnPrimary from "../components/ui/BtnPrimary";
-import Spinner from "../components/ui/Spinner";
+import SmallSpinner from "../components/ui/SmallSpinner";
 
 function fmtDuration(mins) {
   if (!mins) return "";
@@ -12,7 +12,7 @@ function fmtDuration(mins) {
 function fmtDateTime(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
-  return d.toLocaleString("es-MX", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+  return d.toLocaleString("es-MX", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 const LANG_LABEL = { original: "Original", dubbed: "Doblada", subtitled: "Subtitulada" };
@@ -77,18 +77,18 @@ export default function MovieDetailPage({ movie, setPage, setSelectedSchedule })
               )}
             </div>
 
-            <h1 className="detail-title" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 54, letterSpacing: 3, marginBottom: 8 }}>{m.title}</h1>
+            <h1 className="detail-title" tabIndex={0} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 54, letterSpacing: 3, marginBottom: 8 }}>{m.title}</h1>
 
             {m.director && (
-              <p style={{ color: C.grayDark, fontSize: 13, marginBottom: 16 }}>Dir. {m.director}</p>
+              <p tabIndex={0} style={{ color: C.grayDark, fontSize: 13, marginBottom: 16 }}>Dir. {m.director}</p>
             )}
 
             {m.synopsis && (
-              <p style={{ color: C.gray, lineHeight: 1.8, fontSize: 15, marginBottom: 24 }}>{m.synopsis}</p>
+              <p tabIndex={0} style={{ color: C.gray, lineHeight: 1.8, fontSize: 15, marginBottom: 24 }}>{m.synopsis}</p>
             )}
 
             {/* Funciones */}
-            {loading && <Spinner />}
+            {loading && <SmallSpinner />}
 
             {!loading && screenings.length > 0 && (
               <div style={{ marginBottom: 32 }}>
@@ -99,7 +99,7 @@ export default function MovieDetailPage({ movie, setPage, setSelectedSchedule })
                   {screenings.map(s => {
                     const isSelected = selectedScreening?.id === s.id;
                     return (
-                      <button key={s.id} onClick={() => setSelectedScreening(s)} className="screening-btn" style={{
+                      <button key={s.id} onClick={() => setSelectedScreening(s)} aria-label={`Función: ${fmtDateTime(s.start_time)}, ${s.format}, ${LANG_LABEL[s.language_type] ?? s.language_type}, ${s.room.available_seats} asientos disponibles, precio ${Number(s.base_price).toFixed(2)} pesos mexicanos`} className="screening-btn" style={{
                         display: "flex", justifyContent: "space-between", alignItems: "center",
                         padding: "10px 16px", borderRadius: 4, width: "100%", textAlign: "left",
                         border: `1px solid ${isSelected ? C.red : C.border}`,

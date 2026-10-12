@@ -4,7 +4,7 @@ export default function BtnPrimary({ children, onClick, disabled, style = {} }) 
   return (
     <button onClick={onClick} disabled={disabled} style={{
       background: disabled ? C.grayDarker : C.red,
-      color: disabled ? C.grayDark : C.white,
+      color: disabled ? C.grayDark : "#FFFFFF",
       border: "none", borderRadius: 4, padding: "11px 20px",
       fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 13,
       cursor: disabled ? "not-allowed" : "pointer",

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C } from "../constants/theme";
 import BtnPrimary from "../components/ui/BtnPrimary";
-import Spinner from "../components/ui/Spinner";
+import SmallSpinner from "../components/ui/SmallSpinner";
 import { register } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
@@ -51,7 +51,7 @@ export default function RegisterPage({ setPage, addToast }) {
           ))}
           {loading
             ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: 14 }}>
-                <Spinner /><span style={{ color: C.gray, fontSize: 14 }}>Creando cuenta...</span>
+                <SmallSpinner /><span style={{ color: C.gray, fontSize: 14 }}>Creando cuenta...</span>
               </div>
             : <BtnPrimary onClick={handleReg} style={{ width: "100%", padding: 13, fontSize: 14, marginTop: 6 }}>Crear cuenta</BtnPrimary>
           }

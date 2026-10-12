@@ -115,7 +115,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "${DB_PORT}:3306"
+      - "3307:3306"
 
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
@@ -144,7 +144,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "8080:80"
+      - "8082:80"
 
     environment:
       PMA_HOST: ${DB_HOST}
@@ -164,8 +164,8 @@ services:
     restart: unless-stopped
 
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "1026:1025"
+      - "8026:8025"
 
     networks:
       - cine_network

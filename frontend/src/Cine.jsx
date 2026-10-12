@@ -15,6 +15,7 @@ import EmailPendingPage from "./pages/EmailPendingPage";
 import EmailVerifyPage from "./pages/EmailVerifyPage";
 import AdminPage from "./pages/AdminPage";
 import MyTicketsPage from "./pages/MyTicketsPage";
+import AccessibilityAssistant from "./components/accessibility/AccessibilityAssistant";
 
 export default function App() {
   const { user, clearAuth } = useAuth();
@@ -90,6 +91,7 @@ export default function App() {
           {page === "my-tickets"    && <MyTicketsPage    setPage={nav} />}
         </div>
       </div>
+      <AccessibilityAssistant page={page} />
     </>
   );
 }

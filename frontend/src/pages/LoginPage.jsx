@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C } from "../constants/theme";
 import BtnPrimary from "../components/ui/BtnPrimary";
-import Spinner from "../components/ui/Spinner";
+import SmallSpinner from "../components/ui/SmallSpinner";
 import { login } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
@@ -47,7 +47,7 @@ export default function LoginPage({ setPage, addToast }) {
           </div>
           {loading
             ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: 14 }}>
-                <Spinner /><span style={{ color: C.gray, fontSize: 14 }}>Verificando...</span>
+                <SmallSpinner /><span style={{ color: C.gray, fontSize: 14 }}>Verificando...</span>
               </div>
             : <BtnPrimary onClick={handle} style={{ width: "100%", padding: 13, fontSize: 14 }}>Iniciar sesión</BtnPrimary>
           }
