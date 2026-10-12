@@ -16,13 +16,26 @@ Cine Sendera is a cinema management system (ticketing, seat selection, admin das
 ## Development Setup
 
 ```bash
-# Start all services (PHP app, Apache :80, MySQL :3306, phpMyAdmin :8080)
-docker-compose up -d
+# 1. Env file lives at the REPO ROOT (loaded via env_file); there is no backend/.env in Docker
+cp .env.example .env            # set HOST_UID/HOST_GID (id -u / id -g)
 
-# First-time setup inside the PHP container (mounts backend/ as /var/www)
-composer setup
-# Which runs: composer install → key:generate → migrate → npm install → npm run build
+# 2. Install PHP deps (backend/ is mounted as /var/www; entrypoint aborts without vendor/)
+docker compose run --rm --no-deps --entrypoint sh app -c "composer install"
+
+# 3. Generate APP_KEY and paste it into the root .env (otherwise the entrypoint
+#    creates a temporary in-memory key that changes on every restart)
+docker compose run --rm --no-deps --entrypoint php app artisan key:generate --show
+
+# 4. Start all services: redis, app (PHP-FPM), apache :80, mysql :FORWARD_DB_PORT,
+#    phpmyadmin :FORWARD_PMA_PORT, mailpit :8025/:1025, frontend (Vite) :5173
+docker compose up -d
 ```
+
+The app entrypoint runs `migrate --force` and `db:seed --force` on every start. Changes to `.env` require `docker compose up -d` (recreate); `restart` does not reload `env_file`. Changes to `docker/php/entrypoint.sh` require `--build` (it is copied into the image).
+
+Networks: `frontend_net` (frontend, apache, app) and `backend_net` (app, mysql, redis, phpmyadmin, mailpit); only `app` joins both.
+
+`composer setup` (from `backend/`, outside Docker) runs: composer install → copy .env → migrate → db:seed. It does **not** run `key:generate`.
 
 ## Commands (run from `backend/`)
 
@@ -108,29 +121,18 @@ DB::transaction(function () {
 
 ## Environment
 
-- Local (without Docker): `backend/.env` defaults to SQLite (`DB_CONNECTION=sqlite`)
-- Docker: root `.env.example` sets MySQL (`DB_HOST=mysql`, `DB_DATABASE=cine_db`)
-- Copy the correct `.env.example` to `backend/.env` before running
+- Docker (dev): copy root `.env.example` to root `.env` (MySQL: `DB_HOST=mysql`, `DB_DATABASE=cine_db`)
+- Docker (prod simulation): copy `.env.prod.example` to `.env.prod`; see `docs/deployment-produccion.md`
+- Local (without Docker): `backend/.env` is used; there is no `backend/.env.example`, and Laravel falls back to SQLite when `DB_CONNECTION` is unset
 
 ## Testing
 
 Tests use in-memory SQLite regardless of the `.env` DB setting (configured in `phpunit.xml`). Test suites: `Unit` (`tests/Unit/`) and `Feature` (`tests/Feature/`).
 
-## Planned Bash Scripts (not yet in repo)
+## Bash Scripts (`scripts/`)
 
-`scripts/watchdog.sh` — restarts Apache/MySQL if down, logs to `/var/log/cine_error.log`  
-`scripts/backup.sh` — `mysqldump` only if disk free > 15%  
-`scripts/staff_creator.sh` — bulk Linux user creation for staff
-
-Cron: watchdog every minute (`*/1 * * * *`), backup at 2 AM (`0 2 * * *`).
-
-## Development Setup
-
-```bash
-# Start all services (PHP app, Apache :80, MySQL :3306, phpMyAdmin :8080,
-# Mailpit :8025, Vite frontend :5173)
-docker compose up -d
-
-# First-time setup inside the PHP container (mounts backend/ as /var/www)
-docker compose run --rm --entrypoint sh app -c "composer install"
-```
+`scripts/watchdog.sh` — restarts Apache/MySQL if down, logs to `/var/log/cine_error.log` (native server only; not used in Docker)  
+`scripts/backup.sh` — `mysqldump` only if disk free > 15% (runs in the prod `cron` container at 02:00)  
+`scripts/staff_creator.sh` — bulk Linux user creation for staff (copied into the prod image at `/usr/local/scripts/`)  
+`scripts/hardening.sh` — one-time server hardening (UFW, SSH)  
+`scripts/cine.cron` — cron file for a native install: watchdog every minute (`*/1 * * * *`), backup at 2 AM (`0 2 * * *`).

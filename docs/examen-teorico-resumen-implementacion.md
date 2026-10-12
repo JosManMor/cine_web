@@ -97,7 +97,7 @@ El problema que más nos costó resolver fueron los permisos de archivos en Linu
 Docker cuenta con varios tipos de redes, siendo la red bridge la más común para comunicar contenedores en una misma máquina. Cuando el usuario crea una red bridge propia, Docker activa un servidor DNS interno. Esto permite que los servicios se comuniquen entre sí utilizando sus nombres de servicio en lugar de tener que averiguar o fijar direcciones IP.
 
 ### Implementación en Cine Sendera
-Definimos una red bridge llamada cine_network donde conectamos todos los servicios. Gracias a esto logramos que:
+Definimos dos redes bridge para segmentar el tráfico: frontend_net, donde conviven cine_frontend, cine_apache y cine_app, y backend_net, donde conviven cine_app, cine_mysql, cine_redis, cine_phpmyadmin y cine_mailpit. El contenedor cine_app es el único conectado a ambas, de modo que ni Apache ni el frontend tienen ruta de red hacia la base de datos. Gracias a esto logramos que:
 * Apache envíe peticiones FastCGI a app:9000.
 * Laravel se conecte a la base de datos usando DB_HOST=mysql y a la caché usando REDIS_HOST=redis.
 * El servidor de Vite en frontend reenvíe peticiones de API usando el destino http://apache en el puerto 80.
@@ -166,7 +166,7 @@ Este fue uno de los problemas más molestos que tuvimos. Al hacer docker compose
 | 1 | Dockerfiles para cada servicio | Contenedores definidos para frontend, backend PHP, servidor web Apache, MySQL, Redis y Mailpit. |
 | 2 | Optimización multi-stage y .dockerignore | Archivo Dockerfile.prod con etapas separadas de Composer y Node, y archivo .dockerignore para excluir archivos locales. |
 | 3 | Estrategia de persistencia de datos | Uso de named volumes para MySQL y Redis, junto con bind mounts para el código en desarrollo. |
-| 4 | Red personalizada tipo bridge y DNS | Red cine_network con comunicación entre contenedores por nombre de servicio. |
+| 4 | Redes personalizadas tipo bridge y DNS | Redes frontend_net y backend_net con comunicación entre contenedores por nombre de servicio y la base de datos aislada del frontend. |
 | 5 | Docker Compose funcional | Levantamiento de la arquitectura completa con el comando docker compose up -d. |
 | 6 | Variables de entorno y healthchecks | Variables cargadas con env_file y control de arranque mediante condition: service_healthy. |
 
