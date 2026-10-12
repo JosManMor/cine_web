@@ -63,12 +63,12 @@ cd frontend && npm install && npm run dev
 El entrypoint ejecuta automáticamente migraciones y seeders al arrancar. Los servicios inician en orden estricto mediante `depends_on` con condiciones `service_healthy`.  
 Accesos disponibles:
 
-| Servicio    | URL                        |
-|-------------|----------------------------|
-| App         | http://localhost            |
-| phpMyAdmin  | http://localhost:8080 (o `:8081` si se define `FORWARD_PMA_PORT`) |
-| Mailpit     | http://localhost:8025       |
-| Frontend dev| http://localhost:5173       |
+| Servicio     | URL                                                               |
+| ------------ | ----------------------------------------------------------------- |
+| App          | http://localhost                                                  |
+| phpMyAdmin   | http://localhost:8080 (o `:8081` si se define `FORWARD_PMA_PORT`) |
+| Mailpit      | http://localhost:8025                                             |
+| Frontend dev | http://localhost:5173                                             |
 
 ---
 
@@ -78,15 +78,15 @@ El proyecto usa múltiples contenedores siguiendo el principio de **un proceso p
 
 ### Desarrollo (`docker-compose.yml`)
 
-| Contenedor        | Imagen            | Responsabilidad                                          | Healthcheck                                    |
-|-------------------|-------------------|----------------------------------------------------------|------------------------------------------------|
-| `cine_redis`      | redis:7-alpine    | Servidor de caché en memoria y sesiones                  | `redis-cli ping`                               |
-| `cine_mysql`      | mysql:8.0         | Base de datos; persiste datos con volumen `mysql_data`    | `mysqladmin ping`                              |
-| `cine_app`        | PHP-FPM 8.3       | Ejecuta Laravel; procesa peticiones PHP                  | Socket `:9000` (tras migraciones/seeders)      |
-| `cine_apache`     | httpd:2.4         | Servidor web; recibe HTTP y reenvía a PHP-FPM            | HTTP GET `/up` vía `/dev/tcp`                  |
-| `cine_phpmyadmin` | phpmyadmin:5.2.3  | GUI de base de datos; espera a que MySQL esté *healthy*  | -                                              |
-| `cine_mailpit`    | axllent/mailpit   | Captura correos salientes; solo en desarrollo            | Healthcheck nativo                             |
-| `cine_frontend`   | node:20-alpine    | Servidor de desarrollo Vite con hot-reload para React    | -                                              |
+| Contenedor        | Imagen           | Responsabilidad                                         | Healthcheck                               |
+| ----------------- | ---------------- | ------------------------------------------------------- | ----------------------------------------- |
+| `cine_redis`      | redis:7-alpine   | Servidor de caché en memoria y sesiones                 | `redis-cli ping`                          |
+| `cine_mysql`      | mysql:8.0        | Base de datos; persiste datos con volumen `mysql_data`  | `mysqladmin ping`                         |
+| `cine_app`        | PHP-FPM 8.3      | Ejecuta Laravel; procesa peticiones PHP                 | Socket `:9000` (tras migraciones/seeders) |
+| `cine_apache`     | httpd:2.4        | Servidor web; recibe HTTP y reenvía a PHP-FPM           | HTTP GET `/up` vía `/dev/tcp`             |
+| `cine_phpmyadmin` | phpmyadmin:5.2.3 | GUI de base de datos; espera a que MySQL esté _healthy_ | -                                         |
+| `cine_mailpit`    | axllent/mailpit  | Captura correos salientes; solo en desarrollo           | Healthcheck nativo                        |
+| `cine_frontend`   | node:20-alpine   | Servidor de desarrollo Vite con hot-reload para React   | -                                         |
 
 > **Control del orden de arranque (`depends_on` + `healthcheck`):**  
 > `app` espera a que `mysql` y `redis` estén en estado `healthy`. `apache` espera a que `app` esté en estado `healthy` (evitando errores `502 Bad Gateway` durante el arranque). `phpmyadmin` espera a que `mysql` esté `healthy`.
@@ -96,14 +96,14 @@ El proyecto usa múltiples contenedores siguiendo el principio de **un proceso p
 
 ### Producción (`docker-compose.prod.yml`)
 
-| Contenedor        | Imagen              | Responsabilidad                                        |
-|-------------------|---------------------|--------------------------------------------------------|
-| `cine_app`        | cine-sendera:prod   | PHP-FPM; también ejecuta setup inicial al arrancar     |
-| `cine_apache`     | httpd:2.4           | Servidor web en puerto 80                              |
-| `cine_mysql`      | mysql:8.0           | Base de datos (sin puerto expuesto al host)            |
-| `cine_queue`      | cine-sendera:prod   | Worker de colas Laravel (`queue:work`)                 |
-| `cine_scheduler`  | cine-sendera:prod   | Scheduler Laravel (`schedule:run` cada 60 s)           |
-| `cine_cron`       | cine-sendera:prod   | Cron del sistema; ejecuta `backup.sh` a las 02:00      |
+| Contenedor       | Imagen            | Responsabilidad                                    |
+| ---------------- | ----------------- | -------------------------------------------------- |
+| `cine_app`       | cine-sendera:prod | PHP-FPM; también ejecuta setup inicial al arrancar |
+| `cine_apache`    | httpd:2.4         | Servidor web en puerto 80                          |
+| `cine_mysql`     | mysql:8.0         | Base de datos (sin puerto expuesto al host)        |
+| `cine_queue`     | cine-sendera:prod | Worker de colas Laravel (`queue:work`)             |
+| `cine_scheduler` | cine-sendera:prod | Scheduler Laravel (`schedule:run` cada 60 s)       |
+| `cine_cron`      | cine-sendera:prod | Cron del sistema; ejecuta `backup.sh` a las 02:00  |
 
 > En producción no hay phpMyAdmin ni Mailpit. El `watchdog.sh` tampoco aplica porque `restart: always` en cada contenedor cumple esa función.
 
@@ -113,13 +113,13 @@ El proyecto usa múltiples contenedores siguiendo el principio de **un proceso p
 
 Los scripts viven en [`/scripts`](./scripts/) y están integrados en el flujo de despliegue:
 
-| Script | Archivo | Ejecución |
-|--------|---------|-----------|
-| Hardening servidor | [`scripts/hardening.sh`](./scripts/hardening.sh) | **Una sola vez**: `sudo bash scripts/hardening.sh` |
-| Watchdog | [`scripts/watchdog.sh`](./scripts/watchdog.sh) | Cron nativo: `*/1 * * * *` — no aplica en Docker |
-| Backup BD | [`scripts/backup.sh`](./scripts/backup.sh) | Automática vía contenedor `cine_cron` a las 02:00 |
-| Alta de staff | [`scripts/staff_creator.sh`](./scripts/staff_creator.sh) | Manual: `docker exec -it cine_app /usr/local/scripts/staff_creator.sh` |
-| Cron file | [`scripts/cine.cron`](./scripts/cine.cron) | Instalación en servidor nativo: `sudo cp scripts/cine.cron /etc/cron.d/cine` |
+| Script             | Archivo                                                  | Ejecución                                                                    |
+| ------------------ | -------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Hardening servidor | [`scripts/hardening.sh`](./scripts/hardening.sh)         | **Una sola vez**: `sudo bash scripts/hardening.sh`                           |
+| Watchdog           | [`scripts/watchdog.sh`](./scripts/watchdog.sh)           | Cron nativo: `*/1 * * * *` — no aplica en Docker                             |
+| Backup BD          | [`scripts/backup.sh`](./scripts/backup.sh)               | Automática vía contenedor `cine_cron` a las 02:00                            |
+| Alta de staff      | [`scripts/staff_creator.sh`](./scripts/staff_creator.sh) | Manual: `docker exec -it cine_app /usr/local/scripts/staff_creator.sh`       |
+| Cron file          | [`scripts/cine.cron`](./scripts/cine.cron)               | Instalación en servidor nativo: `sudo cp scripts/cine.cron /etc/cron.d/cine` |
 
 Ver detalles en [docs/backend-architecture.md — sección 13](./docs/backend-architecture.md).
 
@@ -144,13 +144,13 @@ La seguridad está implementada en tres capas:
 
 Activo solo en producción. El archivo de desarrollo ([`docker/apache/000-default.conf`](./docker/apache/000-default.conf)) no incluye estas medidas.
 
-| Medida | Directiva |
-|--------|-----------|
-| Oculta versión del servidor | `ServerTokens Prod` / `ServerSignature Off` |
-| Cabeceras de seguridad HTTP | `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy` |
-| Bloquea archivos sensibles | Deniega acceso a `.env`, `composer.json`, `phpunit.xml`, etc. |
-| Deshabilita listado de directorios | `Options -Indexes` |
-| Elimina cabecera `X-Powered-By` | `Header always unset X-Powered-By` |
+| Medida                             | Directiva                                                                                                |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Oculta versión del servidor        | `ServerTokens Prod` / `ServerSignature Off`                                                              |
+| Cabeceras de seguridad HTTP        | `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy` |
+| Bloquea archivos sensibles         | Deniega acceso a `.env`, `composer.json`, `phpunit.xml`, etc.                                            |
+| Deshabilita listado de directorios | `Options -Indexes`                                                                                       |
+| Elimina cabecera `X-Powered-By`    | `Header always unset X-Powered-By`                                                                       |
 
 ### Capa 2 — Red y contenedores ([`docker-compose.prod.yml`](./docker-compose.prod.yml))
 
@@ -162,41 +162,44 @@ Activo solo en producción. El archivo de desarrollo ([`docker/apache/000-defaul
 
 Configuración aplicada directamente sobre el servidor Ubuntu:
 
-| Medida | Herramienta |
-|--------|-------------|
-| Firewall perimetral | UFW — deniega todo entrante excepto puertos 80 y 2222 |
-| SSH endurecido | Puerto 2222, `PermitRootLogin no` en `/etc/ssh/sshd_config` |
-| Protección fuerza bruta | `ufw limit 2222/tcp` |
+| Medida                  | Herramienta                                                 |
+| ----------------------- | ----------------------------------------------------------- |
+| Firewall perimetral     | UFW — deniega todo entrante excepto puertos 80 y 2222       |
+| SSH endurecido          | Puerto 2222, `PermitRootLogin no` en `/etc/ssh/sshd_config` |
+| Protección fuerza bruta | `ufw limit 2222/tcp`                                        |
 
 ### Capa 4 — Aplicación Laravel
 
-| Medida | Implementación |
-|--------|----------------|
-| Autenticación con tokens | Laravel Sanctum |
-| Validación de entrada | Form Requests (`backend/app/Http/Requests/`) |
-| Protección CSRF | Middleware integrado de Laravel |
+| Medida                     | Implementación                                           |
+| -------------------------- | -------------------------------------------------------- |
+| Autenticación con tokens   | Laravel Sanctum                                          |
+| Validación de entrada      | Form Requests (`backend/app/Http/Requests/`)             |
+| Protección CSRF            | Middleware integrado de Laravel                          |
 | Anti-sobreventa de boletos | Transacción DB + `UNIQUE` constraint en `purchase_seats` |
-| Rate limiting en login | `throttle:5,1` en rutas de autenticación |
+| Rate limiting en login     | `throttle:5,1` en rutas de autenticación                 |
 
 ### Permisos de archivos (Docker dev)
 
 El contenedor `app` corre con el UID/GID de tu usuario para no crear archivos de root en `./backend`.
 Configúralos en `.env` (copia de `.env.example`):
 
-    id -u   # tu UID
-    id -g   # tu GID
+```bash
+id -u # tu UID
+id -g # tu GID
+```
 
 Si ya tienes archivos creados como root por una versión anterior:
 
-    sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache backend/vendor
+sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache backend/vendor
 
 Luego reconstruye: `docker compose build app && docker compose up -d`
-
 
 **Obligatorio si ya tenías el proyecto clonado antes de este cambio** y `backend/storage`,
 `backend/bootstrap/cache` o `backend/vendor` fueron creados por root. Corrígelo una vez:
 
-    sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache backend/vendor
+```bash
+sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache backend/vendor
+```
 
 Luego reconstruye: `docker compose build app && docker compose up -d`.
 Si no lo haces, el contenedor `app` terminará con un mensaje de error de permisos.
@@ -204,7 +207,7 @@ Si no lo haces, el contenedor `app` terminará con un mensaje de error de permis
 ## Versiones de imágenes
 
 | Servicio   | Imagen                    |
-|------------|---------------------------|
+| ---------- | ------------------------- |
 | MySQL      | mysql:8.0                 |
 | Apache     | httpd:2.4                 |
 | phpMyAdmin | phpmyadmin/phpmyadmin:5.2 |
