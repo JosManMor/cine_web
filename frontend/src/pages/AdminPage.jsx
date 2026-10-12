@@ -141,21 +141,18 @@ function SegmentedBar({ percent, color }) {
 
   return (
     <div style={{ display: "flex", gap: 3, width: "100%", height: 10, marginTop: 4 }}>
-      {Array.from({ length: numSegments }).map((_, idx) => {
-        const isActive = idx < activeSegments;
-        return (
-          <div
-            key={idx}
-            style={{
-              flex: 1,
-              height: "100%",
-              background: isActive ? color : C.grayDarker,
-              borderRadius: 1,
-              transition: "background 0.3s ease",
-            }}
-          />
-        );
-      })}
+      {Array.from({ length: numSegments }, (_, i) => `seg-${i}`).map((segKey, i) => (
+        <div
+          key={segKey}
+          style={{
+            flex: 1,
+            height: "100%",
+            background: i < activeSegments ? color : C.grayDarker,
+            borderRadius: 1,
+            transition: "background 0.3s ease",
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -254,6 +251,7 @@ function ServerMonitor() {
 
   return (
     <div
+      role="region"
       tabIndex={0}
       aria-label={ariaLabel}
       style={{
