@@ -18,7 +18,7 @@ function TicketCard({ ticket, expanded, onToggle }) {
 
   return (
     <div style={{ background: C.card, border: `1px solid ${expanded ? C.green : C.border}`, borderRadius: 10, overflow: "hidden", transition: "border-color .2s, box-shadow .2s", boxShadow: expanded ? `0 0 0 1px ${C.green}22, 0 8px 32px rgba(0,0,0,.5)` : "none" }}>
-      <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", cursor: "pointer" }}>
+      <button onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", cursor: "pointer", background: "none", border: "none", width: "100%", textAlign: "left", color: "inherit", fontFamily: "inherit" }}>
         <div style={{ width: 44, height: 60, background: C.surface, borderRadius: 4, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: C.grayDark }}>
             {ticket.movie_title?.[0]}
@@ -48,7 +48,7 @@ function TicketCard({ ticket, expanded, onToggle }) {
         </div>
 
         <span style={{ color: C.grayDark, fontSize: 12, flexShrink: 0, transform: expanded ? "rotate(180deg)" : "rotate(0)", transition: "transform .2s" }}>▼</span>
-      </div>
+      </button>
 
       {expanded && (
         <>

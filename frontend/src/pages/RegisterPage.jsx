@@ -59,7 +59,7 @@ export default function RegisterPage({ addToast }) {
           }
         </div>
         <p style={{ textAlign: "center", fontSize: 13, color: C.gray, marginTop: 16 }}>
-          ¿Ya tienes cuenta? <span style={{ color: C.red, cursor: "pointer" }} onClick={() => navigate("/login")}>Inicia sesión</span>
+          ¿Ya tienes cuenta? <button onClick={() => navigate("/login")} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 13, fontFamily: "inherit", padding: 0 }}>Inicia sesión</button>
         </p>
       </div>
     </div>

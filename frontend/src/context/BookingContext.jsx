@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 const BookingContext = createContext(null);
 
@@ -8,13 +8,15 @@ export function BookingProvider({ children }) {
   const [selectedSeats, setSelectedSeats]       = useState([]);
   const [purchaseResult, setPurchaseResult]     = useState(null);
 
+  const value = useMemo(() => ({
+    selectedMovie,    setSelectedMovie,
+    selectedSchedule, setSelectedSchedule,
+    selectedSeats,    setSelectedSeats,
+    purchaseResult,   setPurchaseResult,
+  }), [selectedMovie, selectedSchedule, selectedSeats, purchaseResult]);
+
   return (
-    <BookingContext.Provider value={{
-      selectedMovie,    setSelectedMovie,
-      selectedSchedule, setSelectedSchedule,
-      selectedSeats,    setSelectedSeats,
-      purchaseResult,   setPurchaseResult,
-    }}>
+    <BookingContext.Provider value={value}>
       {children}
     </BookingContext.Provider>
   );

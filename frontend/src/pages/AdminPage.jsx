@@ -360,8 +360,8 @@ export default function AdminPage() {
             <p style={{ color: C.gray, fontSize: 13 }}>Sin actividad reciente.</p>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 24px" }}>
-              {activity.map((a, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
+              {activity.map((a) => (
+                <div key={`${a.time}-${a.message}`} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
                   <ActivityDot type={a.type} />
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 13, color: C.white }}>{a.message}</p>

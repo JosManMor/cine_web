@@ -55,7 +55,7 @@ export default function LoginPage({ addToast }) {
           }
           <div style={{ height: 1, background: C.border, margin: "20px 0" }} />
           <p style={{ textAlign: "center", fontSize: 13, color: C.gray }}>
-            ¿No tienes cuenta? <span style={{ color: C.red, cursor: "pointer" }} onClick={() => navigate("/registro")}>Regístrate gratis</span>
+            ¿No tienes cuenta? <button onClick={() => navigate("/registro")} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 13, fontFamily: "inherit", padding: 0 }}>Regístrate gratis</button>
           </p>
         </div>
       </div>

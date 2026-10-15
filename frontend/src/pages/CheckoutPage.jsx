@@ -5,7 +5,6 @@ import { createPurchase } from "../api/purchases";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import Spinner from "../components/ui/Spinner";
 import { useBooking } from "../context/BookingContext";
-import { useAuth } from "../context/AuthContext";
 
 const PAYMENT_METHODS = [
   { id: "cash",   label: "Efectivo" },
@@ -20,7 +19,6 @@ function fmtDateTime(dateStr) {
 
 export default function CheckoutPage({ addToast }) {
   const { selectedMovie: movie, selectedSchedule: schedule, selectedSeats, setPurchaseResult } = useBooking();
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [loading, setLoading]             = useState(false);
