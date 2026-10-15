@@ -110,6 +110,17 @@ class PurchaseController extends Controller
         );
     }
 
+    public function cancel(Request $request, int $purchaseId): JsonResponse
+    {
+        $purchase = $this->purchaseService->cancelPurchase($purchaseId, $request->user()->id);
+
+        return response()->json([
+            'message'         => 'Compra cancelada correctamente.',
+            'purchase_id'     => $purchase->id,
+            'purchase_status' => $purchase->purchase_status,
+        ]);
+    }
+
     public function showTicket(Request $request, string $ticketCode): TicketResource|JsonResponse
     {
         $seat = PurchaseSeat::with([

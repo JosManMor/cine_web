@@ -69,6 +69,19 @@ class PurchaseService
         });
     }
 
+    public function cancelPurchase(int $purchaseId, int $userId): Purchase
+    {
+        $purchase = $this->repository->findForUser($purchaseId, $userId);
+
+        if ($purchase === null) {
+            abort(403, 'No tienes permiso para cancelar esta compra.');
+        }
+
+        $purchase->update(['purchase_status' => 'cancelled']);
+
+        return $purchase->fresh();
+    }
+
     public function activeTicketsForUser(int $userId): Collection
     {
         return $this->repository->userActiveTickets($userId);
