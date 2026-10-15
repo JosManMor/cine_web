@@ -25,19 +25,87 @@ function SideLink({ label, path, go }) {
   );
 }
 
-export default function Navbar({ user, onLogout }) {
-  const [sideOpen, setSideOpen]               = useState(false);
-  const [profileOpen, setProfileOpen]         = useState(false);
-  const [sideProfileOpen, setSideProfileOpen] = useState(false);
-  const profileRef     = useRef(null);
-  const sideProfileRef = useRef(null);
-  const navigate       = useNavigate();
-  const location       = useLocation();
+function ProfileMenu({ user, onLogout }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useClickOutside(ref, open, setOpen);
 
-  useEffect(() => { setSideOpen(false); setProfileOpen(false); setSideProfileOpen(false); }, [location.pathname]);
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8, padding: "6px 14px", borderRadius: 4, background: C.card, border: `1px solid ${open ? C.red : C.border}`, cursor: "pointer", userSelect: "none", transition: "border-color .2s" }}
+      >
+        <div style={{ width: 24, height: 24, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{user.name[0]}</div>
+        <span style={{ fontSize: 13, color: C.gray }}>{user.name}</span>
+        <span style={{ fontSize: 10, color: C.grayDark, transition: "transform .2s", display: "inline-block", transform: open ? "rotate(180deg)" : "none" }}>▼</span>
+      </button>
+
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, minWidth: 160, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,.5)" }}>
+          <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>{user.name}</div>
+          </div>
+          <button
+            onClick={() => { onLogout(); setOpen(false); }}
+            style={{ width: "100%", background: "none", border: "none", color: C.gray, padding: "10px 14px", fontSize: 13, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={e => e.currentTarget.style.background = C.grayDarker}
+            onMouseLeave={e => e.currentTarget.style.background = "none"}
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SidebarProfile({ user, onLogout, onClose }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useClickOutside(ref, open, setOpen);
+
+  return (
+    <div ref={ref} style={{ position: "relative", marginBottom: 24 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: open ? "6px 6px 0 0" : 6, background: C.card, border: `1px solid ${open ? C.red : C.border}`, cursor: "pointer", userSelect: "none", transition: "border-color .2s", width: "100%" }}
+      >
+        <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{user.name[0]}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, color: C.white, fontWeight: 600 }}>{user.name}</div>
+        </div>
+        <span style={{ fontSize: 10, color: C.grayDark, transition: "transform .2s", display: "inline-block", transform: open ? "rotate(180deg)" : "none" }}>▼</span>
+      </button>
+      {open && (
+        <button
+          onClick={() => { onLogout(); onClose(); setOpen(false); }}
+          style={{ width: "100%", background: C.grayDarker, border: `1px solid ${C.red}`, borderTop: "none", color: C.gray, padding: "11px 16px", fontSize: 14, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textAlign: "left", borderRadius: "0 0 6px 6px" }}
+          onMouseEnter={e => e.currentTarget.style.background = C.border}
+          onMouseLeave={e => e.currentTarget.style.background = C.grayDarker}
+        >
+          Cerrar sesión
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default function Navbar({ user, onLogout }) {
+  const [sideOpen, setSideOpen] = useState(false);
+  const navigate  = useNavigate();
+  const location  = useLocation();
+
+  useEffect(() => { setSideOpen(false); }, [location.pathname]);
 
   useEffect(() => {
-    function onKey(e) { if (e.key === "Escape") { setSideOpen(false); setProfileOpen(false); } }
+    function onKey(e) { if (e.key === "Escape") setSideOpen(false); }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
@@ -46,9 +114,6 @@ export default function Navbar({ user, onLogout }) {
     document.body.style.overflow = sideOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [sideOpen]);
-
-  useClickOutside(profileRef, profileOpen, setProfileOpen);
-  useClickOutside(sideProfileRef, sideProfileOpen, setSideProfileOpen);
 
   function go(path) {
     navigate(path);
@@ -74,36 +139,7 @@ export default function Navbar({ user, onLogout }) {
                 <button onClick={() => go("/admin")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Admin</button>
               )}
               <button onClick={() => go("/mis-entradas")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Mis tickets</button>
-
-              <div ref={profileRef} style={{ position: "relative" }}>
-                <button
-                  type="button"
-                  onClick={() => setProfileOpen(v => !v)}
-                  aria-expanded={profileOpen}
-                  aria-haspopup="true"
-                  style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8, padding: "6px 14px", borderRadius: 4, background: C.card, border: `1px solid ${profileOpen ? C.red : C.border}`, cursor: "pointer", userSelect: "none", transition: "border-color .2s" }}
-                >
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{user.name[0]}</div>
-                  <span style={{ fontSize: 13, color: C.gray }}>{user.name}</span>
-                  <span style={{ fontSize: 10, color: C.grayDark, transition: "transform .2s", display: "inline-block", transform: profileOpen ? "rotate(180deg)" : "none" }}>▼</span>
-                </button>
-
-                {profileOpen && (
-                  <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, minWidth: 160, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,.5)" }}>
-                    <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}` }}>
-                      <div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>{user.name}</div>
-                    </div>
-                    <button
-                      onClick={() => { onLogout(); setProfileOpen(false); }}
-                      style={{ width: "100%", background: "none", border: "none", color: C.gray, padding: "10px 14px", fontSize: 13, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textAlign: "left" }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.grayDarker}
-                      onMouseLeave={e => e.currentTarget.style.background = "none"}
-                    >
-                      Cerrar sesión
-                    </button>
-                  </div>
-                )}
-              </div>
+              <ProfileMenu user={user} onLogout={onLogout} />
             </>
           ) : (
             <>
@@ -142,33 +178,7 @@ export default function Navbar({ user, onLogout }) {
           <button onClick={() => setSideOpen(false)} aria-label="Cerrar" style={{ background: "none", border: "none", color: C.gray, fontSize: 22, cursor: "pointer", lineHeight: 1 }}>✕</button>
         </div>
 
-        {user && (
-          <div ref={sideProfileRef} style={{ position: "relative", marginBottom: 24 }}>
-            <button
-              type="button"
-              onClick={() => setSideProfileOpen(v => !v)}
-              aria-expanded={sideProfileOpen}
-              aria-haspopup="true"
-              style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: sideProfileOpen ? "6px 6px 0 0" : 6, background: C.card, border: `1px solid ${sideProfileOpen ? C.red : C.border}`, cursor: "pointer", userSelect: "none", transition: "border-color .2s", width: "100%" }}
-            >
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{user.name[0]}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, color: C.white, fontWeight: 600 }}>{user.name}</div>
-              </div>
-              <span style={{ fontSize: 10, color: C.grayDark, transition: "transform .2s", display: "inline-block", transform: sideProfileOpen ? "rotate(180deg)" : "none" }}>▼</span>
-            </button>
-            {sideProfileOpen && (
-              <button
-                onClick={() => { onLogout(); setSideOpen(false); setSideProfileOpen(false); }}
-                style={{ width: "100%", background: C.grayDarker, border: `1px solid ${C.red}`, borderTop: "none", color: C.gray, padding: "11px 16px", fontSize: 14, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textAlign: "left", borderRadius: "0 0 6px 6px" }}
-                onMouseEnter={e => e.currentTarget.style.background = C.border}
-                onMouseLeave={e => e.currentTarget.style.background = C.grayDarker}
-              >
-                Cerrar sesión
-              </button>
-            )}
-          </div>
-        )}
+        {user && <SidebarProfile user={user} onLogout={onLogout} onClose={() => setSideOpen(false)} />}
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           <SideLink label="Inicio" path="/" go={go} />
