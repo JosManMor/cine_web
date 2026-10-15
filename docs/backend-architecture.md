@@ -52,7 +52,10 @@ Se recomienda utilizar:
 
 ## 2.1 Entorno de desarrollo con Docker
 
-`docker compose up -d` levanta: `frontend` (Vite, :5173), `apache` (:80), `app` (PHP-FPM), `mysql` (:3306), `phpmyadmin` (:8080) y `mailpit` (:8025).
+`docker compose up -d` levanta: `frontend` (Vite, :5173), `apache` (:80), `app` (PHP-FPM), `redis`, `mysql` (host: `FORWARD_DB_PORT`, `3308` con `.env.example`), `phpmyadmin` (host: `FORWARD_PMA_PORT`, `8081` con `.env.example`) y `mailpit` (:8025 UI, :1025 SMTP).
+
+- Redes: `frontend_net` (frontend, apache, app) y `backend_net` (app, mysql, redis, phpmyadmin, mailpit). Solo `app` está en ambas.
+- Primer arranque: `composer install` dentro del contenedor y `APP_KEY` en el `.env` de la raíz (ver [docker-entorno-desarrollo.md](./docker-entorno-desarrollo.md#primer-arranque)).
 
 - El frontend corre en Docker; no hace falta instalar Node en el host.
 - El proxy `/api` de Vite apunta a `http://apache` (variable `VITE_PROXY_TARGET`).
@@ -434,7 +437,7 @@ Crear usuarios Linux automáticamente.
 
 ## Uso
 
-El script está disponible dentro del contenedor `cine_app` en `/usr/local/scripts/staff_creator.sh`.
+El script está disponible dentro del contenedor `cine_app` de **producción** (`Dockerfile.prod` copia `scripts/` a `/usr/local/scripts/`) en `/usr/local/scripts/staff_creator.sh`. La imagen de desarrollo no lo incluye.
 
 **Con la lista interna por defecto:**
 

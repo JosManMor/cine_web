@@ -46,22 +46,33 @@
 Requiere Docker y Docker Compose.
 
 ```bash
-git clone https://github.com/JosManMor/cine_web.git
-cd cine_web
-cp .env.example .env          # ajustar contraseñas si se desea
+# 1. Copiar las variables de entorno (el .env vive en la RAÍZ del proyecto)
+cp .env.example .env
+#    Ajustar HOST_UID / HOST_GID en .env con los valores de `id -u` e `id -g`
+
+# 2. Instalar dependencias PHP (backend/vendor no se versiona y el entrypoint no arranca sin él)
+docker compose run --rm --no-deps --entrypoint sh app -c "composer install"
+
+# 3. Generar la APP_KEY y pegarla en .env como APP_KEY=base64:...
+docker compose run --rm --no-deps --entrypoint php app artisan key:generate --show
+
+# 4. Levantar todos los servicios (incluye el frontend Vite con hot-reload)
 docker compose up -d
 ```
 
-El contenedor `app` ejecuta migraciones y seeders automáticamente al arrancar.
+> **Nota sobre variables de entorno:** Los servicios `app` y `mysql` leen el `.env` de la raíz (`env_file: .env` e interpolación de Compose). No existe `backend/.env` en Docker. Los comentarios en `.env` deben ir en su propia línea (`# comentario`), nunca al final de una línea con valor.
 
-| Servicio | URL |
-|----------|-----|
-| Aplicación | http://localhost |
-| phpMyAdmin | http://localhost:8080 |
-| Mailpit (correos) | http://localhost:8025 |
-| Frontend Vite (dev) | http://localhost:5173 |
+> **Sobre la `APP_KEY`:** si se deja vacía, el entrypoint genera una clave **temporal** en memoria que cambia en cada reinicio del contenedor e invalida sesiones y cookies cifradas. Tras editar `.env` hay que **recrear** el contenedor (`docker compose up -d app`); `docker compose restart` no recarga `env_file`.
 
-> Credenciales de prueba generadas por el seeder: ver `backend/database/seeders/`.
+El entrypoint ejecuta automáticamente migraciones y seeders al arrancar. Los servicios inician en orden estricto mediante `depends_on` con condiciones `service_healthy`. El frontend corre dentro del contenedor `cine_frontend`, así que no hace falta Node en el host.
+
+| Servicio     | URL / Puerto                                                                    |
+| ------------ | ------------------------------------------------------------------------------- |
+| App (API)    | http://localhost                                                                |
+| Frontend dev | http://localhost:5173                                                           |
+| phpMyAdmin   | http://localhost:`FORWARD_PMA_PORT` (`8081` con `.env.example`; `8080` si no se define) |
+| MySQL (host) | `localhost:FORWARD_DB_PORT` (`3308` con `.env.example`; `3306` si no se define) |
+| Mailpit      | http://localhost:8025 (SMTP en `:1025`)                                         |
 
 ---
 
@@ -69,14 +80,19 @@ El contenedor `app` ejecuta migraciones y seeders automáticamente al arrancar.
 
 El proyecto sigue el principio de **un proceso por contenedor**, con arranque ordenado mediante `depends_on` + healthchecks:
 
-| Contenedor | Responsabilidad |
-|------------|----------------|
-| `cine_mysql` | Base de datos; persiste datos en volumen `mysql_data` |
-| `cine_redis` | Caché en memoria y sesiones |
-| `cine_app` | PHP-FPM — ejecuta Laravel |
-| `cine_apache` | Servidor web — recibe HTTP y reenvía a PHP-FPM |
-| `cine_frontend` | Vite con hot-reload para React (solo dev) |
-| `cine_mailpit` | Captura correos salientes (solo dev) |
+| Contenedor        | Imagen                        | Redes                         | Responsabilidad                                         | Healthcheck                               |
+| ----------------- | ----------------------------- | ----------------------------- | ------------------------------------------------------- | ----------------------------------------- |
+| `cine_redis`      | redis:7-alpine                | `backend_net`                 | Caché en memoria; persiste con volumen `redis_data`     | `redis-cli ping`                          |
+| `cine_mysql`      | mysql:8.0                     | `backend_net`                 | Base de datos; persiste datos con volumen `mysql_data`  | `mysqladmin ping`                         |
+| `cine_app`        | PHP-FPM 8.3 (build local)     | `frontend_net`, `backend_net` | Ejecuta Laravel; procesa peticiones PHP                 | Socket `:9000` (tras migraciones/seeders) |
+| `cine_apache`     | httpd:2.4                     | `frontend_net`                | Servidor web; recibe HTTP y reenvía a PHP-FPM           | HTTP GET `/up` vía `/dev/tcp`             |
+| `cine_phpmyadmin` | phpmyadmin/phpmyadmin:5.2.3   | `backend_net`                 | GUI de base de datos; espera a que MySQL esté _healthy_ | -                                         |
+| `cine_mailpit`    | axllent/mailpit:v1.31.4       | `backend_net`                 | Captura correos salientes; solo en desarrollo           | Healthcheck propio de la imagen           |
+| `cine_frontend`   | node:20-alpine                | `frontend_net`                | Servidor de desarrollo Vite con hot-reload para React   | -                                         |
+
+> **Redes:** `frontend_net` conecta `frontend` ↔ `apache` ↔ `app`; `backend_net` conecta `app` ↔ `mysql`/`redis`/`mailpit` y `phpmyadmin` ↔ `mysql`. `app` es el único servicio en ambas redes, de modo que ni Apache ni el frontend alcanzan la base de datos.
+
+> **Control del orden de arranque:** `app` espera a que `mysql` y `redis` estén en estado `healthy`. `apache` espera a que `app` esté `healthy` (evita errores `502` durante el arranque). `frontend` espera a que `apache` esté `healthy`.
 
 El entorno de producción (`docker-compose.prod.yml`) agrega contenedores de queue worker, scheduler y cron de backup, y elimina los servicios de desarrollo.
 
