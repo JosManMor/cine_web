@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { C } from "../constants/theme";
 import { getScreening } from "../api/purchases";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import Spinner from "../components/ui/Spinner";
+import { useBooking } from "../context/BookingContext";
+import { useAuth } from "../context/AuthContext";
 
 const LANG_LABEL = { original: "Original", dubbed: "Doblada", subtitled: "Subtitulada" };
 
@@ -11,7 +14,11 @@ function fmtTime(dateStr) {
   return new Date(dateStr).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-export default function SeatsPage({ movie, schedule, setPage, addToast, user, setSelectedSeats }) {
+export default function SeatsPage({ addToast }) {
+  const { selectedMovie: movie, selectedSchedule: schedule, setSelectedSeats } = useBooking();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [screeningData, setScreeningData] = useState(null);
   const [fetchLoading, setFetchLoading]   = useState(false);
   const [selected, setSelected]           = useState([]);
@@ -64,39 +71,35 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user, se
   const roomName   = screeningData?.room?.name ?? schedule.room?.name ?? "Sala";
 
   const handleConfirm = () => {
-    if (!user) { addToast("Inicia sesión para comprar", "error"); setPage("login"); return; }
+    if (!user) { addToast("Inicia sesión para comprar", "error"); navigate("/login"); return; }
     if (!selected.length) { addToast("Selecciona al menos un asiento", "error"); return; }
     setConfirming(true);
     setSelectedSeats(selected);
-    setTimeout(() => { setConfirming(false); setPage("checkout"); }, 400);
+    setTimeout(() => { setConfirming(false); navigate("/checkout"); }, 400);
   };
 
   return (
     <div style={{ minHeight: "100vh", paddingTop: 80 }}>
       <div className="seats-container" style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px", animation: "fadeUp .5s ease forwards" }}>
-        <button onClick={() => setPage("movie-detail")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, cursor: "pointer", marginBottom: 20, fontFamily: "'Open Sans', sans-serif" }}>← Volver</button>
+        <button onClick={() => navigate(`/pelicula/${movie.id}`)} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, cursor: "pointer", marginBottom: 20, fontFamily: "'Open Sans', sans-serif" }}>← Volver</button>
         <div className="seats-layout" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 28 }}>
 
-          {/* Sala */}
           <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: "32px 24px" }}>
             <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 2, marginBottom: 24, textAlign: "center" }}>
               {roomName.toUpperCase()} — {movie.title.toUpperCase()}
             </h2>
 
-            {/* Pantalla */}
             <div style={{ perspective: "500px", marginBottom: 32 }}>
               <div style={{ width: "75%", margin: "0 auto", height: 10, background: "linear-gradient(90deg, transparent, #4FC3F7, transparent)", borderRadius: "0 0 40% 40%", transform: "rotateX(-20deg)", boxShadow: "0 0 24px rgba(79,195,247,.4)" }} />
               <p style={{ textAlign: "center", fontSize: 11, color: "#4FC3F7", marginTop: 8, letterSpacing: 2, textTransform: "uppercase" }}>Pantalla</p>
             </div>
 
-            {/* Cargando */}
             {fetchLoading && (
               <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
                 <Spinner />
               </div>
             )}
 
-            {/* Grilla de asientos */}
             {!fetchLoading && screeningData && (
               <div className="seats-scroll">
               <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
@@ -140,7 +143,6 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user, se
               <p style={{ textAlign: "center", color: C.grayDark, padding: "40px 0" }}>No se pudo cargar el mapa de asientos</p>
             )}
 
-            {/* Leyenda */}
             {!fetchLoading && (
               <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 28 }}>
                 {[["free", "Libre", C.green, "transparent"], ["selected", "Seleccionado", C.green, C.green], ["occupied", "Ocupado", "#FF0000", "#FF0000"]].map(([k, label, border, bg]) => (
@@ -153,7 +155,6 @@ export default function SeatsPage({ movie, schedule, setPage, addToast, user, se
             )}
           </div>
 
-          {/* Panel lateral */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>

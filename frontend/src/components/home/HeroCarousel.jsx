@@ -1,9 +1,18 @@
+import { useNavigate } from "react-router-dom";
 import { C } from "../../constants/theme";
 import { fmtDuration } from "../../utils/format";
+import { useBooking } from "../../context/BookingContext";
 
-export default function HeroCarousel({ carousel, featuredIndex, setFeaturedIndex, setSelectedMovie, setPage }) {
+export default function HeroCarousel({ carousel, featuredIndex, setFeaturedIndex }) {
+  const { setSelectedMovie } = useBooking();
+  const navigate = useNavigate();
   const featured = carousel[featuredIndex];
   if (!featured) return null;
+
+  function goToMovie(movie) {
+    setSelectedMovie(movie);
+    navigate(`/pelicula/${movie.id}`);
+  }
 
   return (
     <div style={{ position: "relative", height: "88vh", display: "flex", alignItems: "flex-end", overflow: "hidden" }}>
@@ -25,7 +34,7 @@ export default function HeroCarousel({ carousel, featuredIndex, setFeaturedIndex
         <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 72, letterSpacing: 4, lineHeight: 1, marginBottom: 16, color: C.white }}>{featured.title}</h1>
         <p style={{ color: C.gray, fontSize: 15, maxWidth: 500, lineHeight: 1.7, marginBottom: 24 }}>{featured.synopsis ?? ""}</p>
         <span
-          onClick={() => { setSelectedMovie(featured); setPage("movie-detail"); }}
+          onClick={() => goToMovie(featured)}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, color: C.white, fontSize: 14, fontFamily: "'Montserrat', sans-serif", fontWeight: 600, cursor: "pointer", borderBottom: `1px solid ${C.white}40`, paddingBottom: 2, transition: "border-color .2s, color .2s" }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = C.white; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = `${C.white}40`; }}

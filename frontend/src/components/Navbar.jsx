@@ -1,31 +1,30 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { C } from "../constants/theme";
 import BtnPrimary from "./ui/BtnPrimary";
 
-export default function Navbar({ page, setPage, user, onLogout }) {
-  const [sideOpen, setSideOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
+export default function Navbar({ user, onLogout }) {
+  const [sideOpen, setSideOpen]             = useState(false);
+  const [profileOpen, setProfileOpen]       = useState(false);
   const [sideProfileOpen, setSideProfileOpen] = useState(false);
-  const profileRef = useRef(null);
+  const profileRef     = useRef(null);
   const sideProfileRef = useRef(null);
+  const navigate       = useNavigate();
+  const location       = useLocation();
 
-  // Cierra sidebar y dropdowns al cambiar de página
-  useEffect(() => { setSideOpen(false); setProfileOpen(false); setSideProfileOpen(false); }, [page]);
+  useEffect(() => { setSideOpen(false); setProfileOpen(false); setSideProfileOpen(false); }, [location.pathname]);
 
-  // Cierra sidebar con Escape
   useEffect(() => {
     function onKey(e) { if (e.key === "Escape") { setSideOpen(false); setProfileOpen(false); } }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // Bloquea scroll del body cuando el sidebar está abierto
   useEffect(() => {
     document.body.style.overflow = sideOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [sideOpen]);
 
-  // Cierra dropdown de perfil (desktop) al hacer clic fuera
   useEffect(() => {
     function onClickOutside(e) {
       if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
@@ -34,7 +33,6 @@ export default function Navbar({ page, setPage, user, onLogout }) {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [profileOpen]);
 
-  // Cierra dropdown de perfil (sidebar) al hacer clic fuera
   useEffect(() => {
     function onClickOutside(e) {
       if (sideProfileRef.current && !sideProfileRef.current.contains(e.target)) setSideProfileOpen(false);
@@ -43,14 +41,14 @@ export default function Navbar({ page, setPage, user, onLogout }) {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [sideProfileOpen]);
 
-  function navigate(target) {
-    setPage(target);
-    setSideOpen(false); // cierra sidebar siempre, incluso si ya está en esa página
+  function go(path) {
+    navigate(path);
+    setSideOpen(false);
   }
 
-  const SideLink = ({ label, target }) => (
+  const SideLink = ({ label, path }) => (
     <button
-      onClick={() => navigate(target)}
+      onClick={() => go(path)}
       style={{ background: "none", border: "none", color: C.white, fontSize: 18, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textAlign: "left", padding: "14px 0", borderBottom: `1px solid ${C.border}`, width: "100%" }}
     >
       {label}
@@ -61,22 +59,19 @@ export default function Navbar({ page, setPage, user, onLogout }) {
     <>
       <nav style={{ background: "linear-gradient(to bottom, rgba(0,0,0,.95), rgba(10,10,10,0))", position: "fixed", top: 0, left: 0, right: 0, zIndex: 200, padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 
-        {/* Logo */}
-        <div onClick={() => setPage("home")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+        <div onClick={() => go("/")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 32, height: 32, background: C.red, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🎬</div>
           <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 2, color: C.white }}>CINE SENDERA</span>
         </div>
 
-        {/* Desktop nav */}
         <div className="nav-desktop" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {user ? (
             <>
               {user.role === "admin" && (
-                <button onClick={() => setPage("admin")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Admin</button>
+                <button onClick={() => go("/admin")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Admin</button>
               )}
-              <button onClick={() => setPage("my-tickets")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Mis tickets</button>
+              <button onClick={() => go("/mis-entradas")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Mis tickets</button>
 
-              {/* Profile dropdown */}
               <div ref={profileRef} style={{ position: "relative" }}>
                 <div
                   onClick={() => setProfileOpen(v => !v)}
@@ -106,13 +101,12 @@ export default function Navbar({ page, setPage, user, onLogout }) {
             </>
           ) : (
             <>
-              <button onClick={() => setPage("login")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Iniciar sesión</button>
-              <BtnPrimary onClick={() => setPage("register")} style={{ padding: "7px 16px" }}>Registrarse</BtnPrimary>
+              <button onClick={() => go("/login")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Iniciar sesión</button>
+              <BtnPrimary onClick={() => go("/registro")} style={{ padding: "7px 16px" }}>Registrarse</BtnPrimary>
             </>
           )}
         </div>
 
-        {/* Hamburger (mobile) */}
         <button
           className="nav-hamburger"
           onClick={() => setSideOpen(v => !v)}
@@ -125,17 +119,14 @@ export default function Navbar({ page, setPage, user, onLogout }) {
         </button>
       </nav>
 
-      {/* Overlay */}
       <div
         onClick={() => setSideOpen(false)}
         style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 210, opacity: sideOpen ? 1 : 0, pointerEvents: sideOpen ? "auto" : "none", transition: "opacity .3s" }}
       />
 
-      {/* Sidebar */}
       <aside
         style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 280, background: C.surface, zIndex: 220, transform: sideOpen ? "translateX(0)" : "translateX(100%)", transition: "transform .3s cubic-bezier(.4,0,.2,1)", display: "flex", flexDirection: "column", padding: "24px 28px", overflowY: "auto" }}
       >
-        {/* Sidebar header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 26, height: 26, background: C.red, borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🎬</div>
@@ -144,7 +135,6 @@ export default function Navbar({ page, setPage, user, onLogout }) {
           <button onClick={() => setSideOpen(false)} aria-label="Cerrar" style={{ background: "none", border: "none", color: C.gray, fontSize: 22, cursor: "pointer", lineHeight: 1 }}>✕</button>
         </div>
 
-        {/* User info con dropdown */}
         {user && (
           <div ref={sideProfileRef} style={{ position: "relative", marginBottom: 24 }}>
             <div
@@ -170,18 +160,17 @@ export default function Navbar({ page, setPage, user, onLogout }) {
           </div>
         )}
 
-        {/* Links */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          <SideLink label="Inicio" target="home" />
+          <SideLink label="Inicio" path="/" />
           {user ? (
             <>
-              {user.role === "admin" && <SideLink label="Panel Admin" target="admin" />}
-              <SideLink label="Mis tickets" target="my-tickets" />
+              {user.role === "admin" && <SideLink label="Panel Admin" path="/admin" />}
+              <SideLink label="Mis tickets" path="/mis-entradas" />
             </>
           ) : (
             <>
-              <SideLink label="Iniciar sesión" target="login" />
-              <BtnPrimary onClick={() => navigate("register")} style={{ width: "100%", textAlign: "center", padding: "11px 0", marginTop: 16 }}>
+              <SideLink label="Iniciar sesión" path="/login" />
+              <BtnPrimary onClick={() => go("/registro")} style={{ width: "100%", textAlign: "center", padding: "11px 0", marginTop: 16 }}>
                 Registrarse
               </BtnPrimary>
             </>

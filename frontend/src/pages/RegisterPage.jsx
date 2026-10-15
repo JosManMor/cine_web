@@ -1,12 +1,14 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { C } from "../constants/theme";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import Spinner from "../components/ui/Spinner";
 import { register } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
-export default function RegisterPage({ setPage, addToast }) {
+export default function RegisterPage({ addToast }) {
   const { saveAuth } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "", password_confirmation: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -19,7 +21,7 @@ export default function RegisterPage({ setPage, addToast }) {
       const { data } = await register(form);
       saveAuth({ ...data.user, verified: false }, data.token);
       addToast("Cuenta creada. Revisa tu correo", "info");
-      setPage("email-pending");
+      navigate("/email/pendiente");
     } catch (err) {
       const errors = err.response?.data?.errors;
       const first = errors ? Object.values(errors)[0]?.[0] : null;
@@ -57,7 +59,7 @@ export default function RegisterPage({ setPage, addToast }) {
           }
         </div>
         <p style={{ textAlign: "center", fontSize: 13, color: C.gray, marginTop: 16 }}>
-          ¿Ya tienes cuenta? <span style={{ color: C.red, cursor: "pointer" }} onClick={() => setPage("login")}>Inicia sesión</span>
+          ¿Ya tienes cuenta? <span style={{ color: C.red, cursor: "pointer" }} onClick={() => navigate("/login")}>Inicia sesión</span>
         </p>
       </div>
     </div>
