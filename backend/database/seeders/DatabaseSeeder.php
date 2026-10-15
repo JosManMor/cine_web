@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
+        // Los pósters usan picsum.photos (CC0) para evitar imágenes con copyright de YouTube CDN, Amazon, TMDB y similares.
         $movies = [
             [
                 'title'            => 'Inferno Nexus',
@@ -39,7 +40,7 @@ class DatabaseSeeder extends Seeder
                 'duration_minutes' => 138,
                 'director'         => 'María Castillo',
                 'rating'           => 'PG-13',
-                'poster_url'       => 'https://i0.wp.com/losreyesdelmando.com/wp-content/uploads/2016/08/inferno1.jpg?ssl=1',
+                'poster_url'       => 'https://picsum.photos/seed/inferno-nexus/500/750',
                 'status'           => 'active',
             ],
             [
@@ -49,7 +50,7 @@ class DatabaseSeeder extends Seeder
                 'duration_minutes' => 112,
                 'director'         => 'Carmen Solís',
                 'rating'           => 'R',
-                'poster_url'       => 'https://i.ytimg.com/vi/bcA91KufOzE/maxresdefault.jpg',
+                'poster_url'       => 'https://picsum.photos/seed/hollow-depths/500/750',
                 'status'           => 'active',
             ],
             [
@@ -59,7 +60,7 @@ class DatabaseSeeder extends Seeder
                 'duration_minutes' => 104,
                 'director'         => 'Pablo Mora',
                 'rating'           => 'PG',
-                'poster_url'       => 'https://www.filmsourcing.com/wp-content/uploads/2013/03/comedy-poster-tutorial-5.jpg',
+                'poster_url'       => 'https://picsum.photos/seed/ultima-vuelta/500/750',
                 'status'           => 'active',
             ],
             [
@@ -69,7 +70,7 @@ class DatabaseSeeder extends Seeder
                 'duration_minutes' => 125,
                 'director'         => 'Andrés Fuentes',
                 'rating'           => 'PG-13',
-                'poster_url'       => 'https://i1.sndcdn.com/artworks-H3dxHahfKpXS5lD7-otT0lQ-t500x500.png',
+                'poster_url'       => 'https://picsum.photos/seed/ecos-del-vacio/500/750',
                 'status'           => 'active',
             ],
             [
@@ -79,7 +80,7 @@ class DatabaseSeeder extends Seeder
                 'duration_minutes' => 118,
                 'director'         => 'Lucía Vargas',
                 'rating'           => 'PG-13',
-                'poster_url'       => 'https://yt3.googleusercontent.com/8gd4DXWEONw8hQLpRPPOHrc787kR8d-0iE8bLvtyeGfhsWLlAzcLyS9zmT_RlHG48yUQjBl30OlnSuEs=w2880-h1200-p-l90-rj',
+                'poster_url'       => 'https://picsum.photos/seed/la-sombra-del-condor/500/750',
                 'status'           => 'active',
             ],
             [
@@ -89,7 +90,7 @@ class DatabaseSeeder extends Seeder
                 'duration_minutes' => 166,
                 'director'         => 'Denis Villeneuve',
                 'rating'           => 'PG-13',
-                'poster_url'       => 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
+                'poster_url'       => 'https://picsum.photos/seed/dune-parte-dos/500/750',
                 'status'           => 'active',
             ],
             [
@@ -99,7 +100,7 @@ class DatabaseSeeder extends Seeder
                 'duration_minutes' => 180,
                 'director'         => 'Christopher Nolan',
                 'rating'           => 'R',
-                'poster_url'       => 'https://m.media-amazon.com/images/M/MV5BNTFlZDI1YWQtMTVjNy00YWU1LTg2YjktMTlhYmRiYzQ3NTVhXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg',
+                'poster_url'       => 'https://picsum.photos/seed/oppenheimer/500/750',
                 'status'           => 'active',
             ],
             [
@@ -109,7 +110,7 @@ class DatabaseSeeder extends Seeder
                 'duration_minutes' => 131,
                 'director'         => 'Joseph Kosinski',
                 'rating'           => 'PG-13',
-                'poster_url'       => 'https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
+                'poster_url'       => 'https://picsum.photos/seed/top-gun-maverick/500/750',
                 'status'           => 'active',
             ],
             [
@@ -119,7 +120,7 @@ class DatabaseSeeder extends Seeder
                 'duration_minutes' => 192,
                 'director'         => 'James Cameron',
                 'rating'           => 'PG-13',
-                'poster_url'       => 'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
+                'poster_url'       => 'https://picsum.photos/seed/avatar-el-camino-del-agua/500/750',
                 'status'           => 'active',
             ],
             [
@@ -129,7 +130,7 @@ class DatabaseSeeder extends Seeder
                 'duration_minutes' => 169,
                 'director'         => 'Christopher Nolan',
                 'rating'           => 'PG-13',
-                'poster_url'       => 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+                'poster_url'       => 'https://picsum.photos/seed/interestelar/500/750',
                 'status'           => 'active',
             ],
         ];
