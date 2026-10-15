@@ -4,6 +4,28 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
 
+  esbuild: {
+    jsx: 'automatic',
+  },
+
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./vitest.setup.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov", "html"],
+      include: ["src/**/*.{js,jsx,ts,tsx}"],
+      exclude: ["src/main.jsx", "src/App.css", "src/index.css"],
+      thresholds: {
+        lines: 60,
+        functions: 60,
+        branches: 60,
+        statements: 60,
+      },
+    },
+  },
+
   // En producción los assets se referencian como /build/assets/...
   // (Apache sirve /var/www/public como raíz → /build/ apunta a public/build/)
   // En dev Vite sirve desde / para que http://localhost:5173/ funcione normal.
