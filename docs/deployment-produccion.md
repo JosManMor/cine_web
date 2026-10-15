@@ -12,9 +12,12 @@ Este documento describe cómo levantar y mantener el entorno de producción simu
 | Código fuente        | Bind-mount (`./backend`)                        | Baked en la imagen, servido desde el volumen `app_www` |
 | Frontend             | Servicio `frontend` (Vite `:5173`)              | Build estático en `public/build/`                    |
 | PHP vendor           | Montado desde host (`composer install` manual)  | Instalado sin `--dev` en la imagen                   |
-| Base de datos        | Expuesta en el host (`FORWARD_DB_PORT`)         | Solo accesible en `backend_net`                      |
+| Base de datos        | Expuesta en el host (`FORWARD_DB_PORT`)         | Solo accesible en `db_net`                           |
 | Redis                | Servicio `redis` (`CACHE_STORE=redis`)          | No incluido (`CACHE_STORE=database`)                 |
-| phpMyAdmin / Mailpit | Incluidos                                       | Excluidos                                            |
+| phpMyAdmin           | Incluido                                        | Excluido                                             |
+| Mailpit              | Excluido                                        | Incluido (captura emails en :8025)                   |
+| Servidor web         | Apache (httpd:2.4)                              | Nginx (nginx:1.27-alpine)                            |
+| Redes                | 2 (frontend_net/backend_net)                    | 3 DMZ (public_net/app_net/db_net)                    |
 | Queue worker         | No incluido                                     | Contenedor `queue` dedicado                          |
 | Scheduler            | No incluido                                     | Contenedor `scheduler` dedicado                      |
 | Backups (cron)       | No incluido                                     | Contenedor `cron` (`backup.sh` a las 02:00)          |
@@ -49,7 +52,8 @@ Editar `.env.prod` y ajustar obligatoriamente:
 | `DB_PASSWORD`         | Contraseña segura para el usuario de la BD                           |
 | `MYSQL_PASSWORD`      | Debe coincidir con `DB_PASSWORD`                                     |
 | `MYSQL_ROOT_PASSWORD` | Contraseña root de MySQL                                             |
-| `MAIL_*`              | Credenciales SMTP reales                                             |
+| `MAIL_*`              | Preconfigurado para Mailpit (no editar)                              |
+| `VITE_DEMO_MODE=true` | Banner de demo en el frontend                                        |
 
 > **Importante:** `env_file` en Docker Compose **no soporta comentarios en línea**.  
 > Todos los comentarios deben ir en su propia línea (`# comentario`), nunca al final de una línea con valor.
@@ -63,7 +67,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 Esto ejecuta un build multi-etapa:
 
 - **Stage 1** — Instala dependencias PHP sin `--dev`
-- **Stage 2** — Compila el frontend React con Vite
+- **Stage 2** — Compila el frontend React con Vite (incluye `VITE_DEMO_MODE=true` en el bundle)
 - **Stage 3** — Imagen final PHP-FPM con el código y los assets listos
 
 Al arrancar, el contenedor `app` ejecuta automáticamente:
@@ -78,7 +82,7 @@ Al arrancar, el contenedor `app` ejecuta automáticamente:
 docker compose -f docker-compose.prod.yml ps
 ```
 
-`app` y `apache` deben mostrar `healthy`; `mysql` también. `queue`, `scheduler` y `cron` no tienen healthcheck y deben mostrar `Up`.
+`app` y `nginx` deben mostrar `healthy`; `mysql` también. `queue`, `scheduler` y `cron` no tienen healthcheck y deben mostrar `Up`.
 
 ### 4. Fijar `APP_KEY` de forma permanente
 
@@ -132,6 +136,9 @@ docker exec cine_app tail -f /var/www/storage/logs/laravel.log
 # Correr un comando artisan puntual
 docker exec cine_app php artisan <comando>
 
+# Ver emails capturados por Mailpit
+# Abrir en el navegador: http://localhost:8025
+
 # Bajar todo sin borrar volúmenes
 docker compose -f docker-compose.prod.yml down
 
@@ -145,26 +152,27 @@ docker compose -f docker-compose.prod.yml down -v
 
 ```
   Browser
-     │ :80
+     │ :80 (public_net)
      ▼
- ┌─────────────────────────┐   frontend_net + backend_net
- │  apache  (httpd:2.4)    │
+ ┌─────────────────────────┐
+ │  nginx (nginx:1.27)     │  public_net + app_net
  │  app_www:/var/www (ro)  │
  └────────────┬────────────┘
-              │ fcgi → app:9000
-              ▼                                   ── backend_net ──
+              │ fcgi → app:9000 (app_net)
+              ▼
  ┌─────────────────────────┐
- │  app  (php-fpm 8.3)     │      queue · scheduler (app_www:/var/www)
- │  app_www:/var/www (rw)  │      cron (cine_backups:/var/backups/cine)
- └────────────┬────────────┘                  │
-              │                               │ mysqldump (backup.sh)
-              ▼                               ▼
- ┌──────────────────────────────────────────────┐
- │  mysql  (mysql:8.0)    volumen mysql_prod_data│
- └──────────────────────────────────────────────┘
+ │  app  (php-fpm 8.3)     │  app_net + db_net
+ │  app_www:/var/www (rw)  │
+ └────────────┬────────────┘
+              │ (db_net)
+     ┌────────┼────────────┐
+     ▼        ▼            ▼
+ [mysql]   [mailpit]   [queue/cron/scheduler]
+ :3306     :1025 SMTP
+           :8025 UI (expuesto al host)
 ```
 
-Los servicios `queue`, `scheduler` y `cron` reutilizan la imagen `cine-sendera:prod`. `queue` y `scheduler` comparten el volumen `app_www` con `app`; `cron` no lo monta y guarda los dumps en el volumen `cine_backups`. Solo `apache` está en `frontend_net` (además de `backend_net`); el resto vive únicamente en `backend_net`.
+Los servicios `queue`, `scheduler` y `cron` reutilizan la imagen `cine-sendera:prod`. `queue` y `scheduler` comparten el volumen `app_www` con `app`; `cron` no lo monta y guarda los dumps en el volumen `cine_backups`. Solo `nginx` está en `public_net` (además de `app_net`); el resto vive únicamente en `db_net` o en `app_net` + `db_net`.
 
 ---
 
@@ -175,6 +183,6 @@ Los servicios `queue`, `scheduler` y `cron` reutilizan la imagen `cine-sendera:p
 | `500` en todas las rutas                | `APP_KEY` vacío o con texto de comentario | Ver paso 4 del primer despliegue                       |
 | Cambios en `.env.prod` no se aplican    | Se usó `restart` en lugar de `up -d`      | `docker compose -f docker-compose.prod.yml up -d`      |
 | `Table 'sessions' not found`            | Migración de sesiones no ejecutada        | Rebuild completo                                       |
-| MIME type vacío en assets               | `mod_mime` no cargado en Apache           | Verificar `docker/apache/prod.conf`                    |
-| `550 Sending from domain not allowed`   | Dominio SMTP no verificado                | Verificar dominio en Mailtrap o usar `MAIL_MAILER=log` |
+| `502 Bad Gateway`                       | Nginx no alcanza PHP-FPM                  | Verificar que `app` está healthy y en `app_net`        |
+| `550 Sending from domain not allowed`   | Dominio SMTP no verificado                | Usar `MAIL_MAILER=log` o verificar config de Mailpit   |
 | `validation.unique` en lugar de mensaje | Sin archivos `lang/es/`                   | Rebuild para incluir traducciones                      |
