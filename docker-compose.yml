@@ -1,9 +1,26 @@
 services:
 
+  redis:
+    image: redis:7-alpine
+    container_name: cine_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - backend_net
+
   app:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
 
     container_name: cine_app
 
@@ -15,77 +32,28 @@ services:
       - ./backend:/var/www
       - ./docker/php/php-dev.ini:/usr/local/etc/php/conf.d/99-dev.ini
 
+    env_file:
+      - .env
+
     environment:
-      APP_NAME: ${APP_NAME}
-      APP_ENV: ${APP_ENV}
-      APP_KEY: ${APP_KEY}
-      APP_DEBUG: ${APP_DEBUG}
-      APP_URL: ${APP_URL}
-      FRONTEND_URL: ${FRONTEND_URL}
-
-      APP_LOCALE: ${APP_LOCALE}
-      APP_FALLBACK_LOCALE: ${APP_FALLBACK_LOCALE}
-      APP_FAKER_LOCALE: ${APP_FAKER_LOCALE}
-
-      APP_MAINTENANCE_DRIVER: ${APP_MAINTENANCE_DRIVER}
-
-      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS}
-
-      LOG_CHANNEL: ${LOG_CHANNEL}
-      LOG_STACK: ${LOG_STACK}
-      LOG_DEPRECATIONS_CHANNEL: ${LOG_DEPRECATIONS_CHANNEL}
-      LOG_LEVEL: ${LOG_LEVEL}
-
-      DB_CONNECTION: ${DB_CONNECTION}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-
-      SESSION_DRIVER: ${SESSION_DRIVER}
-      SESSION_LIFETIME: ${SESSION_LIFETIME}
-      SESSION_ENCRYPT: ${SESSION_ENCRYPT}
-      SESSION_PATH: ${SESSION_PATH}
-      SESSION_DOMAIN: ${SESSION_DOMAIN}
-
-      BROADCAST_CONNECTION: ${BROADCAST_CONNECTION}
-      FILESYSTEM_DISK: ${FILESYSTEM_DISK}
-      QUEUE_CONNECTION: ${QUEUE_CONNECTION}
-      CACHE_STORE: ${CACHE_STORE}
-
-      REDIS_CLIENT: ${REDIS_CLIENT}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_PORT: ${REDIS_PORT}
-
-      MEMCACHED_HOST: ${MEMCACHED_HOST}
-
-      MAIL_MAILER: ${MAIL_MAILER}
-      MAIL_SCHEME: ${MAIL_SCHEME}
-      MAIL_HOST: ${MAIL_HOST}
-      MAIL_PORT: ${MAIL_PORT}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
-      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}
-      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
-
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
-      AWS_BUCKET: ${AWS_BUCKET}
-      AWS_USE_PATH_STYLE_ENDPOINT: ${AWS_USE_PATH_STYLE_ENDPOINT}
-
-      VITE_APP_NAME: ${VITE_APP_NAME}
-
-      L5_SWAGGER_GENERATE_ALWAYS: ${L5_SWAGGER_GENERATE_ALWAYS}
+      REDIS_HOST: redis
 
     depends_on:
+      redis:
+        condition: service_healthy
       mysql:
         condition: service_healthy
 
+    healthcheck:
+      test: ["CMD", "php", "-r", "$$fp = @fsockopen('127.0.0.1', 9000); exit($$fp ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
     networks:
-      - cine_network
+      - frontend_net
+      - backend_net
 
   apache:
     image: httpd:2.4
@@ -102,10 +70,18 @@ services:
       - ./docker/apache/000-default.conf:/usr/local/apache2/conf/httpd.conf
 
     depends_on:
-      - app
+      app:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/80 && printf \"GET /up HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && read -r line <&3 && [[ \"$$line\" =~ 200 ]]'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
     networks:
-      - cine_network
+      - frontend_net
 
   mysql:
     image: mysql:8.0
@@ -115,7 +91,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "${DB_PORT}:3306"
+      - "${FORWARD_DB_PORT:-3306}:3306"
 
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
@@ -134,30 +110,31 @@ services:
       - mysql_data:/var/lib/mysql
 
     networks:
-      - cine_network
+      - backend_net
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+    image: phpmyadmin/phpmyadmin:5.2.3
 
     container_name: cine_phpmyadmin
 
     restart: unless-stopped
 
     ports:
-      - "8080:80"
+      - "${FORWARD_PMA_PORT:-8080}:80"
 
     environment:
       PMA_HOST: ${DB_HOST}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
 
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
 
     networks:
-      - cine_network
+      - backend_net
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.31.4
 
     container_name: cine_mailpit
 
@@ -168,10 +145,41 @@ services:
       - "8025:8025"
 
     networks:
-      - cine_network
+      - backend_net
+
+  frontend:
+    image: node:20-alpine
+
+    container_name: cine_frontend
+
+    restart: unless-stopped
+
+    working_dir: /app
+
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+
+    environment:
+      VITE_PROXY_TARGET: http://apache
+
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+
+    ports:
+      - "5173:5173"
+
+    depends_on:
+      apache:
+        condition: service_healthy
+
+    networks:
+      - frontend_net
 
 volumes:
   mysql_data:
+  redis_data:
+  frontend_node_modules:
 
 networks:
-  cine_network:
+  frontend_net:
+  backend_net:

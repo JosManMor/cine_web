@@ -6,16 +6,22 @@ Este documento describe cómo levantar y mantener el entorno de producción simu
 
 ## Diferencias con el entorno de desarrollo
 
-| Aspecto              | Desarrollo (`docker-compose.yml`) | Producción (`docker-compose.prod.yml`) |
-| -------------------- | --------------------------------- | -------------------------------------- |
-| Código fuente        | Bind-mount (`./backend`)          | Baked en la imagen                     |
-| Frontend             | Vite dev server                   | Build estático en `public/build/`      |
-| PHP vendor           | Montado desde host                | Instalado sin `--dev` en la imagen     |
-| Base de datos        | Expuesta en el host (`:3306`)     | Solo accesible en red interna          |
-| phpMyAdmin / Mailpit | Incluidos                         | Excluidos                              |
-| Queue worker         | No incluido                       | Contenedor `queue` dedicado            |
-| Scheduler            | No incluido                       | Contenedor `scheduler` dedicado        |
-| OPcache              | Desactivado                       | Activado y optimizado                  |
+| Aspecto              | Desarrollo (`docker-compose.yml`)               | Producción (`docker-compose.prod.yml`)               |
+| -------------------- | ----------------------------------------------- | ---------------------------------------------------- |
+| Archivo de entorno   | `.env` (raíz)                                   | `.env.prod` (raíz)                                   |
+| Código fuente        | Bind-mount (`./backend`)                        | Baked en la imagen, servido desde el volumen `app_www` |
+| Frontend             | Servicio `frontend` (Vite `:5173`)              | Build estático en `public/build/`                    |
+| PHP vendor           | Montado desde host (`composer install` manual)  | Instalado sin `--dev` en la imagen                   |
+| Base de datos        | Expuesta en el host (`FORWARD_DB_PORT`)         | Solo accesible en `backend_net`                      |
+| Redis                | Servicio `redis` (`CACHE_STORE=redis`)          | No incluido (`CACHE_STORE=database`)                 |
+| phpMyAdmin / Mailpit | Incluidos                                       | Excluidos                                            |
+| Queue worker         | No incluido                                     | Contenedor `queue` dedicado                          |
+| Scheduler            | No incluido                                     | Contenedor `scheduler` dedicado                      |
+| Backups (cron)       | No incluido                                     | Contenedor `cron` (`backup.sh` a las 02:00)          |
+| OPcache              | Desactivado (`docker/php/php-dev.ini`)          | Activado y optimizado                                |
+| Usuario app          | `www-data` con UID/GID del host                 | `root` (sin `USER`); los workers de PHP-FPM usan `www-data` |
+| Variables UID/GID    | Requeridas (`HOST_UID`/`HOST_GID` en `.env`)    | No aplican                                           |
+| Límites de recursos  | No                                              | `deploy.resources.limits` por servicio               |
 
 ---
 
@@ -72,7 +78,7 @@ Al arrancar, el contenedor `app` ejecuta automáticamente:
 docker compose -f docker-compose.prod.yml ps
 ```
 
-Todos deben mostrar estado `Up` o `healthy`.
+`app` y `apache` deben mostrar `healthy`; `mysql` también. `queue`, `scheduler` y `cron` no tienen healthcheck y deben mostrar `Up`.
 
 ### 4. Fijar `APP_KEY` de forma permanente
 
@@ -85,9 +91,12 @@ docker logs cine_app 2>&1 | grep "APP_KEY=base64"
 # Pegar la línea completa en .env.prod
 # APP_KEY=base64:XXXXXXXXX...=
 
-# Reiniciar para aplicar desde .env.prod
-docker compose -f docker-compose.prod.yml restart app queue scheduler
+# Recrear los contenedores para que lean el nuevo .env.prod
+# (`restart` NO recarga env_file; hace falta `up -d`, que recrea los servicios cuyo entorno cambió)
+docker compose -f docker-compose.prod.yml up -d
 ```
+
+> Alternativa: generar la clave antes del primer arranque con `docker compose -f docker-compose.prod.yml run --rm --no-deps --entrypoint php app artisan key:generate --show` y pegarla en `.env.prod`.
 
 ---
 
@@ -138,25 +147,24 @@ docker compose -f docker-compose.prod.yml down -v
   Browser
      │ :80
      ▼
- ┌─────────────────────────┐   frontend_net
+ ┌─────────────────────────┐   frontend_net + backend_net
  │  apache  (httpd:2.4)    │
- │  /var/www/public  (ro)  │
+ │  app_www:/var/www (ro)  │
  └────────────┬────────────┘
-              │ fcgi → app:9000        backend_net
-              ▼
+              │ fcgi → app:9000
+              ▼                                   ── backend_net ──
  ┌─────────────────────────┐
- │  app  (php-fpm 8.3)     │◄─── queue, scheduler
- │  /var/www  (rw)         │
- └────────────┬────────────┘
-              │
-              ▼
- ┌─────────────────────────┐
- │  mysql  (mysql:8.0)     │
- │  mysql_prod_data        │
- └─────────────────────────┘
+ │  app  (php-fpm 8.3)     │      queue · scheduler (app_www:/var/www)
+ │  app_www:/var/www (rw)  │      cron (cine_backups:/var/backups/cine)
+ └────────────┬────────────┘                  │
+              │                               │ mysqldump (backup.sh)
+              ▼                               ▼
+ ┌──────────────────────────────────────────────┐
+ │  mysql  (mysql:8.0)    volumen mysql_prod_data│
+ └──────────────────────────────────────────────┘
 ```
 
-Los servicios `queue` y `scheduler` reutilizan la imagen `cine-sendera:prod` y comparten el volumen `app_www` con `app`.
+Los servicios `queue`, `scheduler` y `cron` reutilizan la imagen `cine-sendera:prod`. `queue` y `scheduler` comparten el volumen `app_www` con `app`; `cron` no lo monta y guarda los dumps en el volumen `cine_backups`. Solo `apache` está en `frontend_net` (además de `backend_net`); el resto vive únicamente en `backend_net`.
 
 ---
 
@@ -165,6 +173,7 @@ Los servicios `queue` y `scheduler` reutilizan la imagen `cine-sendera:prod` y c
 | Síntoma                                 | Causa probable                            | Solución                                               |
 | --------------------------------------- | ----------------------------------------- | ------------------------------------------------------ |
 | `500` en todas las rutas                | `APP_KEY` vacío o con texto de comentario | Ver paso 4 del primer despliegue                       |
+| Cambios en `.env.prod` no se aplican    | Se usó `restart` en lugar de `up -d`      | `docker compose -f docker-compose.prod.yml up -d`      |
 | `Table 'sessions' not found`            | Migración de sesiones no ejecutada        | Rebuild completo                                       |
 | MIME type vacío en assets               | `mod_mime` no cargado en Apache           | Verificar `docker/apache/prod.conf`                    |
 | `550 Sending from domain not allowed`   | Dominio SMTP no verificado                | Verificar dominio en Mailtrap o usar `MAIL_MAILER=log` |

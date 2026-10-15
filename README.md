@@ -1,170 +1,134 @@
-# Cine Sendera — Sistema de Gestión de Cine
+# Cine Sendera
 
-Sistema web integral para la gestión de cartelera, venta de boletos y administración de un cine, desarrollado bajo la arquitectura LAMP (Linux, Apache, MySQL, PHP/Laravel).
+> Sistema integral de gestión de cine — cartelera, venta de boletos y panel de administración.
 
----
-
-## 0. Estándares del Proyecto
-
-- **Código (Backend & Frontend):** Inglés (nombres de variables, funciones, clases, comentarios técnicos).
-- **Base de Datos:** Inglés (nombres de tablas, columnas, índices).
-- **Frontend (UI/UX):** Inglés para la estructura técnica; el **contenido visible** para el usuario final en **Español**.
-- **Documentación:** Español.
+![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?logo=php&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![Apache](https://img.shields.io/badge/Apache-2.4-D22128?logo=apache&logoColor=white)
 
 ---
 
-## 1. Documentación
-
-La documentación detallada se encuentra en `/docs`:
-
-- [Arquitectura del Backend](./docs/backend-architecture.md)
-- [Sistema de Diseño Frontend](./docs/frontend-design-system.md)
-- [Deployment — Simulación de Producción](./docs/deployment-produccion.md)
+<!-- Agrega aquí un screenshot o GIF del sistema en funcionamiento -->
+<!-- ![Demo](docs/screenshots/demo.gif) -->
 
 ---
 
-## 2. Tecnologías Principales
+## Funcionalidades principales
 
-- **Backend:** Laravel ^13.8 (PHP 8.3+)
-- **Base de Datos:** MySQL 8
-- **Frontend:** React 18 + Vite
-- **Servidor:** Apache2
-- **Automatización:** Scripts en Bash
-- **Contenedores:** Docker + Docker Compose
-
----
-
-## 3. Requisitos del Sistema
-
-- Docker y Docker Compose
-- PHP 8.3+ (solo si se ejecuta fuera de Docker)
-- Composer (solo si se ejecuta fuera de Docker)
-- Node.js & NPM (solo si se ejecuta fuera de Docker)
+- **Cartelera y funciones** — consulta de películas activas con horarios y salas disponibles
+- **Selección de asientos** — mapa interactivo de sala con bloqueo en tiempo real contra doble reserva
+- **Venta de boletos** — flujo completo de compra con generación de código de ticket por asiento
+- **Panel de administración** — gestión de películas, salas, funciones, usuarios y reportes
+- **Roles de acceso** — `admin`, `cashier` y `client` con permisos diferenciados vía Laravel Sanctum
+- **Notificaciones por correo** — confirmación de compra y recuperación de contraseña (Mailpit en dev)
 
 ---
 
-## 4. Instalación Rápida (Desarrollo)
+## Stack
+
+| Capa | Tecnología |
+|------|------------|
+| Frontend | React 18 + Vite + React Router |
+| Backend | Laravel 13 (PHP 8.3) — API REST |
+| Base de datos | MySQL 8 |
+| Servidor web | Apache 2.4 + PHP-FPM |
+| Caché / Sesiones | Redis 7 |
+| Contenedores | Docker + Docker Compose |
+| Autenticación | Laravel Sanctum (Bearer token) |
+
+---
+
+## Inicio rápido
+
+Requiere Docker y Docker Compose.
 
 ```bash
-# 1. Copiar y configurar variables de entorno
+# 1. Copiar las variables de entorno (el .env vive en la RAÍZ del proyecto)
 cp .env.example .env
+#    Ajustar HOST_UID / HOST_GID en .env con los valores de `id -u` e `id -g`
 
-# 2. Levantar todos los servicios
+# 2. Instalar dependencias PHP (backend/vendor no se versiona y el entrypoint no arranca sin él)
+docker compose run --rm --no-deps --entrypoint sh app -c "composer install"
+
+# 3. Generar la APP_KEY y pegarla en .env como APP_KEY=base64:...
+docker compose run --rm --no-deps --entrypoint php app artisan key:generate --show
+
+# 4. Levantar todos los servicios (incluye el frontend Vite con hot-reload)
 docker compose up -d
-
-# 3. Levantar el frontend con hot-reload
-cd frontend && npm install && npm run dev
 ```
 
-El entrypoint ejecuta automáticamente migraciones y seeders al arrancar.  
-Accesos disponibles:
+> **Nota sobre variables de entorno:** Los servicios `app` y `mysql` leen el `.env` de la raíz (`env_file: .env` e interpolación de Compose). No existe `backend/.env` en Docker. Los comentarios en `.env` deben ir en su propia línea (`# comentario`), nunca al final de una línea con valor.
 
-| Servicio    | URL                        |
-|-------------|----------------------------|
-| App         | http://localhost            |
-| phpMyAdmin  | http://localhost:8080       |
-| Mailpit     | http://localhost:8025       |
-| Frontend dev| http://localhost:5173       |
+> **Sobre la `APP_KEY`:** si se deja vacía, el entrypoint genera una clave **temporal** en memoria que cambia en cada reinicio del contenedor e invalida sesiones y cookies cifradas. Tras editar `.env` hay que **recrear** el contenedor (`docker compose up -d app`); `docker compose restart` no recarga `env_file`.
 
----
+El entrypoint ejecuta automáticamente migraciones y seeders al arrancar. Los servicios inician en orden estricto mediante `depends_on` con condiciones `service_healthy`. El frontend corre dentro del contenedor `cine_frontend`, así que no hace falta Node en el host.
 
-## 5. Arquitectura de Contenedores
-
-El proyecto usa múltiples contenedores siguiendo el principio de **un proceso por contenedor**, lo que permite escalar, reiniciar y depurar cada responsabilidad de forma independiente.
-
-### Desarrollo (`docker-compose.yml`)
-
-| Contenedor      | Imagen            | Responsabilidad                                      |
-|-----------------|-------------------|------------------------------------------------------|
-| `cine_app`      | PHP-FPM 8.3       | Ejecuta Laravel; procesa las peticiones PHP          |
-| `cine_apache`   | httpd:2.4         | Servidor web; recibe HTTP y reenvía a PHP-FPM        |
-| `cine_mysql`    | mysql:8.0         | Base de datos; separado para persistir datos con volumen |
-| `cine_phpmyadmin` | phpmyadmin      | GUI de base de datos; solo en desarrollo             |
-| `cine_mailpit`  | axllent/mailpit   | Captura correos salientes sin enviarlos; solo en desarrollo |
-
-> **¿Por qué Apache y PHP-FPM separados?**  
-> PHP-FPM gestiona procesos PHP de forma eficiente (pool de workers) mientras Apache sirve archivos estáticos directamente sin pasar por PHP. Esta separación refleja el stack LAMP real de producción.
-
-### Producción (`docker-compose.prod.yml`)
-
-| Contenedor        | Imagen              | Responsabilidad                                        |
-|-------------------|---------------------|--------------------------------------------------------|
-| `cine_app`        | cine-sendera:prod   | PHP-FPM; también ejecuta setup inicial al arrancar     |
-| `cine_apache`     | httpd:2.4           | Servidor web en puerto 80                              |
-| `cine_mysql`      | mysql:8.0           | Base de datos (sin puerto expuesto al host)            |
-| `cine_queue`      | cine-sendera:prod   | Worker de colas Laravel (`queue:work`)                 |
-| `cine_scheduler`  | cine-sendera:prod   | Scheduler Laravel (`schedule:run` cada 60 s)           |
-| `cine_cron`       | cine-sendera:prod   | Cron del sistema; ejecuta `backup.sh` a las 02:00      |
-
-> En producción no hay phpMyAdmin ni Mailpit. El `watchdog.sh` tampoco aplica porque `restart: always` en cada contenedor cumple esa función.
+| Servicio     | URL / Puerto                                                                    |
+| ------------ | ------------------------------------------------------------------------------- |
+| App (API)    | http://localhost                                                                |
+| Frontend dev | http://localhost:5173                                                           |
+| phpMyAdmin   | http://localhost:`FORWARD_PMA_PORT` (`8081` con `.env.example`; `8080` si no se define) |
+| MySQL (host) | `localhost:FORWARD_DB_PORT` (`3308` con `.env.example`; `3306` si no se define) |
+| Mailpit      | http://localhost:8025 (SMTP en `:1025`)                                         |
 
 ---
 
-## 6. Scripts de Automatización
+## Arquitectura de contenedores
 
-Los scripts viven en [`/scripts`](./scripts/) y están integrados en el flujo de despliegue:
+El proyecto sigue el principio de **un proceso por contenedor**, con arranque ordenado mediante `depends_on` + healthchecks:
 
-| Script | Archivo | Ejecución |
-|--------|---------|-----------|
-| Hardening servidor | [`scripts/hardening.sh`](./scripts/hardening.sh) | **Una sola vez**: `sudo bash scripts/hardening.sh` |
-| Watchdog | [`scripts/watchdog.sh`](./scripts/watchdog.sh) | Cron nativo: `*/1 * * * *` — no aplica en Docker |
-| Backup BD | [`scripts/backup.sh`](./scripts/backup.sh) | Automática vía contenedor `cine_cron` a las 02:00 |
-| Alta de staff | [`scripts/staff_creator.sh`](./scripts/staff_creator.sh) | Manual: `docker exec -it cine_app /usr/local/scripts/staff_creator.sh` |
-| Cron file | [`scripts/cine.cron`](./scripts/cine.cron) | Instalación en servidor nativo: `sudo cp scripts/cine.cron /etc/cron.d/cine` |
+| Contenedor        | Imagen                        | Redes                         | Responsabilidad                                         | Healthcheck                               |
+| ----------------- | ----------------------------- | ----------------------------- | ------------------------------------------------------- | ----------------------------------------- |
+| `cine_redis`      | redis:7-alpine                | `backend_net`                 | Caché en memoria; persiste con volumen `redis_data`     | `redis-cli ping`                          |
+| `cine_mysql`      | mysql:8.0                     | `backend_net`                 | Base de datos; persiste datos con volumen `mysql_data`  | `mysqladmin ping`                         |
+| `cine_app`        | PHP-FPM 8.3 (build local)     | `frontend_net`, `backend_net` | Ejecuta Laravel; procesa peticiones PHP                 | Socket `:9000` (tras migraciones/seeders) |
+| `cine_apache`     | httpd:2.4                     | `frontend_net`                | Servidor web; recibe HTTP y reenvía a PHP-FPM           | HTTP GET `/up` vía `/dev/tcp`             |
+| `cine_phpmyadmin` | phpmyadmin/phpmyadmin:5.2.3   | `backend_net`                 | GUI de base de datos; espera a que MySQL esté _healthy_ | -                                         |
+| `cine_mailpit`    | axllent/mailpit:v1.31.4       | `backend_net`                 | Captura correos salientes; solo en desarrollo           | Healthcheck propio de la imagen           |
+| `cine_frontend`   | node:20-alpine                | `frontend_net`                | Servidor de desarrollo Vite con hot-reload para React   | -                                         |
 
-Ver detalles en [docs/backend-architecture.md — sección 13](./docs/backend-architecture.md).
+> **Redes:** `frontend_net` conecta `frontend` ↔ `apache` ↔ `app`; `backend_net` conecta `app` ↔ `mysql`/`redis`/`mailpit` y `phpmyadmin` ↔ `mysql`. `app` es el único servicio en ambas redes, de modo que ni Apache ni el frontend alcanzan la base de datos.
+
+> **Control del orden de arranque:** `app` espera a que `mysql` y `redis` estén en estado `healthy`. `apache` espera a que `app` esté `healthy` (evita errores `502` durante el arranque). `frontend` espera a que `apache` esté `healthy`.
+
+El entorno de producción (`docker-compose.prod.yml`) agrega contenedores de queue worker, scheduler y cron de backup, y elimina los servicios de desarrollo.
 
 ---
 
-## 7. Deployment de Producción
+## Seguridad (producción)
+
+- Apache: cabeceras HTTP de seguridad, `Options -Indexes`, bloqueo de `.env` y archivos sensibles
+- Redes Docker separadas: `frontend_net` (Apache ↔ exterior) y `backend_net` (Apache ↔ PHP ↔ MySQL)
+- MySQL sin puerto expuesto al host
+- UFW: solo puertos 80 y 2222 abiertos; SSH endurecido con `PermitRootLogin no`
+- Anti-sobreventa de asientos: `UNIQUE (screening_id, row, seat_number)` + captura de `UniqueConstraintViolationException`
+- Rate limiting en login: `throttle:5,1`
+
+---
+
+## Documentación técnica
+
+- [Arquitectura del backend](./docs/backend-architecture.md)
+- [Sistema de diseño frontend](./docs/frontend-design-system.md)
+- [Entorno Docker y orquestación](./docs/docker-entorno-desarrollo.md)
+- [Deployment en producción](./docs/deployment-produccion.md)
+- [Diseño de base de datos](./docs/database-design.md)
+
+---
+
+## Comandos de desarrollo
 
 ```bash
-cp .env.prod.example .env.prod   # editar contraseñas, SMTP y APP_URL
-docker compose -f docker-compose.prod.yml up -d --build
+# Dentro del contenedor app
+php artisan test              # suite completa (SQLite en memoria)
+php artisan test --filter X   # filtrar por nombre
+./vendor/bin/pint             # linting (Laravel Pint)
+php artisan migrate:fresh --seed
+
+# Frontend (dentro del contenedor frontend o local)
+npm run dev    # Vite dev server
+npm run build  # build para producción
 ```
-
-Ver guía completa en [docs/deployment-produccion.md](./docs/deployment-produccion.md).
-
----
-
-## 8. Seguridad y Hardening
-
-La seguridad está implementada en tres capas:
-
-### Capa 1 — Servidor Apache ([`docker/apache/prod.conf`](./docker/apache/prod.conf))
-
-Activo solo en producción. El archivo de desarrollo ([`docker/apache/000-default.conf`](./docker/apache/000-default.conf)) no incluye estas medidas.
-
-| Medida | Directiva |
-|--------|-----------|
-| Oculta versión del servidor | `ServerTokens Prod` / `ServerSignature Off` |
-| Cabeceras de seguridad HTTP | `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy` |
-| Bloquea archivos sensibles | Deniega acceso a `.env`, `composer.json`, `phpunit.xml`, etc. |
-| Deshabilita listado de directorios | `Options -Indexes` |
-| Elimina cabecera `X-Powered-By` | `Header always unset X-Powered-By` |
-
-### Capa 2 — Red y contenedores ([`docker-compose.prod.yml`](./docker-compose.prod.yml))
-
-- MySQL **sin puerto expuesto al host** — solo accesible dentro de `backend_net`
-- Redes separadas: `frontend_net` (Apache↔exterior) y `backend_net` (Apache↔PHP↔MySQL)
-- Límites de memoria y CPU por contenedor (`deploy.resources.limits`)
-
-### Capa 3 — Servidor Linux (documentado en [backend-architecture.md — sección 14](./docs/backend-architecture.md))
-
-Configuración aplicada directamente sobre el servidor Ubuntu:
-
-| Medida | Herramienta |
-|--------|-------------|
-| Firewall perimetral | UFW — deniega todo entrante excepto puertos 80 y 2222 |
-| SSH endurecido | Puerto 2222, `PermitRootLogin no` en `/etc/ssh/sshd_config` |
-| Protección fuerza bruta | `ufw limit 2222/tcp` |
-
-### Capa 4 — Aplicación Laravel
-
-| Medida | Implementación |
-|--------|----------------|
-| Autenticación con tokens | Laravel Sanctum |
-| Validación de entrada | Form Requests (`backend/app/Http/Requests/`) |
-| Protección CSRF | Middleware integrado de Laravel |
-| Anti-sobreventa de boletos | Transacción DB + `UNIQUE` constraint en `purchase_seats` |
-| Rate limiting en login | `throttle:5,1` en rutas de autenticación |

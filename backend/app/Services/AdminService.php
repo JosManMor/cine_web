@@ -161,4 +161,121 @@ class AdminService
 
         return "hace {$diffInDays} días";
     }
+
+    public function systemStats(): array
+    {
+        [$cpuPercent, $cpuLabel] = $this->readCpuStats();
+        [$ramPercent, $ramLabel] = $this->readRamStats();
+
+        return [
+            'cpu_percent' => $cpuPercent,
+            'cpu_label'   => $cpuLabel,
+            'ram_percent' => $ramPercent,
+            'ram_label'   => $ramLabel,
+        ];
+    }
+
+    private function readCpuStats(): array
+    {
+        $load = $this->getSystemLoad();
+
+        if (empty($load)) {
+            return [0, '0%'];
+        }
+
+        $cores = $this->getCoreCount();
+
+        if ($cores <= 0) {
+            return [0, '0%'];
+        }
+
+        $cpuPercent = min(100, (int) round(($load[0] / $cores) * 100));
+
+        return [$cpuPercent, "{$cpuPercent}%"];
+    }
+
+    private function getSystemLoad(): array
+    {
+        if (function_exists('sys_getloadavg')) {
+            $load = sys_getloadavg();
+            if (!empty($load)) {
+                return $load;
+            }
+        }
+
+        if (!is_readable('/proc/loadavg')) {
+            return [];
+        }
+
+        $parts = explode(' ', trim(file_get_contents('/proc/loadavg')));
+
+        if (count($parts) < 3) {
+            return [];
+        }
+
+        return [(float) $parts[0], (float) $parts[1], (float) $parts[2]];
+    }
+
+    private function getCoreCount(): int
+    {
+        if (is_readable('/proc/cpuinfo')) {
+            $cores = substr_count(file_get_contents('/proc/cpuinfo'), 'processor');
+            if ($cores > 0) {
+                return $cores;
+            }
+        }
+
+        $nproc = shell_exec('nproc');
+
+        return $nproc !== null ? (int) $nproc : 1;
+    }
+
+    private function readRamStats(): array
+    {
+        if (!is_readable('/proc/meminfo')) {
+            return [0, 'Desconocido'];
+        }
+
+        $meminfo = file_get_contents('/proc/meminfo');
+        preg_match('/MemTotal:\s+(\d+)/i', $meminfo, $totalMatches);
+
+        if (empty($totalMatches)) {
+            return [0, 'Desconocido'];
+        }
+
+        $totalKb = (float) $totalMatches[1];
+        $usedKb  = $this->calculateUsedMemoryKb($meminfo, $totalKb);
+        $totalMb = $totalKb / 1024;
+        $usedMb  = $usedKb / 1024;
+
+        if ($totalMb <= 0) {
+            return [0, 'Desconocido'];
+        }
+
+        $ramPercent = max(0, min(100, (int) round(($usedMb / $totalMb) * 100)));
+        $totalGb    = number_format($totalMb / 1024, 1);
+        $usedGb     = number_format($usedMb / 1024, 1);
+
+        return [$ramPercent, "{$usedGb} GB / {$totalGb} GB"];
+    }
+
+    private function calculateUsedMemoryKb(string $meminfo, float $totalKb): float
+    {
+        preg_match('/MemAvailable:\s+(\d+)/i', $meminfo, $availMatches);
+
+        if (!empty($availMatches)) {
+            return $totalKb - (float) $availMatches[1];
+        }
+
+        preg_match('/MemFree:\s+(\d+)/i', $meminfo, $freeMatches);
+        preg_match('/Buffers:\s+(\d+)/i', $meminfo, $buffersMatches);
+        preg_match('/Cached:\s+(\d+)/i', $meminfo, $cachedMatches);
+
+        $freeKb    = !empty($freeMatches)    ? (float) $freeMatches[1]    : 0;
+        $buffersKb = !empty($buffersMatches) ? (float) $buffersMatches[1] : 0;
+        $cachedKb  = !empty($cachedMatches)  ? (float) $cachedMatches[1]  : 0;
+
+        return $totalKb - ($freeKb + $buffersKb + $cachedKb);
+    }
 }
+

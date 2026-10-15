@@ -19,3 +19,6 @@ Los módulos asumen familiaridad con los siguientes documentos transversales:
 | [backend-architecture.md](../backend-architecture.md)     | Patrones, carpetas, seguridad, Bash  |
 | [frontend-design-system.md](../frontend-design-system.md) | Paleta, tipografía, componentes base |
 | [api-endpoints.md](../api-endpoints.md)                   | Referencia completa de la API        |
+| [docker-entorno-desarrollo.md](../docker-entorno-desarrollo.md) | Entorno Docker, orquestación, healthchecks y env_file |
+| [deployment-produccion.md](../deployment-produccion.md)         | Despliegue en producción simulado con Docker Compose |
+| [examen-teorico-resumen-implementacion.md](../examen-teorico-resumen-implementacion.md) | Resumen teórico de la parcial y memoria de implementación |

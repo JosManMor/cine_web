@@ -13,8 +13,16 @@ if [ -z "$APP_KEY" ]; then
         APP_KEY="$FILE_KEY"
     else
         APP_KEY=$(php -r "echo 'base64:'.base64_encode(random_bytes(32));")
-        [ -f .env ] && sed -i "s|^APP_KEY=.*|APP_KEY=$APP_KEY|" .env
-        echo "[entrypoint] APP_KEY generada y guardada en .env"
+        if [ -f .env ]; then
+            sed -i "s|^APP_KEY=.*|APP_KEY=$APP_KEY|" .env
+            echo "[entrypoint] APP_KEY generada y guardada en backend/.env"
+        else
+            # En Docker las variables llegan desde el .env de la raíz (env_file),
+            # que no está montado en el contenedor: la clave solo vive en memoria.
+            echo "[entrypoint] AVISO: APP_KEY vacía — se generó una clave temporal que cambiará en cada reinicio." >&2
+            echo "[entrypoint] Copia la siguiente línea al .env de la raíz del proyecto y recrea el contenedor (docker compose up -d app):" >&2
+            echo "[entrypoint] APP_KEY=$APP_KEY" >&2
+        fi
     fi
 
     export APP_KEY
