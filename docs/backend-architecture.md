@@ -37,7 +37,6 @@ El sistema debe permitir:
 
 # 2. Arquitectura General
 
-
 ## Arquitectura propuesta
 
 Se recomienda utilizar:
@@ -598,12 +597,6 @@ APP_DEBUG=false
 DB_DATABASE=cine_db
 DB_USERNAME=cine_user
 DB_PASSWORD=strong_password
-```
-## Variables solo para desarrollo con Docker
-
-```env
-HOST_UID=1000
-HOST_GID=1000
 ```
 
 ---
