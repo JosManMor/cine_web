@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { C } from "../constants/theme";
 import { createPurchase } from "../api/purchases";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import Spinner from "../components/ui/Spinner";
+import { useBooking } from "../context/BookingContext";
 
 const PAYMENT_METHODS = [
   { id: "cash",   label: "Efectivo" },
@@ -15,7 +17,10 @@ function fmtDateTime(dateStr) {
   return new Date(dateStr).toLocaleString("es-MX", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-export default function CheckoutPage({ movie, schedule, user, selectedSeats = [], setPage, addToast, setPurchaseResult }) {
+export default function CheckoutPage({ addToast }) {
+  const { selectedMovie: movie, selectedSchedule: schedule, selectedSeats, setPurchaseResult } = useBooking();
+  const navigate = useNavigate();
+
   const [loading, setLoading]             = useState(false);
   const [done, setDone]                   = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -24,7 +29,7 @@ export default function CheckoutPage({ movie, schedule, user, selectedSeats = []
     return (
       <div style={{ padding: 80, textAlign: "center", color: C.gray }}>
         <p>No hay asientos seleccionados.</p>
-        <button onClick={() => setPage("seats")} style={{ marginTop: 16, background: "none", border: `1px solid ${C.border}`, color: C.gray, padding: "8px 20px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>
+        <button onClick={() => navigate(schedule?.id ? `/asientos/${schedule.id}` : -1)} style={{ marginTop: 16, background: "none", border: `1px solid ${C.border}`, color: C.gray, padding: "8px 20px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>
           ← Volver a selección de asientos
         </button>
       </div>
@@ -52,11 +57,11 @@ export default function CheckoutPage({ movie, schedule, user, selectedSeats = []
       });
       setDone(true);
       addToast("Compra registrada con éxito", "success");
-      setTimeout(() => setPage("ticket"), 800);
+      setTimeout(() => navigate("/ticket"), 800);
     } catch (err) {
       if (err.response?.status === 409) {
         addToast("Uno o más asientos ya fueron reservados. Elige otros.", "error");
-        setPage("seats");
+        navigate(schedule?.id ? `/asientos/${schedule.id}` : -1);
       } else {
         addToast(err.response?.data?.message ?? "Error al procesar la compra", "error");
       }
@@ -79,10 +84,9 @@ export default function CheckoutPage({ movie, schedule, user, selectedSeats = []
   return (
     <div style={{ minHeight: "100vh", paddingTop: 80 }}>
       <div style={{ maxWidth: 540, margin: "0 auto", padding: "40px 24px", animation: "fadeUp .5s ease forwards" }}>
-        <button onClick={() => setPage("seats")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, cursor: "pointer", marginBottom: 24, fontFamily: "'Open Sans', sans-serif" }}>← Volver a asientos</button>
+        <button onClick={() => navigate(schedule?.id ? `/asientos/${schedule.id}` : -1)} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, cursor: "pointer", marginBottom: 24, fontFamily: "'Open Sans', sans-serif" }}>← Volver a asientos</button>
         <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, letterSpacing: 3, marginBottom: 28 }}>CONFIRMAR COMPRA</h2>
 
-        {/* Resumen */}
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 20 }}>
           <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 14, marginBottom: 14, color: C.gray, textTransform: "uppercase", letterSpacing: 1 }}>Resumen de orden</h3>
           <div style={{ display: "flex", gap: 16, alignItems: "center", paddingBottom: 16, marginBottom: 16, borderBottom: `1px solid ${C.border}` }}>
@@ -116,7 +120,6 @@ export default function CheckoutPage({ movie, schedule, user, selectedSeats = []
           </div>
         </div>
 
-        {/* Método de pago */}
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 20 }}>
           <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 14, marginBottom: 14, color: C.gray, textTransform: "uppercase", letterSpacing: 1 }}>Método de pago</h3>
           <div style={{ display: "flex", gap: 10 }}>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { C } from "../constants/theme";
 import { getMyTickets } from "../api/purchases";
 import QRCode from "../components/QRCode";
@@ -16,27 +17,14 @@ function TicketCard({ ticket, expanded, onToggle }) {
   const lang = LANG_LABEL[ticket.language_type] ?? ticket.language_type;
 
   return (
-    <div
-      style={{
-        background: C.card, border: `1px solid ${expanded ? C.green : C.border}`,
-        borderRadius: 10, overflow: "hidden",
-        transition: "border-color .2s, box-shadow .2s",
-        boxShadow: expanded ? `0 0 0 1px ${C.green}22, 0 8px 32px rgba(0,0,0,.5)` : "none",
-      }}
-    >
-      {/* Fila clickeable */}
-      <div
-        onClick={onToggle}
-        style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", cursor: "pointer" }}
-      >
-        {/* Poster */}
+    <div style={{ background: C.card, border: `1px solid ${expanded ? C.green : C.border}`, borderRadius: 10, overflow: "hidden", transition: "border-color .2s, box-shadow .2s", boxShadow: expanded ? `0 0 0 1px ${C.green}22, 0 8px 32px rgba(0,0,0,.5)` : "none" }}>
+      <button onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", cursor: "pointer", background: "none", border: "none", width: "100%", textAlign: "left", color: "inherit", fontFamily: "inherit" }}>
         <div style={{ width: 44, height: 60, background: C.surface, borderRadius: 4, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: C.grayDark }}>
             {ticket.movie_title?.[0]}
           </span>
         </div>
 
-        {/* Info principal */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {ticket.movie_title}
@@ -49,7 +37,6 @@ function TicketCard({ ticket, expanded, onToggle }) {
           </p>
         </div>
 
-        {/* Precio + estado */}
         <div style={{ textAlign: "right", flexShrink: 0 }}>
           <p style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 15, color: C.green }}>
             ${Number(ticket.price_paid).toFixed(2)}
@@ -60,21 +47,17 @@ function TicketCard({ ticket, expanded, onToggle }) {
           </div>
         </div>
 
-        {/* Chevron */}
         <span style={{ color: C.grayDark, fontSize: 12, flexShrink: 0, transform: expanded ? "rotate(180deg)" : "rotate(0)", transition: "transform .2s" }}>▼</span>
-      </div>
+      </button>
 
-      {/* Detalle expandible */}
       {expanded && (
         <>
-          {/* Perforación */}
           <div style={{ height: 16, position: "relative", overflow: "hidden", display: "flex", alignItems: "center" }}>
             <div style={{ position: "absolute", left: -8, width: 16, height: 16, borderRadius: "50%", background: C.bg }} />
             <div style={{ flex: 1, height: 1, borderTop: `2px dashed ${C.border}`, margin: "0 12px" }} />
             <div style={{ position: "absolute", right: -8, width: 16, height: 16, borderRadius: "50%", background: C.bg }} />
           </div>
 
-          {/* QR + código */}
           <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 20 }}>
             <div style={{ background: C.white, padding: 7, borderRadius: 6, flexShrink: 0 }}>
               <QRCode code={ticket.ticket_code} />
@@ -100,7 +83,8 @@ function TicketCard({ ticket, expanded, onToggle }) {
   );
 }
 
-export default function MyTicketsPage({ setPage }) {
+export default function MyTicketsPage() {
+  const navigate = useNavigate();
   const [tickets, setTickets]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(false);
@@ -150,7 +134,7 @@ export default function MyTicketsPage({ setPage }) {
             <p style={{ color: C.gray, fontSize: 14, marginBottom: 28 }}>
               Los tickets aparecen aquí una vez que el pago es confirmado.
             </p>
-            <BtnPrimary onClick={() => setPage("home")}>Ver cartelera</BtnPrimary>
+            <BtnPrimary onClick={() => navigate("/")}>Ver cartelera</BtnPrimary>
           </div>
         )}
 

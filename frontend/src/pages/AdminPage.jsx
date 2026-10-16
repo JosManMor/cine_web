@@ -49,7 +49,6 @@ function RoomCard({ r }) {
       background: C.surface ?? "#282424", border: `1px solid ${C.border}`,
       borderRadius: 8, padding: "14px 16px",
     }}>
-      {/* Room name + status badge */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 13 }}>{r.room}</span>
         <span style={{
@@ -61,7 +60,6 @@ function RoomCard({ r }) {
         </span>
       </div>
 
-      {/* Current movie block */}
       {r.status === "showing" && (
         <div style={{ marginBottom: 8 }}>
           <p style={{ fontSize: 13, color: C.white, fontWeight: 500 }}>{r.current_movie}</p>
@@ -76,7 +74,6 @@ function RoomCard({ r }) {
         </div>
       )}
 
-      {/* Upcoming movie block */}
       {r.status === "upcoming" && (
         <div style={{ marginBottom: 8 }}>
           <p style={{ fontSize: 13, color: C.white, fontWeight: 500 }}>{r.next_movie}</p>
@@ -86,12 +83,10 @@ function RoomCard({ r }) {
         </div>
       )}
 
-      {/* Idle block */}
       {r.status === "idle" && (
         <p style={{ fontSize: 12, color: C.grayDark, marginBottom: 8 }}>Sin funciones programadas</p>
       )}
 
-      {/* Occupancy bar */}
       {r.status !== "idle" && (
         <>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -180,18 +175,7 @@ function ServerMonitor() {
 
   if (loading && !stats) {
     return (
-      <div
-        style={{
-          background: C.card,
-          border: `1px solid ${C.border}`,
-          borderRadius: 10,
-          padding: "16px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: 82,
-        }}
-      >
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 82 }}>
         <Spinner />
       </div>
     );
@@ -199,37 +183,14 @@ function ServerMonitor() {
 
   if (error && !stats) {
     return (
-      <div
-        style={{
-          background: C.card,
-          border: `1px solid ${C.border}`,
-          borderRadius: 10,
-          padding: "16px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 20,
-          minHeight: 82,
-        }}
-      >
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, minHeight: 82 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
           <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 13, color: C.red }}>
             Error al cargar recursos del servidor
           </h3>
         </div>
-        <button
-          onClick={fetchStats}
-          style={{
-            padding: "4px 10px",
-            borderRadius: 4,
-            border: `1px solid ${C.border}`,
-            background: "transparent",
-            color: C.gray,
-            cursor: "pointer",
-            fontSize: 11,
-          }}
-        >
+        <button onClick={fetchStats} style={{ padding: "4px 10px", borderRadius: 4, border: `1px solid ${C.border}`, background: "transparent", color: C.gray, cursor: "pointer", fontSize: 11 }}>
           Reintentar
         </button>
       </div>
@@ -246,7 +207,6 @@ function ServerMonitor() {
 
   const cpuColor = getBarColor(cpu_percent);
   const ramColor = getBarColor(ram_percent);
-
   const ariaLabel = `Recursos del servidor: Uso de CPU al ${cpu_percent} por ciento, Uso de memoria RAM al ${ram_percent} por ciento, equivalente a ${ram_label}.`;
 
   return (
@@ -254,20 +214,8 @@ function ServerMonitor() {
       role="region"
       tabIndex={0}
       aria-label={ariaLabel}
-      style={{
-        background: C.card,
-        border: `1px solid ${C.border}`,
-        borderRadius: 10,
-        padding: "16px 20px",
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 20,
-        boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-      }}
+      style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 20px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 20, boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
     >
-      {/* Title & Status */}
       <div style={{ minWidth: 160 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
@@ -275,24 +223,12 @@ function ServerMonitor() {
             Consumo del Servidor
           </h3>
         </div>
-        <span style={{
-          fontSize: 9,
-          fontFamily: "'Montserrat', sans-serif",
-          fontWeight: 700,
-          color: C.green,
-          background: C.greenDim,
-          padding: "2px 6px",
-          borderRadius: 3,
-          letterSpacing: 0.5,
-          display: "inline-block",
-        }}>
+        <span style={{ fontSize: 9, fontFamily: "'Montserrat', sans-serif", fontWeight: 700, color: C.green, background: C.greenDim, padding: "2px 6px", borderRadius: 3, letterSpacing: 0.5, display: "inline-block" }}>
           MONITOREO EN VIVO
         </span>
       </div>
 
-      {/* Progress Bars */}
       <div style={{ display: "flex", flex: 1, minWidth: 280, gap: 24, flexWrap: "wrap" }}>
-        {/* CPU */}
         <div style={{ flex: 1, minWidth: 130 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 2 }}>
             <span style={{ color: C.gray, fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>PROCESADOR (CPU)</span>
@@ -300,8 +236,6 @@ function ServerMonitor() {
           </div>
           <SegmentedBar percent={cpu_percent} color={cpuColor} />
         </div>
-
-        {/* RAM */}
         <div style={{ flex: 1, minWidth: 130 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 2 }}>
             <span style={{ color: C.gray, fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>MEMORIA (RAM)</span>
@@ -314,7 +248,7 @@ function ServerMonitor() {
   );
 }
 
-export default function AdminPage({ user, setPage }) {
+export default function AdminPage() {
   const [metrics,  setMetrics]  = useState(null);
   const [activity, setActivity] = useState([]);
   const [rooms,    setRooms]    = useState([]);
@@ -330,10 +264,7 @@ export default function AdminPage({ user, setPage }) {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (user?.role !== "admin") { setPage("home"); return; }
-    fetchAll();
-  }, []);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -356,7 +287,6 @@ export default function AdminPage({ user, setPage }) {
     <div style={{ minHeight: "100vh", paddingTop: 80 }}>
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 24px", animation: "fadeUp .5s ease forwards" }}>
 
-        {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
           <div>
             <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 38, letterSpacing: 3 }}>
@@ -366,50 +296,24 @@ export default function AdminPage({ user, setPage }) {
           </div>
           <button
             onClick={fetchAll}
-            style={{
-              padding: "7px 14px", borderRadius: 4, border: `1px solid ${C.border}`,
-              background: "transparent", color: C.gray, cursor: "pointer",
-              fontFamily: "'Open Sans', sans-serif", fontSize: 12, transition: "all .2s",
-            }}
+            style={{ padding: "7px 14px", borderRadius: 4, border: `1px solid ${C.border}`, background: "transparent", color: C.gray, cursor: "pointer", fontFamily: "'Open Sans', sans-serif", fontSize: 12, transition: "all .2s" }}
           >
             ↻ Actualizar
           </button>
         </div>
 
-        {/* Metrics */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>
-          <MetricCard
-            icon="🎟"
-            label="Boletos vendidos"
-            value={metrics.tickets_sold.toLocaleString("es-MX")}
-          />
-          <MetricCard
-            icon="💰"
-            label="Ventas del día"
-            value={`$${Number(metrics.daily_sales).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`}
-          />
-          <MetricCard
-            icon="👥"
-            label="Usuarios registrados"
-            value={metrics.registered_users.toLocaleString("es-MX")}
-          />
-          <MetricCard
-            icon="🎬"
-            label="Película más vista"
-            value={metrics.top_movie?.title ?? "—"}
-            sub={metrics.top_movie ? `${metrics.top_movie.tickets_sold} boletos` : undefined}
-          />
+          <MetricCard icon="🎟" label="Boletos vendidos" value={metrics.tickets_sold.toLocaleString("es-MX")} />
+          <MetricCard icon="💰" label="Ventas del día" value={`$${Number(metrics.daily_sales).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`} />
+          <MetricCard icon="👥" label="Usuarios registrados" value={metrics.registered_users.toLocaleString("es-MX")} />
+          <MetricCard icon="🎬" label="Película más vista" value={metrics.top_movie?.title ?? "—"} sub={metrics.top_movie ? `${metrics.top_movie.tickets_sold} boletos` : undefined} />
         </div>
 
-        {/* Server Monitor */}
         <div style={{ marginBottom: 24 }}>
           <ServerMonitor />
         </div>
 
-        {/* Chart + Rooms */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
-
-          {/* Weekly sales chart */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20 }}>
             <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 14, marginBottom: 20 }}>
               Ventas esta semana
@@ -420,17 +324,9 @@ export default function AdminPage({ user, setPage }) {
                 const isMax     = d.value === maxVal;
                 return (
                   <div key={d.day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                    <div style={{
-                      width: "100%", height: `${heightPct || 2}%`, minHeight: 2,
-                      background: isMax ? C.red : C.grayDarker,
-                      borderRadius: "3px 3px 0 0", position: "relative", transition: "height .3s",
-                    }}>
+                    <div style={{ width: "100%", height: `${heightPct || 2}%`, minHeight: 2, background: isMax ? C.red : C.grayDarker, borderRadius: "3px 3px 0 0", position: "relative", transition: "height .3s" }}>
                       {isMax && (
-                        <div style={{
-                          position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)",
-                          fontSize: 10, color: C.red, whiteSpace: "nowrap",
-                          fontFamily: "'Montserrat', sans-serif", fontWeight: 600,
-                        }}>
+                        <div style={{ position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: C.red, whiteSpace: "nowrap", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
                           {d.value}
                         </div>
                       )}
@@ -442,7 +338,6 @@ export default function AdminPage({ user, setPage }) {
             </div>
           </div>
 
-          {/* Room status */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20, overflowY: "auto" }}>
             <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 14, marginBottom: 16 }}>
               Estado de salas
@@ -457,7 +352,6 @@ export default function AdminPage({ user, setPage }) {
           </div>
         </div>
 
-        {/* Activity feed */}
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20 }}>
           <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 14, marginBottom: 16 }}>
             Actividad reciente
@@ -466,14 +360,8 @@ export default function AdminPage({ user, setPage }) {
             <p style={{ color: C.gray, fontSize: 13 }}>Sin actividad reciente.</p>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 24px" }}>
-              {activity.map((a, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex", alignItems: "flex-start", gap: 10,
-                    padding: "8px 0", borderBottom: `1px solid ${C.border}`,
-                  }}
-                >
+              {activity.map((a) => (
+                <div key={`${a.time}-${a.message}`} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
                   <ActivityDot type={a.type} />
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 13, color: C.white }}>{a.message}</p>

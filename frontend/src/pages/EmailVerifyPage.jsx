@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { C } from "../constants/theme";
 import Spinner from "../components/ui/Spinner";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import { verifyEmail } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
-export default function EmailVerifyPage({ setPage, addToast }) {
+export default function EmailVerifyPage({ addToast }) {
   const { updateUser } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [status, setStatus] = useState("loading");
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id        = params.get("id");
-    const hash      = params.get("hash");
-    const expires   = params.get("expires");
-    const signature = params.get("signature");
+    const id        = searchParams.get("id");
+    const hash      = searchParams.get("hash");
+    const expires   = searchParams.get("expires");
+    const signature = searchParams.get("signature");
 
     if (!id || !hash || !expires || !signature) {
       setStatus("error");
@@ -28,21 +30,13 @@ export default function EmailVerifyPage({ setPage, addToast }) {
         updateUser({ verified: true });
         setStatus("success");
         addToast("¡Correo verificado! ✓", "success");
-        setTimeout(() => {
-          window.history.replaceState({}, "", "/");
-          setPage("home");
-        }, 2000);
+        setTimeout(() => navigate("/", { replace: true }), 2000);
       })
       .catch(err => {
         setStatus("error");
         setErrorMsg(err.response?.data?.message ?? "El enlace expiró o no es válido.");
       });
   }, []);
-
-  const goToPending = () => {
-    window.history.replaceState({}, "", "/");
-    setPage("email-pending");
-  };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -67,7 +61,7 @@ export default function EmailVerifyPage({ setPage, addToast }) {
             <div style={{ fontSize: 56, marginBottom: 16 }}>⚠️</div>
             <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, marginBottom: 12 }}>ENLACE INVÁLIDO</h1>
             <p style={{ color: C.gray, fontSize: 14, marginBottom: 24 }}>{errorMsg}</p>
-            <BtnPrimary onClick={goToPending} style={{ padding: "12px 24px", fontSize: 14 }}>
+            <BtnPrimary onClick={() => navigate("/email/pendiente", { replace: true })} style={{ padding: "12px 24px", fontSize: 14 }}>
               Reenviar verificación
             </BtnPrimary>
           </>

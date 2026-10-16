@@ -1,8 +1,18 @@
+import { useNavigate } from "react-router-dom";
 import { C } from "../../constants/theme";
 import MovieCard from "./MovieCard";
 import GenreFilter from "./GenreFilter";
+import { useBooking } from "../../context/BookingContext";
 
-export default function MovieGrid({ movies, filteredMovies, genres, genreFilter, setGenreFilter, setPage, setSelectedMovie }) {
+export default function MovieGrid({ movies, filteredMovies, genres, genreFilter, setGenreFilter }) {
+  const { setSelectedMovie } = useBooking();
+  const navigate = useNavigate();
+
+  function goToMovie(movie) {
+    setSelectedMovie(movie);
+    navigate(`/pelicula/${movie.id}`);
+  }
+
   return (
     <div style={{ padding: "0 40px 60px" }}>
       <div className="grid-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -19,7 +29,7 @@ export default function MovieGrid({ movies, filteredMovies, genres, genreFilter,
                 key={m.id}
                 movie={m}
                 index={i}
-                onClick={() => { setSelectedMovie(m); setPage("movie-detail"); }}
+                onClick={() => goToMovie(m)}
               />
             ))}
           </div>

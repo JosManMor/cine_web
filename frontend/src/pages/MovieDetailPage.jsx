@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { C } from "../constants/theme";
 import { getMovie } from "../api/movies";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import Spinner from "../components/ui/Spinner";
+import { useBooking } from "../context/BookingContext";
 
 function fmtDuration(mins) {
   if (!mins) return "";
@@ -17,37 +19,47 @@ function fmtDateTime(dateStr) {
 
 const LANG_LABEL = { original: "Original", dubbed: "Doblada", subtitled: "Subtitulada" };
 
-export default function MovieDetailPage({ movie, setPage, setSelectedSchedule }) {
-  const [detail, setDetail]               = useState(null);
-  const [loading, setLoading]             = useState(false);
+export default function MovieDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { selectedMovie, setSelectedMovie } = useBooking();
+
+  const [detail, setDetail]                       = useState(null);
+  const [loading, setLoading]                     = useState(false);
   const [selectedScreening, setSelectedScreening] = useState(null);
 
   useEffect(() => {
-    if (!movie?.id) return;
+    if (!id) return;
     setLoading(true);
     setDetail(null);
     setSelectedScreening(null);
-    getMovie(movie.id)
-      .then(setDetail)
+    getMovie(id)
+      .then(data => {
+        setDetail(data);
+        if (!selectedMovie || String(selectedMovie.id) !== String(id)) {
+          setSelectedMovie(data);
+        }
+      })
       .finally(() => setLoading(false));
-  }, [movie?.id]);
+  }, [id]);
 
-  if (!movie) return (
-    <div style={{ padding: 80, textAlign: "center", color: C.gray }}>Selecciona una película</div>
-  );
-
-  const m         = detail ?? movie;
+  const m         = detail ?? selectedMovie;
   const screenings = detail?.screenings ?? [];
+
+  if (!m) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Spinner />
+    </div>
+  );
 
   return (
     <div style={{ minHeight: "100vh", paddingTop: 80 }}>
       <div className="detail-container" style={{ maxWidth: 900, margin: "0 auto", padding: "40px 40px" }}>
-        <button onClick={() => setPage("home")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, cursor: "pointer", marginBottom: 24, fontFamily: "'Open Sans', sans-serif" }}>
+        <button onClick={() => navigate("/")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, cursor: "pointer", marginBottom: 24, fontFamily: "'Open Sans', sans-serif" }}>
           ← Volver a cartelera
         </button>
 
         <div className="detail-grid" style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 40, animation: "fadeUp .5s ease forwards" }}>
-          {/* Poster */}
           <div className="detail-poster" style={{ height: 420, borderRadius: 8, overflow: "hidden", border: `1px solid ${C.border}` }}>
             {m.poster_url
               ? <img src={m.poster_url} alt={m.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -57,7 +69,6 @@ export default function MovieDetailPage({ movie, setPage, setSelectedSchedule })
             }
           </div>
 
-          {/* Info */}
           <div>
             <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
               {m.genre && (
@@ -87,7 +98,6 @@ export default function MovieDetailPage({ movie, setPage, setSelectedSchedule })
               <p style={{ color: C.gray, lineHeight: 1.8, fontSize: 15, marginBottom: 24 }}>{m.synopsis}</p>
             )}
 
-            {/* Funciones */}
             {loading && <Spinner />}
 
             {!loading && screenings.length > 0 && (
@@ -134,8 +144,7 @@ export default function MovieDetailPage({ movie, setPage, setSelectedSchedule })
             <BtnPrimary
               onClick={() => {
                 const screening = selectedScreening ?? screenings[0] ?? null;
-                setSelectedSchedule(screening);
-                setPage("seats");
+                if (screening) navigate(`/asientos/${screening.id}`);
               }}
               disabled={!screenings.length}
               style={{ padding: "13px 32px", fontSize: 14 }}>

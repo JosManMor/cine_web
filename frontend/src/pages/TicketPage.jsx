@@ -1,5 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import { C } from "../constants/theme";
 import BtnPrimary from "../components/ui/BtnPrimary";
+import { useBooking } from "../context/BookingContext";
+import { useAuth } from "../context/AuthContext";
 
 const PAYMENT_LABEL = { cash: "Efectivo", card: "Tarjeta", online: "En línea" };
 const LANG_LABEL    = { original: "Original", dubbed: "Doblada", subtitled: "Subtitulada" };
@@ -20,7 +23,11 @@ function Row({ label, value, highlight }) {
   );
 }
 
-export default function TicketPage({ movie, schedule, purchaseResult, user, setPage }) {
+export default function TicketPage() {
+  const { selectedMovie: movie, selectedSchedule: schedule, purchaseResult } = useBooking();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   if (!purchaseResult) {
     return <div style={{ padding: 80, textAlign: "center", color: C.gray }}>No hay comprobante disponible</div>;
   }
@@ -34,17 +41,13 @@ export default function TicketPage({ movie, schedule, purchaseResult, user, setP
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "100px 24px 40px" }}>
       <div style={{ width: "100%", maxWidth: 460, animation: "ticketSlide .5s cubic-bezier(.22,.68,0,1.2) forwards" }}>
 
-        {/* Badge de éxito */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ width: 64, height: 64, borderRadius: "50%", background: C.greenDim, border: `2px solid ${C.green}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 14px" }}>✓</div>
           <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 20, marginBottom: 6 }}>¡Compra registrada!</h2>
           <p style={{ color: C.gray, fontSize: 14 }}>Resumen de tu pedido · #{purchase_id}</p>
         </div>
 
-        {/* Tarjeta resumen */}
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-
-          {/* Header película */}
           <div style={{ display: "flex", gap: 14, alignItems: "center", padding: "18px 20px", borderBottom: `1px solid ${C.border}` }}>
             <div style={{ width: 44, height: 60, background: C.surface, borderRadius: 4, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
               {movie?.poster_url
@@ -58,7 +61,6 @@ export default function TicketPage({ movie, schedule, purchaseResult, user, setP
             </div>
           </div>
 
-          {/* Filas de datos */}
           <div style={{ padding: "4px 20px 12px" }}>
             <Row label="Sala"           value={schedule?.room?.name ?? "—"} />
             <Row label="Fecha y hora"   value={fmtDateTime(schedule?.start_time)} />
@@ -70,13 +72,12 @@ export default function TicketPage({ movie, schedule, purchaseResult, user, setP
           </div>
         </div>
 
-        {/* CTA */}
         <div style={{ marginTop: 24 }}>
-          <BtnPrimary onClick={() => setPage("my-tickets")} style={{ width: "100%", padding: 14, fontSize: 14 }}>
+          <BtnPrimary onClick={() => navigate("/mis-entradas")} style={{ width: "100%", padding: 14, fontSize: 14 }}>
             {isSingle ? "Ver mi ticket" : "Ver mis tickets"}
           </BtnPrimary>
           <button
-            onClick={() => setPage("home")}
+            onClick={() => navigate("/")}
             style={{ width: "100%", marginTop: 10, background: "none", border: "none", color: C.grayDark, fontSize: 13, cursor: "pointer", fontFamily: "'Open Sans', sans-serif", padding: "8px 0" }}
           >
             Volver a la cartelera

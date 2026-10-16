@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { C } from "../constants/theme";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import BtnSecondary from "../components/ui/BtnSecondary";
@@ -6,8 +7,9 @@ import Spinner from "../components/ui/Spinner";
 import { resendVerification } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
-export default function EmailPendingPage({ setPage, addToast }) {
+export default function EmailPendingPage({ addToast }) {
   const { user, clearAuth } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   const handleResend = async () => {
@@ -24,7 +26,7 @@ export default function EmailPendingPage({ setPage, addToast }) {
 
   const handleLogout = () => {
     clearAuth();
-    setPage("home");
+    navigate("/");
     addToast("Sesión cerrada", "info");
   };
 

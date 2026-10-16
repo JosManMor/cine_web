@@ -1,12 +1,14 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { C } from "../constants/theme";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import Spinner from "../components/ui/Spinner";
 import { login } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
-export default function LoginPage({ setPage, addToast }) {
+export default function LoginPage({ addToast }) {
   const { saveAuth } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +21,7 @@ export default function LoginPage({ setPage, addToast }) {
       const { data } = await login({ email, password: pass });
       saveAuth(data.user, data.token);
       addToast("Sesión iniciada ✓", "success");
-      setPage("home");
+      navigate("/");
     } catch (err) {
       setError(err.response?.data?.message ?? "Error al iniciar sesión");
     } finally {
@@ -53,7 +55,7 @@ export default function LoginPage({ setPage, addToast }) {
           }
           <div style={{ height: 1, background: C.border, margin: "20px 0" }} />
           <p style={{ textAlign: "center", fontSize: 13, color: C.gray }}>
-            ¿No tienes cuenta? <span style={{ color: C.red, cursor: "pointer" }} onClick={() => setPage("register")}>Regístrate gratis</span>
+            ¿No tienes cuenta? <button onClick={() => navigate("/registro")} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 13, fontFamily: "inherit", padding: 0 }}>Regístrate gratis</button>
           </p>
         </div>
       </div>

@@ -5,7 +5,7 @@ import Spinner from "../components/ui/Spinner";
 import HeroCarousel from "../components/home/HeroCarousel";
 import MovieGrid from "../components/home/MovieGrid";
 
-export default function HomePage({ setPage, setSelectedMovie }) {
+export default function HomePage() {
   const [movies, setMovies]               = useState([]);
   const [loading, setLoading]             = useState(true);
   const [error, setError]                 = useState(null);
@@ -51,8 +51,6 @@ export default function HomePage({ setPage, setSelectedMovie }) {
         carousel={carousel}
         featuredIndex={featuredIndex}
         setFeaturedIndex={setFeaturedIndex}
-        setSelectedMovie={setSelectedMovie}
-        setPage={setPage}
       />
       <MovieGrid
         movies={movies}
@@ -60,8 +58,6 @@ export default function HomePage({ setPage, setSelectedMovie }) {
         genres={genres}
         genreFilter={genreFilter}
         setGenreFilter={setGenreFilter}
-        setPage={setPage}
-        setSelectedMovie={setSelectedMovie}
       />
     </div>
   );
