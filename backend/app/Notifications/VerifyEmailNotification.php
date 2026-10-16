@@ -11,11 +11,11 @@ class VerifyEmailNotification extends VerifyEmail
 {
     /**
      * Genera una URL firmada que apunta al frontend de la SPA.
-     * El frontend extrae los parámetros y llama a POST /api/email/verify/{id}/{hash}
+     * El frontend extrae los parámetros y llama a GET /api/email/verify/{id}/{hash}
      * con el Bearer Token almacenado en local storage.
      *
      * URL resultante en el correo:
-     *   {FRONTEND_URL}/email/verify?id={id}&hash={hash}&expires={ts}&signature={sig}
+     *   {FRONTEND_URL}/email/verificar?id={id}&hash={hash}&expires={ts}&signature={sig}
      */
     protected function verificationUrl(mixed $notifiable): string
     {
@@ -29,7 +29,7 @@ class VerifyEmailNotification extends VerifyEmail
         parse_str(parse_url($signedUrl, PHP_URL_QUERY), $params);
 
         return rtrim(config('app.frontend_url'), '/')
-            . '/email/verify'
+            . '/email/verificar'
             . '?' . http_build_query([
                 'id'        => $notifiable->getKey(),
                 'hash'      => sha1($notifiable->getEmailForVerification()),
