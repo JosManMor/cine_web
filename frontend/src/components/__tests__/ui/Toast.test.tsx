@@ -15,31 +15,13 @@ describe('Toast', () => {
     expect(screen.getByText('Operación exitosa')).toBeInTheDocument();
   });
 
-  it('muestra estilos distintos para tipo "success"', () => {
-    const toasts = [{ id: 1, msg: 'Todo bien', type: 'success' }];
-    render(<Toast toasts={toasts} />);
-
-    const el = screen.getByText('Todo bien');
-    // Success background maps to C.green (#46D369) in the component's inline style
-    expect(el).toHaveStyle({ background: '#46D369' });
-  });
-
-  it('muestra estilos distintos para tipo "error"', () => {
-    const toasts = [{ id: 1, msg: 'Error crítico', type: 'error' }];
-    render(<Toast toasts={toasts} />);
-
-    const el = screen.getByText('Error crítico');
-    // Error background maps to C.red (#E50914)
-    expect(el).toHaveStyle({ background: '#E50914' });
-  });
-
-  it('muestra estilos distintos para tipo "info" (fondo de tarjeta)', () => {
-    const toasts = [{ id: 1, msg: 'Aviso informativo', type: 'info' }];
-    render(<Toast toasts={toasts} />);
-
-    const el = screen.getByText('Aviso informativo');
-    // Info/default background maps to C.card (#2F2F2F)
-    expect(el).toHaveStyle({ background: '#2F2F2F' });
+  it.each([
+    ['success', 'Todo bien',         '#46D369'],
+    ['error',   'Error crítico',     '#E50914'],
+    ['info',    'Aviso informativo', '#2F2F2F'],
+  ] as const)('aplica el fondo correcto para tipo "%s"', (type, msg, expectedBg) => {
+    render(<Toast toasts={[{ id: 1, msg, type }]} />);
+    expect(screen.getByText(msg)).toHaveStyle({ background: expectedBg });
   });
 
   it('renderiza múltiples toasts a la vez', () => {
