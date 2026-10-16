@@ -22,7 +22,7 @@ const LANG_LABEL = { original: "Original", dubbed: "Doblada", subtitled: "Subtit
 export default function MovieDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { selectedMovie, setSelectedMovie, setSelectedSchedule } = useBooking();
+  const { selectedMovie, setSelectedMovie } = useBooking();
 
   const [detail, setDetail]                       = useState(null);
   const [loading, setLoading]                     = useState(false);
@@ -144,8 +144,7 @@ export default function MovieDetailPage() {
             <BtnPrimary
               onClick={() => {
                 const screening = selectedScreening ?? screenings[0] ?? null;
-                setSelectedSchedule(screening);
-                navigate("/asientos");
+                if (screening) navigate(`/asientos/${screening.id}`);
               }}
               disabled={!screenings.length}
               style={{ padding: "13px 32px", fontSize: 14 }}>

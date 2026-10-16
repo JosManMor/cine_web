@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { C } from "../constants/theme";
 import { getScreening } from "../api/purchases";
 import BtnPrimary from "../components/ui/BtnPrimary";
@@ -15,27 +15,32 @@ function fmtTime(dateStr) {
 }
 
 export default function SeatsPage({ addToast }) {
-  const { selectedMovie: movie, selectedSchedule: schedule, setSelectedSeats } = useBooking();
+  const { screeningId } = useParams();
+  const { setSelectedSeats, setSelectedMovie, setSelectedSchedule } = useBooking();
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [screeningData, setScreeningData] = useState(null);
-  const [fetchLoading, setFetchLoading]   = useState(false);
+  const [fetchLoading, setFetchLoading]   = useState(true);
   const [selected, setSelected]           = useState([]);
   const [confirming, setConfirming]       = useState(false);
 
   useEffect(() => {
-    if (!schedule?.id) return;
+    if (!screeningId) return;
     setFetchLoading(true);
     setSelected([]);
-    getScreening(schedule.id)
-      .then(setScreeningData)
+    getScreening(screeningId)
+      .then(data => {
+        setScreeningData(data);
+        setSelectedMovie(data.movie);
+        setSelectedSchedule(data);
+      })
       .catch(() => addToast("Error al cargar los asientos", "error"))
       .finally(() => setFetchLoading(false));
-  }, [schedule?.id]);
+  }, [screeningId]);
 
-  if (!movie)    return <div style={{ padding: 80, textAlign: "center", color: C.gray }}>Selecciona una película primero</div>;
-  if (!schedule) return <div style={{ padding: 80, textAlign: "center", color: C.gray }}>Selecciona una función primero</div>;
+  const movie    = screeningData?.movie;
+  const schedule = screeningData;
 
   const rows        = screeningData?.room?.rows ?? 0;
   const seatsPerRow = screeningData?.room?.seats_per_row ?? 0;
@@ -65,10 +70,10 @@ export default function SeatsPage({ addToast }) {
     occupied: { bg: "#FF0000",     border: "#FF0000" },
   }[status]);
 
-  const unitPrice  = Number(schedule.base_price ?? 0);
+  const unitPrice  = Number(screeningData?.base_price ?? 0);
   const total      = selected.length * unitPrice;
   const seatLabels = selected.map(s => `${s.row}${s.seat_number}`);
-  const roomName   = screeningData?.room?.name ?? schedule.room?.name ?? "Sala";
+  const roomName   = screeningData?.room?.name ?? "Sala";
 
   const handleConfirm = () => {
     if (!user) { addToast("Inicia sesión para comprar", "error"); navigate("/login"); return; }
@@ -77,6 +82,14 @@ export default function SeatsPage({ addToast }) {
     setSelectedSeats(selected);
     setTimeout(() => { setConfirming(false); navigate("/checkout"); }, 400);
   };
+
+  if (fetchLoading || !screeningData) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Spinner />
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", paddingTop: 80 }}>

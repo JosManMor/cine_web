@@ -56,7 +56,7 @@ export default function App() {
           <Route path="/cartelera" element={<HomePage />} />
           <Route path="/pelicula/:id" element={<MovieDetailPage />} />
 
-          <Route path="/asientos" element={
+          <Route path="/asientos/:screeningId" element={
             <RequireVerified><SeatsPage addToast={addToast} /></RequireVerified>
           } />
           <Route path="/checkout" element={

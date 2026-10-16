@@ -29,7 +29,7 @@ export default function CheckoutPage({ addToast }) {
     return (
       <div style={{ padding: 80, textAlign: "center", color: C.gray }}>
         <p>No hay asientos seleccionados.</p>
-        <button onClick={() => navigate("/asientos")} style={{ marginTop: 16, background: "none", border: `1px solid ${C.border}`, color: C.gray, padding: "8px 20px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>
+        <button onClick={() => navigate(schedule?.id ? `/asientos/${schedule.id}` : -1)} style={{ marginTop: 16, background: "none", border: `1px solid ${C.border}`, color: C.gray, padding: "8px 20px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>
           ← Volver a selección de asientos
         </button>
       </div>
@@ -61,7 +61,7 @@ export default function CheckoutPage({ addToast }) {
     } catch (err) {
       if (err.response?.status === 409) {
         addToast("Uno o más asientos ya fueron reservados. Elige otros.", "error");
-        navigate("/asientos");
+        navigate(schedule?.id ? `/asientos/${schedule.id}` : -1);
       } else {
         addToast(err.response?.data?.message ?? "Error al procesar la compra", "error");
       }
@@ -84,7 +84,7 @@ export default function CheckoutPage({ addToast }) {
   return (
     <div style={{ minHeight: "100vh", paddingTop: 80 }}>
       <div style={{ maxWidth: 540, margin: "0 auto", padding: "40px 24px", animation: "fadeUp .5s ease forwards" }}>
-        <button onClick={() => navigate("/asientos")} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, cursor: "pointer", marginBottom: 24, fontFamily: "'Open Sans', sans-serif" }}>← Volver a asientos</button>
+        <button onClick={() => navigate(schedule?.id ? `/asientos/${schedule.id}` : -1)} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, cursor: "pointer", marginBottom: 24, fontFamily: "'Open Sans', sans-serif" }}>← Volver a asientos</button>
         <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, letterSpacing: 3, marginBottom: 28 }}>CONFIRMAR COMPRA</h2>
 
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 20 }}>
