@@ -24,7 +24,7 @@ services:
       dockerfile: docker/php/Dockerfile.prod
     image: cine-sendera:prod
     container_name: cine_app
-    restart: always
+    restart: unless-stopped
     # app_www se auto-puebla desde la imagen en el primer arranque.
     # app_www sirve también a nginx y a los workers para compartir storage.
     volumes:
@@ -53,7 +53,7 @@ services:
   nginx:
     image: nginx:1.27-alpine
     container_name: cine_nginx
-    restart: always
+    restart: unless-stopped
     ports:
       - "80:80"
     volumes:
@@ -82,7 +82,7 @@ services:
   mysql:
     image: mysql:8.0
     container_name: cine_mysql
-    restart: always
+    restart: unless-stopped
     # MySQL lee MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, MYSQL_ROOT_PASSWORD
     # directamente de .env.prod — sin interpolación del shell del host.
     env_file: .env.prod
@@ -110,7 +110,7 @@ services:
   mailpit:
     image: axllent/mailpit:v1.31.4
     container_name: cine_mailpit
-    restart: always
+    restart: unless-stopped
     ports:
       - "8025:8025"
     networks:
@@ -125,7 +125,7 @@ services:
   queue:
     image: cine-sendera:prod # Reutiliza la imagen ya construida
     container_name: cine_queue
-    restart: always
+    restart: unless-stopped
     command:
       [
         "php",
@@ -157,7 +157,7 @@ services:
   cron:
     image: cine-sendera:prod
     container_name: cine_cron
-    restart: always
+    restart: unless-stopped
     entrypoint: ["/usr/local/bin/cron-entrypoint.sh"]
     env_file: .env.prod
     volumes:
@@ -179,7 +179,7 @@ services:
   scheduler:
     image: cine-sendera:prod
     container_name: cine_scheduler
-    restart: always
+    restart: unless-stopped
     command:
       [
         "/bin/sh",

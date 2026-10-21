@@ -17,7 +17,7 @@ export default function DemoBanner() {
     }}>
       ⚠️ Entorno de demostración — Los emails se capturan en{' '}
       <a
-        href="http://localhost:8025"
+        href={import.meta.env.VITE_MAILPIT_URL ?? 'http://localhost:8025'}
         target="_blank"
         rel="noopener noreferrer"
         style={{ color: '#1c1917', textDecoration: 'underline' }}
