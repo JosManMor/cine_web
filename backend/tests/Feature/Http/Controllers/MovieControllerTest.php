@@ -13,6 +13,9 @@ class MovieControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const MOVIES_URI       = '/api/movies';
+    private const ADMIN_METRICS_URI = '/api/admin/metrics';
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function makeActiveMovieWithOpenScreening(): Movie
@@ -67,7 +70,7 @@ class MovieControllerTest extends TestCase
         $active   = $this->makeActiveMovieWithOpenScreening();
         $inactive = $this->makeInactiveMovie();
 
-        $response = $this->getJson('/api/movies');
+        $response = $this->getJson(self::MOVIES_URI);
 
         $response->assertStatus(200);
 
@@ -80,7 +83,7 @@ class MovieControllerTest extends TestCase
     public function test_index_does_not_return_movies_without_future_open_screenings(): void
     {
         // Active movie but with no open/future screenings
-        $movie = Movie::create([
+        Movie::create([
             'title'            => 'Sin Función',
             'genre'            => 'Comedia',
             'synopsis'         => '.',
@@ -90,7 +93,7 @@ class MovieControllerTest extends TestCase
             'status'           => 'active',
         ]);
 
-        $response = $this->getJson('/api/movies');
+        $response = $this->getJson(self::MOVIES_URI);
 
         $response->assertStatus(200);
         $titles = collect($response->json())->pluck('title');
@@ -99,7 +102,7 @@ class MovieControllerTest extends TestCase
 
     public function test_index_is_publicly_accessible(): void
     {
-        $response = $this->getJson('/api/movies');
+        $response = $this->getJson(self::MOVIES_URI);
 
         $response->assertStatus(200);
     }
@@ -139,7 +142,7 @@ class MovieControllerTest extends TestCase
         $client = User::factory()->create(['role' => 'client']);
 
         $response = $this->actingAs($client, 'sanctum')
-            ->getJson('/api/admin/metrics');
+            ->getJson(self::ADMIN_METRICS_URI);
 
         $response->assertStatus(403);
     }
@@ -149,7 +152,7 @@ class MovieControllerTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/admin/metrics');
+            ->getJson(self::ADMIN_METRICS_URI);
 
         // Admin user exists but no data; service runs — we just check access allowed
         $response->assertStatus(200);
@@ -157,7 +160,7 @@ class MovieControllerTest extends TestCase
 
     public function test_unauthenticated_request_to_admin_returns_401(): void
     {
-        $response = $this->getJson('/api/admin/metrics');
+        $response = $this->getJson(self::ADMIN_METRICS_URI);
 
         $response->assertStatus(401);
     }

@@ -15,6 +15,9 @@ class PurchaseControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const PURCHASES_URI  = '/api/purchases';
+    private const MY_TICKETS_URI = '/api/my-tickets';
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function makeRoom(): Room
@@ -97,7 +100,7 @@ class PurchaseControllerTest extends TestCase
         $screening = $this->makeScreening($room, $movie);
 
         $response = $this->actingAs($user, 'sanctum')
-            ->postJson('/api/purchases', [
+            ->postJson(self::PURCHASES_URI, [
                 'screening_id'   => $screening->id,
                 'seats'          => [['row' => 'A', 'seat_number' => 1]],
                 'payment_method' => 'card',
@@ -132,7 +135,7 @@ class PurchaseControllerTest extends TestCase
         $screening = $this->makeScreening($room, $movie);
 
         $response = $this->actingAs($user, 'sanctum')
-            ->postJson('/api/purchases', [
+            ->postJson(self::PURCHASES_URI, [
                 'screening_id'   => $screening->id,
                 'seats'          => [['row' => 'A', 'seat_number' => 1]],
                 'payment_method' => 'card',
@@ -150,7 +153,7 @@ class PurchaseControllerTest extends TestCase
 
         // First purchase
         $this->actingAs($user, 'sanctum')
-            ->postJson('/api/purchases', [
+            ->postJson(self::PURCHASES_URI, [
                 'screening_id'   => $screening->id,
                 'seats'          => [['row' => 'A', 'seat_number' => 3]],
                 'payment_method' => 'card',
@@ -158,7 +161,7 @@ class PurchaseControllerTest extends TestCase
 
         // Duplicate purchase for the same seat
         $response = $this->actingAs($user, 'sanctum')
-            ->postJson('/api/purchases', [
+            ->postJson(self::PURCHASES_URI, [
                 'screening_id'   => $screening->id,
                 'seats'          => [['row' => 'A', 'seat_number' => 3]],
                 'payment_method' => 'card',
@@ -172,7 +175,7 @@ class PurchaseControllerTest extends TestCase
         $user = $this->makeVerifiedUser();
 
         $response = $this->actingAs($user, 'sanctum')
-            ->postJson('/api/purchases', [
+            ->postJson(self::PURCHASES_URI, [
                 'screening_id'   => 99999,
                 'seats'          => [['row' => 'A', 'seat_number' => 1]],
                 'payment_method' => 'card',
@@ -189,7 +192,7 @@ class PurchaseControllerTest extends TestCase
         $screening = $this->makeScreening($room, $movie);
 
         $response = $this->actingAs($user, 'sanctum')
-            ->postJson('/api/purchases', [
+            ->postJson(self::PURCHASES_URI, [
                 'screening_id'   => $screening->id,
                 'seats'          => [['row' => 'A', 'seat_number' => 1]],
                 'payment_method' => 'bitcoin',
@@ -269,14 +272,14 @@ class PurchaseControllerTest extends TestCase
         $user = $this->makeVerifiedUser();
 
         $response = $this->actingAs($user, 'sanctum')
-            ->getJson('/api/my-tickets');
+            ->getJson(self::MY_TICKETS_URI);
 
         $response->assertStatus(200);
     }
 
     public function test_my_tickets_without_auth_returns_401(): void
     {
-        $response = $this->getJson('/api/my-tickets');
+        $response = $this->getJson(self::MY_TICKETS_URI);
 
         $response->assertStatus(401);
     }
@@ -286,7 +289,7 @@ class PurchaseControllerTest extends TestCase
         $user = $this->makeUnverifiedUser();
 
         $response = $this->actingAs($user, 'sanctum')
-            ->getJson('/api/my-tickets');
+            ->getJson(self::MY_TICKETS_URI);
 
         $response->assertStatus(403);
     }

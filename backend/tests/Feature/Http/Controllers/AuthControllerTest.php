@@ -12,13 +12,17 @@ class AuthControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const REGISTER_URI = '/api/register';
+    private const LOGIN_URI    = '/api/login';
+    private const LOGOUT_URI   = '/api/logout';
+
     // ── register ─────────────────────────────────────────────────────────────
 
     public function test_register_returns_201_with_user_and_token(): void
     {
         Notification::fake();
 
-        $response = $this->postJson('/api/register', [
+        $response = $this->postJson(self::REGISTER_URI, [
             'name'                  => 'Juan Pérez',
             'email'                 => 'juan@example.com',
             'password'              => 'password123',
@@ -35,7 +39,7 @@ class AuthControllerTest extends TestCase
     {
         Notification::fake();
 
-        $this->postJson('/api/register', [
+        $this->postJson(self::REGISTER_URI, [
             'name'                  => 'Cliente Test',
             'email'                 => 'cliente@example.com',
             'password'              => 'password123',
@@ -54,7 +58,7 @@ class AuthControllerTest extends TestCase
 
         User::factory()->create(['email' => 'duplicate@example.com']);
 
-        $response = $this->postJson('/api/register', [
+        $response = $this->postJson(self::REGISTER_URI, [
             'name'                  => 'Otro Usuario',
             'email'                 => 'duplicate@example.com',
             'password'              => 'password123',
@@ -66,7 +70,7 @@ class AuthControllerTest extends TestCase
 
     public function test_register_with_short_password_returns_422(): void
     {
-        $response = $this->postJson('/api/register', [
+        $response = $this->postJson(self::REGISTER_URI, [
             'name'                  => 'Test',
             'email'                 => 'test@example.com',
             'password'              => 'short',
@@ -80,7 +84,7 @@ class AuthControllerTest extends TestCase
     {
         Notification::fake();
 
-        $this->postJson('/api/register', [
+        $this->postJson(self::REGISTER_URI, [
             'name'                  => 'Verificar Email',
             'email'                 => 'verify@example.com',
             'password'              => 'password123',
@@ -100,7 +104,7 @@ class AuthControllerTest extends TestCase
             'password' => bcrypt('mypassword'),
         ]);
 
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson(self::LOGIN_URI, [
             'email'    => 'login@example.com',
             'password' => 'mypassword',
         ]);
@@ -116,7 +120,7 @@ class AuthControllerTest extends TestCase
             'password' => bcrypt('correctPassword'),
         ]);
 
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson(self::LOGIN_URI, [
             'email'    => 'user@example.com',
             'password' => 'wrongPassword',
         ]);
@@ -127,7 +131,7 @@ class AuthControllerTest extends TestCase
 
     public function test_login_with_nonexistent_email_returns_401(): void
     {
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson(self::LOGIN_URI, [
             'email'    => 'nobody@example.com',
             'password' => 'password123',
         ]);
@@ -137,7 +141,7 @@ class AuthControllerTest extends TestCase
 
     public function test_login_missing_fields_returns_422(): void
     {
-        $response = $this->postJson('/api/login', []);
+        $response = $this->postJson(self::LOGIN_URI, []);
 
         $response->assertStatus(422);
     }
@@ -152,7 +156,7 @@ class AuthControllerTest extends TestCase
         $response = $this->withHeaders([
                 'Authorization' => 'Bearer ' . $token->plainTextToken,
             ])
-            ->postJson('/api/logout');
+            ->postJson(self::LOGOUT_URI);
 
         $response->assertStatus(200)
             ->assertJson(['message' => 'Sesión cerrada correctamente.']);
@@ -160,7 +164,7 @@ class AuthControllerTest extends TestCase
 
     public function test_logout_without_auth_returns_401(): void
     {
-        $response = $this->postJson('/api/logout');
+        $response = $this->postJson(self::LOGOUT_URI);
 
         $response->assertStatus(401);
     }
