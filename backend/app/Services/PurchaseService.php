@@ -4,8 +4,11 @@ namespace App\Services;
 
 use App\DTOs\Purchase\PurchaseDTO;
 use App\Exceptions\InvalidSeatException;
+use App\Exceptions\PurchaseAlreadyCancelledException;
+use App\Exceptions\PurchaseNotFoundException;
 use App\Exceptions\SeatAlreadyTakenException;
 use App\Exceptions\ScreeningNotAvailableException;
+use App\Exceptions\UnauthorizedPurchaseException;
 use App\Models\Purchase;
 use App\Models\PurchaseSeat;
 use App\Models\Screening;
@@ -71,10 +74,18 @@ class PurchaseService
 
     public function cancelPurchase(int $purchaseId, int $userId): Purchase
     {
-        $purchase = $this->repository->findForUser($purchaseId, $userId);
+        $purchase = Purchase::find($purchaseId);
 
         if ($purchase === null) {
-            abort(403, 'No tienes permiso para cancelar esta compra.');
+            throw new PurchaseNotFoundException();
+        }
+
+        if ($purchase->user_id !== $userId) {
+            throw new UnauthorizedPurchaseException();
+        }
+
+        if ($purchase->purchase_status === 'cancelled') {
+            throw new PurchaseAlreadyCancelledException();
         }
 
         $purchase->update(['purchase_status' => 'cancelled']);

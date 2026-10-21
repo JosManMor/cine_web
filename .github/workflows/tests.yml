@@ -26,6 +26,13 @@ jobs:
           extensions: pdo_sqlite, mbstring, xml, ctype, json, bcmath
           coverage: none
 
+      - name: Cache Composer dependencies
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-
+
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
 

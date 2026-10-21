@@ -118,7 +118,7 @@ class PurchaseControllerTest extends TestCase
         $movie     = $this->makeMovie();
         $screening = $this->makeScreening($room, $movie);
 
-        $response = $this->postJson('/api/purchases', [
+        $response = $this->postJson(self::PURCHASES_URI, [
             'screening_id'   => $screening->id,
             'seats'          => [['row' => 'A', 'seat_number' => 1]],
             'payment_method' => 'card',
@@ -215,12 +215,42 @@ class PurchaseControllerTest extends TestCase
             ->deleteJson("/api/purchases/{$purchase->id}");
 
         $response->assertStatus(200)
-            ->assertJson(['purchase_status' => 'cancelled']);
+            ->assertJson([
+                'message'         => 'Compra cancelada correctamente.',
+                'purchase_id'     => $purchase->id,
+                'purchase_status' => 'cancelled',
+            ]);
 
         $this->assertDatabaseHas('purchases', [
             'id'              => $purchase->id,
             'purchase_status' => 'cancelled',
         ]);
+    }
+
+    public function test_cancel_already_cancelled_returns_409(): void
+    {
+        $user      = $this->makeVerifiedUser();
+        $room      = $this->makeRoom();
+        $movie     = $this->makeMovie();
+        $screening = $this->makeScreening($room, $movie);
+        $purchase  = $this->makePurchase($user, $screening);
+
+        $purchase->update(['purchase_status' => 'cancelled']);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/purchases/{$purchase->id}");
+
+        $response->assertStatus(409);
+    }
+
+    public function test_cancel_nonexistent_purchase_returns_404(): void
+    {
+        $user = $this->makeVerifiedUser();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/purchases/999999');
+
+        $response->assertStatus(404);
     }
 
     public function test_cancel_by_another_user_returns_403(): void

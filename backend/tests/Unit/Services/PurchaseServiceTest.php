@@ -4,8 +4,11 @@ namespace Tests\Unit\Services;
 
 use App\DTOs\Purchase\PurchaseDTO;
 use App\Exceptions\InvalidSeatException;
+use App\Exceptions\PurchaseAlreadyCancelledException;
+use App\Exceptions\PurchaseNotFoundException;
 use App\Exceptions\SeatAlreadyTakenException;
 use App\Exceptions\ScreeningNotAvailableException;
+use App\Exceptions\UnauthorizedPurchaseException;
 use App\Models\Movie;
 use App\Models\Purchase;
 use App\Models\PurchaseSeat;
@@ -257,7 +260,7 @@ class PurchaseServiceTest extends TestCase
         ]);
     }
 
-    public function test_cancel_returns_403_for_another_user(): void
+    public function test_cancel_throws_exception_for_another_user(): void
     {
         $owner     = $this->makeUser();
         $other     = $this->makeUser();
@@ -267,9 +270,33 @@ class PurchaseServiceTest extends TestCase
         $dto       = $this->makeDto($screening);
         $purchase  = $this->service()->createPurchase($dto, $owner->id);
 
-        // cancelPurchase with a different userId must abort with 403
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(UnauthorizedPurchaseException::class);
 
         $this->service()->cancelPurchase($purchase->id, $other->id);
+    }
+
+    public function test_cancel_nonexistent_purchase_throws_not_found(): void
+    {
+        $user = $this->makeUser();
+
+        $this->expectException(PurchaseNotFoundException::class);
+
+        $this->service()->cancelPurchase(999999, $user->id);
+    }
+
+    public function test_cancel_already_cancelled_throws_exception(): void
+    {
+        $user      = $this->makeUser();
+        $room      = $this->makeRoom();
+        $movie     = $this->makeMovie();
+        $screening = $this->makeScreening($room, $movie);
+        $dto       = $this->makeDto($screening);
+        $purchase  = $this->service()->createPurchase($dto, $user->id);
+
+        $this->service()->cancelPurchase($purchase->id, $user->id);
+
+        $this->expectException(PurchaseAlreadyCancelledException::class);
+
+        $this->service()->cancelPurchase($purchase->id, $user->id);
     }
 }
