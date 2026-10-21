@@ -155,61 +155,6 @@ services:
           memory: 256M
           cpus: "0.50"
 
-  # ── Cron (backup diario a las 02:00) ──────────────────────────────────────
-  # watchdog.sh no aplica aquí: restart:unless-stopped ya cubre los reinicios de contenedores.
-  cron:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile.prod
-    image: cine-sendera:prod
-    container_name: cine_cron
-    restart: unless-stopped
-    entrypoint: ["/usr/local/bin/cron-entrypoint.sh"]
-    env_file: .env.prod
-    volumes:
-      - cine_backups:/var/backups/cine
-    depends_on:
-      app:
-        condition: service_healthy
-      mysql:
-        condition: service_healthy
-    networks:
-      - db_net
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: "0.25"
-
-  # ── Scheduler (cron de Artisan) ────────────────────────────────────────────
-  scheduler:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile.prod
-    image: cine-sendera:prod
-    container_name: cine_scheduler
-    restart: unless-stopped
-    command:
-      [
-        "/bin/sh",
-        "-c",
-        "while true; do php artisan schedule:run >> /dev/null 2>&1; sleep 60; done",
-      ]
-    volumes:
-      - app_www:/var/www
-    env_file: .env.prod
-    depends_on:
-      app:
-        condition: service_healthy
-      mysql:
-        condition: service_healthy
-    networks:
-      - db_net
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: "0.25"
 
 # ── Volúmenes ────────────────────────────────────────────────────────────────
 volumes:
@@ -218,8 +163,6 @@ volumes:
     # Para actualizar código: eliminar este volumen y volver a levantar.
   mysql_prod_data:
     # Datos de MySQL — persiste entre despliegues, NO eliminar en actualizaciones.
-  cine_backups:
-    # Backups diarios generados por backup.sh — persiste entre reinicios del cron.
 
 # ── Redes ─────────────────────────────────────────────────────────────────────
 networks:
