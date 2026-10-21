@@ -123,7 +123,10 @@ services:
 
   # ── Queue worker ───────────────────────────────────────────────────────────
   queue:
-    image: cine-sendera:prod # Reutiliza la imagen ya construida
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+    image: cine-sendera:prod
     container_name: cine_queue
     restart: unless-stopped
     command:
@@ -153,8 +156,11 @@ services:
           cpus: "0.50"
 
   # ── Cron (backup diario a las 02:00) ──────────────────────────────────────
-  # watchdog.sh no aplica aquí: restart:always ya cubre los reinicios de contenedores.
+  # watchdog.sh no aplica aquí: restart:unless-stopped ya cubre los reinicios de contenedores.
   cron:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
     image: cine-sendera:prod
     container_name: cine_cron
     restart: unless-stopped
@@ -177,6 +183,9 @@ services:
 
   # ── Scheduler (cron de Artisan) ────────────────────────────────────────────
   scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
     image: cine-sendera:prod
     container_name: cine_scheduler
     restart: unless-stopped
