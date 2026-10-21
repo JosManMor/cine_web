@@ -111,10 +111,12 @@ services:
     image: axllent/mailpit:v1.31.4
     container_name: cine_mailpit
     restart: unless-stopped
-    ports:
-      - "8025:8025"
+    environment:
+      # Sirve la UI bajo /mailpit/ para que Nginx pueda proxiarla
+      MP_UI_WEBROOT: /mailpit/
     networks:
-      - db_net
+      - app_net   # Nginx necesita alcanzar la UI (:8025)
+      - db_net    # app necesita alcanzar SMTP (:1025)
     deploy:
       resources:
         limits:
