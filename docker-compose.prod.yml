@@ -113,7 +113,7 @@ services:
     restart: unless-stopped
     environment:
       # Sirve la UI bajo /mailpit/ para que Nginx pueda proxiarla
-      MP_UI_WEBROOT: /mailpit/
+      MP_WEBROOT: mailpit
     networks:
       - app_net   # Nginx necesita alcanzar la UI (:8025)
       - db_net    # app necesita alcanzar SMTP (:1025)
