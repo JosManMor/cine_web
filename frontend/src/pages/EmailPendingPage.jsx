@@ -56,6 +56,42 @@ export default function EmailPendingPage({ addToast }) {
               </BtnPrimary>
           }
         </div>
+        {import.meta.env.VITE_DEMO_MODE === 'true' && (
+          <div style={{
+            background: "#451a03",
+            border: "1px solid #92400e",
+            borderRadius: 10,
+            padding: "16px 20px",
+            marginBottom: 20,
+            textAlign: "left",
+          }}>
+            <p style={{ color: "#fbbf24", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>
+              ⚠️ Entorno de demostración
+            </p>
+            <p style={{ color: "#fde68a", fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
+              Los emails no se envían realmente. Puedes ver el correo de verificación en el buzón de Mailpit.
+            </p>
+            <a
+              href={import.meta.env.VITE_MAILPIT_URL ?? '/mailpit/'}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: "#f59e0b",
+                color: "#1c1917",
+                fontWeight: 600,
+                fontSize: 13,
+                padding: "8px 16px",
+                borderRadius: 6,
+                textDecoration: "none",
+              }}
+            >
+              📬 Revisar correo en Mailpit
+            </a>
+          </div>
+        )}
         <BtnSecondary onClick={handleLogout} style={{ padding: "10px 24px", fontSize: 13 }}>
           Cerrar sesión
         </BtnSecondary>
