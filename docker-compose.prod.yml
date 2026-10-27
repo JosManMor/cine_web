@@ -5,7 +5,7 @@
 # imagen (Dockerfile.prod). No hay bind mounts de código fuente.
 #
 # ── Primer despliegue ──────────────────────────────────────────────────────
-#   cp .env.prod.example .env.prod   # editar contraseñas y SMTP
+#   cp .env.prod.example .env.prod   # editar contraseñas
 #   docker compose -f docker-compose.prod.yml up -d --build
 #
 # ── Actualizar código / frontend ──────────────────────────────────────────
@@ -22,11 +22,13 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile.prod
+      args:
+        VITE_DEMO_MODE: "true"
     image: cine-sendera:prod
     container_name: cine_app
-    restart: always
+    restart: unless-stopped
     # app_www se auto-puebla desde la imagen en el primer arranque.
-    # app_www sirve también a apache y a los workers para compartir storage.
+    # app_www sirve también a nginx y a los workers para compartir storage.
     volumes:
       - app_www:/var/www
     env_file: .env.prod
@@ -34,7 +36,8 @@ services:
       mysql:
         condition: service_healthy
     networks:
-      - backend_net
+      - app_net
+      - db_net
     healthcheck:
       # Saludable cuando el cache de config existe (setup del entrypoint terminó)
       test: ["CMD-SHELL", "[ -f /var/www/bootstrap/cache/config.php ]"]
@@ -48,41 +51,40 @@ services:
           memory: 512M
           cpus: "0.75"
 
-  # ── Apache ─────────────────────────────────────────────────────────────────
-  apache:
-    image: httpd:2.4
-    container_name: cine_apache
-    restart: always
+  # ── Nginx ──────────────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: cine_nginx
+    restart: unless-stopped
     ports:
       - "80:80"
     volumes:
       - app_www:/var/www:ro
-      - ./docker/apache/prod.conf:/usr/local/apache2/conf/httpd.conf:ro
+      - ./docker/nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       app:
         condition: service_healthy
     healthcheck:
-      # httpd:2.4 no incluye curl: petición HTTP con /dev/tcp de bash
-      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/80 && printf \"GET /up HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && read -r line <&3 && [[ \"$$line\" =~ 200 ]]'"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost/up || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
     networks:
-      - frontend_net
-      - backend_net
+      - public_net
+      - app_net
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: "0.50"
+          memory: 128M
+          cpus: "0.25"
 
   # ── MySQL ──────────────────────────────────────────────────────────────────
-  # Sin `ports`: solo accesible dentro de backend_net, nunca desde el host.
+  # Sin `ports`: solo accesible dentro de db_net, nunca desde el host.
   mysql:
     image: mysql:8.0
     container_name: cine_mysql
-    restart: always
+    restart: unless-stopped
     # MySQL lee MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, MYSQL_ROOT_PASSWORD
     # directamente de .env.prod — sin interpolación del shell del host.
     env_file: .env.prod
@@ -99,18 +101,40 @@ services:
     volumes:
       - mysql_prod_data:/var/lib/mysql
     networks:
-      - backend_net
+      - db_net
     deploy:
       resources:
         limits:
           memory: 1G
           cpus: "1.00"
 
+  # ── Mailpit (captura de emails en simulación) ──────────────────────────────
+  mailpit:
+    image: axllent/mailpit:v1.31.4
+    container_name: cine_mailpit
+    restart: unless-stopped
+    environment:
+      # Sirve la UI bajo /mailpit/ para que Nginx pueda proxiarla
+      MP_WEBROOT: mailpit
+    networks:
+      - app_net   # Nginx necesita alcanzar la UI (:8025)
+      - db_net    # app necesita alcanzar SMTP (:1025)
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.10"
+
   # ── Queue worker ───────────────────────────────────────────────────────────
   queue:
-    image: cine-sendera:prod # Reutiliza la imagen ya construida
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+      args:
+        VITE_DEMO_MODE: "true"
+    image: cine-sendera:prod
     container_name: cine_queue
-    restart: always
+    restart: unless-stopped
     command:
       [
         "php",
@@ -130,62 +154,13 @@ services:
       mysql:
         condition: service_healthy
     networks:
-      - backend_net
+      - db_net
     deploy:
       resources:
         limits:
           memory: 256M
           cpus: "0.50"
 
-  # ── Cron (backup diario a las 02:00) ──────────────────────────────────────
-  # watchdog.sh no aplica aquí: restart:always ya cubre los reinicios de contenedores.
-  cron:
-    image: cine-sendera:prod
-    container_name: cine_cron
-    restart: always
-    entrypoint: ["/usr/local/bin/cron-entrypoint.sh"]
-    env_file: .env.prod
-    volumes:
-      - cine_backups:/var/backups/cine
-    depends_on:
-      app:
-        condition: service_healthy
-      mysql:
-        condition: service_healthy
-    networks:
-      - backend_net
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: "0.25"
-
-  # ── Scheduler (cron de Artisan) ────────────────────────────────────────────
-  scheduler:
-    image: cine-sendera:prod
-    container_name: cine_scheduler
-    restart: always
-    command:
-      [
-        "/bin/sh",
-        "-c",
-        "while true; do php artisan schedule:run >> /dev/null 2>&1; sleep 60; done",
-      ]
-    volumes:
-      - app_www:/var/www
-    env_file: .env.prod
-    depends_on:
-      app:
-        condition: service_healthy
-      mysql:
-        condition: service_healthy
-    networks:
-      - backend_net
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: "0.25"
 
 # ── Volúmenes ────────────────────────────────────────────────────────────────
 volumes:
@@ -194,10 +169,11 @@ volumes:
     # Para actualizar código: eliminar este volumen y volver a levantar.
   mysql_prod_data:
     # Datos de MySQL — persiste entre despliegues, NO eliminar en actualizaciones.
-  cine_backups:
-    # Backups diarios generados por backup.sh — persiste entre reinicios del cron.
 
 # ── Redes ─────────────────────────────────────────────────────────────────────
 networks:
-  frontend_net:
-  backend_net:
+  public_net:
+  app_net:
+    internal: true
+  db_net:
+    internal: true

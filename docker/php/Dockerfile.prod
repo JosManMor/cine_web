@@ -21,6 +21,9 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /project/frontend
 
+ARG VITE_DEMO_MODE=false
+ENV VITE_DEMO_MODE=$VITE_DEMO_MODE
+
 # Instala dependencias primero (capa cacheada si package.json no cambia)
 COPY frontend/package*.json ./
 RUN npm ci --prefer-offline

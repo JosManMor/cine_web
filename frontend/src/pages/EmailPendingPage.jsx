@@ -56,6 +56,40 @@ export default function EmailPendingPage({ addToast }) {
               </BtnPrimary>
           }
         </div>
+        <div style={{
+          background: "#451a03",
+          border: "1px solid #92400e",
+          borderRadius: 10,
+          padding: "16px 20px",
+          marginBottom: 20,
+          textAlign: "left",
+        }}>
+          <p style={{ color: "#fbbf24", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>
+            📬 Revisar bandeja de correo
+          </p>
+          <p style={{ color: "#fde68a", fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
+            Puedes ver el correo de verificación directamente en el buzón de esta simulación.
+          </p>
+          <a
+            href="/mailpit/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#f59e0b",
+              color: "#1c1917",
+              fontWeight: 600,
+              fontSize: 13,
+              padding: "8px 16px",
+              borderRadius: 6,
+              textDecoration: "none",
+            }}
+          >
+            Abrir bandeja de correo →
+          </a>
+        </div>
         <BtnSecondary onClick={handleLogout} style={{ padding: "10px 24px", fontSize: 13 }}>
           Cerrar sesión
         </BtnSecondary>
