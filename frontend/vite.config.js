@@ -26,6 +26,8 @@ export default defineConfig(({ mode }) => ({
     },
   },
 
+  envDir: '..',
+
   // En producción los assets se referencian como /build/assets/...
   // (Apache sirve /var/www/public como raíz → /build/ apunta a public/build/)
   // En dev Vite sirve desde / para que http://localhost:5173/ funcione normal.
