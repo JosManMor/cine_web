@@ -1,28 +1,20 @@
-import { C } from "../../constants/theme";
-
 export default function GenreFilter({ genres, genreFilter, setGenreFilter }) {
   return (
-    <>
-      <div className="genre-pills" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {genres.map(g => (
-          <button key={g} onClick={() => setGenreFilter(g)} style={{
-            padding: "5px 14px", borderRadius: 20,
-            border: `1px solid ${genreFilter === g ? C.red : C.border}`,
-            background: genreFilter === g ? C.redGlow : C.card,
-            color: genreFilter === g ? C.white : C.gray,
-            fontFamily: "'Open Sans', sans-serif", fontSize: 12, cursor: "pointer", transition: "all .2s",
-          }}>{g}</button>
-        ))}
-      </div>
-
-      <select
-        className="genre-select"
-        value={genreFilter}
-        onChange={e => setGenreFilter(e.target.value)}
-        style={{ display: "none", marginTop: 12, width: "100%", padding: "9px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.card, color: C.white, fontFamily: "'Open Sans', sans-serif", fontSize: 14, cursor: "pointer", appearance: "auto" }}
-      >
-        {genres.map(g => <option key={g} value={g}>{g}</option>)}
-      </select>
-    </>
+    <div role="group" aria-label="Filtrar por género" className="no-scrollbar flex gap-2 overflow-x-auto pb-1 md:flex-wrap">
+      {genres.map(g => {
+        const active = genreFilter === g;
+        return (
+          <button
+            key={g}
+            type="button"
+            aria-pressed={active}
+            onClick={() => setGenreFilter(g)}
+            className={`h-10 shrink-0 cursor-pointer rounded-full px-5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${active ? "bg-accent text-ink" : "bg-raised text-muted hover:bg-white/15 hover:text-ink"}`}
+          >
+            {g}
+          </button>
+        );
+      })}
+    </div>
   );
 }

@@ -130,6 +130,17 @@ DB::transaction(function () {
 - **Responsive design is mandatory.** Every component and page must work on mobile (≥ 320px), tablet and desktop viewports. Use `flex-wrap`, relative units, media queries or container queries — never fixed widths/heights that break on small screens.
 - Test UI changes at both desktop and mobile (≤ 480px) widths before considering them done.
 
+### Frontend redesign workflow
+
+UI redesigns are done **one view at a time**, each in its own git worktree and branch:
+
+1. **Worktree per view:** `git worktree add -b feat/redesign-<view> .claude/worktrees/redesign-<view> dev`. Never redesign two views in the same worktree; never touch files owned by another view's worktree (shared components go in their own PR first).
+2. **Agent:** delegate the implementation to the `voltagent-core-dev:frontend-developer` subagent (React + Tailwind). Use `voltagent-core-dev:ui-designer` only for design-system decisions, and `voltagent-qa-sec:accessibility-tester` / `ui-ux-tester` for review.
+3. **Art direction:** follow the `design-taste-frontend` skill (`.agents/skills/design-taste-frontend/SKILL.md`). When the user supplies a reference image, it is the binding art direction; the skill's house rules still apply (no eyebrows, no monospace, no index numbering, no decorative gradients — a scrim over a photograph is allowed).
+4. **Styling:** Tailwind CSS v4 (`@tailwindcss/vite`). Design tokens (colors, fonts, radii) live once in `frontend/src/index.css` under `@theme`; reuse them and shared utility classes/components instead of inline `style={{}}` objects or per-component `<style>` blocks. `constants/theme.js` stays only for views not yet migrated.
+5. **Visual verification:** take screenshots with Playwright (Playwright MCP, or the skill's `scripts/inspect.mjs`, which drives a real Chrome at 1440 / 768 / 390 px) after each major step and compare them against the reference. Fix every `FAIL` from `inspect.mjs` and `lint.mjs`.
+6. **Done means:** `npm run lint`, `npm run test` and `npm run build` pass; screenshots at desktop and ≤ 480px reviewed; UI text in Spanish; then open a PR from `feat/redesign-<view>` to `dev`.
+
 ## Testing
 
 Tests use in-memory SQLite regardless of the `.env` DB setting (configured in `phpunit.xml`). Test suites: `Unit` (`tests/Unit/`) and `Feature` (`tests/Feature/`).

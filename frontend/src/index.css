@@ -1,57 +1,102 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+@import "tailwindcss";
 
-#root {
-  width: 100%;
-  min-height: 100svh;
-  box-sizing: border-box;
-}
+/* Tokens de diseño (rediseño de la home). Única fuente de verdad: se consumen como utilidades
+   (bg-ground, text-muted, bg-accent, rounded-card, font-display...). */
+@theme {
+  --color-ground: #0b0b0d;
+  --color-surface: #16161a;
+  --color-raised: #212127;
+  --color-ink: #ffffff;
+  --color-muted: #b4b4bd;
+  --color-accent: #d6263d;
+  --color-accent-strong: #bb1d32;
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
+  --font-sans: "Montserrat", "Open Sans", system-ui, sans-serif;
+  --font-display: "Montserrat", "Open Sans", system-ui, sans-serif;
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+  --radius-card: 1.75rem;
+  --radius-tile: 1rem;
+
+  --animate-rise: rise 0.55s ease-out both;
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
+
+/* Margen lateral único del marco de la home. */
+@utility frame {
+  padding-inline: 1.25rem;
+  @media (min-width: 768px) { padding-inline: 1.5rem; }
+  @media (min-width: 1024px) { padding-inline: 2.5rem; }
+}
+
+/* Carriles horizontales sin barra de desplazamiento visible. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* Reglas heredadas, en una capa para que las utilidades de Tailwind las puedan sobrescribir. */
+@layer base {
+  /* Tailwind fija line-height 1.5 en html; las vistas aún sin migrar esperan el valor por defecto. */
+  html { line-height: normal; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-}
-p {
-  margin: 0;
-}
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
+  #root {
+    width: 100%;
+    min-height: 100svh;
+    box-sizing: border-box;
+  }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  h1,
+  h2 {
+    font-family: var(--heading);
+    font-weight: 500;
+    color: var(--text-h);
+  }
+
+  h1 {
+    font-size: 56px;
+    letter-spacing: -1.68px;
+    margin: 32px 0;
+    @media (max-width: 1024px) {
+      font-size: 36px;
+      margin: 20px 0;
+    }
+  }
+  h2 {
+    font-size: 24px;
+    line-height: 118%;
+    letter-spacing: -0.24px;
+    margin: 0 0 8px;
+    @media (max-width: 1024px) {
+      font-size: 20px;
+    }
+  }
+  p {
+    margin: 0;
+  }
+
+  code,
+  .counter {
+    font-family: var(--mono);
+    display: inline-flex;
+    border-radius: 4px;
+    color: var(--text-h);
+  }
+
+  code {
+    font-size: 15px;
+    line-height: 135%;
+    padding: 4px 8px;
+    background: var(--code-bg);
+  }
 }

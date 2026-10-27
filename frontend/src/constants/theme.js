@@ -17,7 +17,8 @@ export const C = {
 export const FONTS = `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;500&family=Roboto:wght@400;500&display=swap');
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* En capa base para que las utilidades de Tailwind (padding, margin) puedan sobrescribirlo. */
+@layer base { * { box-sizing: border-box; margin: 0; padding: 0; } }
 body { background: ${C.bg}; color: ${C.white}; font-family: 'Open Sans', 'Roboto', sans-serif; overflow-x: hidden; }
 ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: ${C.bg}; }
 ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
