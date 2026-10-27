@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { C } from "../constants/theme";
 import BtnPrimary from "./ui/BtnPrimary";
-import { demoBannerActive, BANNER_HEIGHT } from "./DemoBanner";
+import { demoBannerActive } from "./DemoBanner";
 
 function useClickOutside(ref, active, setter) {
   useEffect(() => {
@@ -98,7 +98,22 @@ function SidebarProfile({ user, onLogout, onClose }) {
   );
 }
 
+function useBannerOffset() {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => {
+    if (!demoBannerActive()) return;
+    const el = document.getElementById('demo-banner');
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setOffset(entry.contentRect.height));
+    ro.observe(el);
+    setOffset(el.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
+  return offset;
+}
+
 export default function Navbar({ user, onLogout }) {
+  const bannerOffset = useBannerOffset();
   const [sideOpen, setSideOpen] = useState(false);
   const navigate  = useNavigate();
   const location  = useLocation();
@@ -123,7 +138,7 @@ export default function Navbar({ user, onLogout }) {
 
   return (
     <>
-      <nav style={{ background: "linear-gradient(to bottom, rgba(0,0,0,.95), rgba(10,10,10,0))", position: "fixed", top: demoBannerActive() ? BANNER_HEIGHT : 0, left: 0, right: 0, zIndex: 200, padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <nav style={{ background: "linear-gradient(to bottom, rgba(0,0,0,.95), rgba(10,10,10,0))", position: "fixed", top: bannerOffset, left: 0, right: 0, zIndex: 200, padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 
         <button
           onClick={() => go("/")}

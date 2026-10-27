@@ -125,6 +125,11 @@ DB::transaction(function () {
 - Docker (prod simulation): copy `.env.prod.example` to `.env.prod`; see `docs/deployment-produccion.md`
 - Local (without Docker): `backend/.env` is used; there is no `backend/.env.example`, and Laravel falls back to SQLite when `DB_CONNECTION` is unset
 
+## Frontend Requirements
+
+- **Responsive design is mandatory.** Every component and page must work on mobile (≥ 320px), tablet and desktop viewports. Use `flex-wrap`, relative units, media queries or container queries — never fixed widths/heights that break on small screens.
+- Test UI changes at both desktop and mobile (≤ 480px) widths before considering them done.
+
 ## Testing
 
 Tests use in-memory SQLite regardless of the `.env` DB setting (configured in `phpunit.xml`). Test suites: `Unit` (`tests/Unit/`) and `Feature` (`tests/Feature/`).

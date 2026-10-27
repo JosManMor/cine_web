@@ -6,7 +6,7 @@ import { useToast } from "./context/ToastContext";
 import { logout } from "./api/auth";
 import Navbar from "./components/Navbar";
 import Toast from "./components/ui/Toast";
-import DemoBanner, { demoBannerActive, BANNER_HEIGHT } from "./components/DemoBanner";
+import DemoBanner from "./components/DemoBanner";
 import HomePage from "./pages/HomePage";
 import MovieDetailPage from "./pages/MovieDetailPage";
 import SeatsPage from "./pages/SeatsPage";
@@ -50,7 +50,7 @@ export default function App() {
     <>
       <DemoBanner />
       <style>{FONTS}</style>
-      <div style={{ background: C.bg, minHeight: "100vh", paddingTop: demoBannerActive() ? BANNER_HEIGHT : 0 }}>
+      <div style={{ background: C.bg, minHeight: "100vh" }}>
         <Toast toasts={toasts} />
         <Navbar user={user} onLogout={onLogout} />
         <Routes>
