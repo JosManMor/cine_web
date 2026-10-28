@@ -29,7 +29,7 @@ export default function HomePage() {
   const location = useLocation();
   useEffect(() => {
     if (loading) return;
-    const smooth = window.matchMedia("(prefers-reduced-motion: no-preference)").matches ? "smooth" : "auto";
+    const smooth = window.matchMedia?.("(prefers-reduced-motion: no-preference)").matches ? "smooth" : "auto";
     if (location.pathname === "/cartelera") {
       document.getElementById("cartelera")?.scrollIntoView({ behavior: smooth, block: "start" });
     } else {
