@@ -1,6 +1,6 @@
 export default function GenreFilter({ genres, genreFilter, setGenreFilter }) {
   return (
-    <div role="group" aria-label="Filtrar por género" className="flex flex-wrap gap-2 lg:justify-end">
+    <fieldset aria-label="Filtrar por género" className="flex flex-wrap gap-2 lg:justify-end border-0 m-0 p-0">
       {genres.map(g => {
         const active = genreFilter === g;
         return (
@@ -15,6 +15,6 @@ export default function GenreFilter({ genres, genreFilter, setGenreFilter }) {
           </button>
         );
       })}
-    </div>
+    </fieldset>
   );
 }

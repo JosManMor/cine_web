@@ -174,7 +174,7 @@ export default function Navbar({ user, onLogout }) {
           <div className="hidden items-center md:flex">
             <button type="button" onClick={() => go("/")} className={LINK}>Inicio</button>
             <button type="button" onClick={() => go("/cartelera")} className={LINK}>Cartelera</button>
-            {user && user.role === "admin" && (
+            {user?.role === "admin" && (
               <button type="button" onClick={() => go("/admin")} className={LINK}>Admin</button>
             )}
             {user && <button type="button" onClick={() => go("/mis-entradas")} className={LINK}>Mis tickets</button>}
