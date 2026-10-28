@@ -1,98 +1,54 @@
 import { describe, it, expect } from "vitest";
 import { loginSchema, registerSchema } from "../auth.schemas";
 
+function expectFail(schema, data, field) {
+  const result = schema.safeParse(data);
+  expect(result.success).toBe(false);
+  if (field) {
+    expect(result.error.issues.some(i => i.path.includes(field))).toBe(true);
+  }
+}
+
+const validLogin = { email: "user@example.com", password: "secret123" };
+
 describe("loginSchema", () => {
   it("accepts valid credentials", () => {
-    const result = loginSchema.safeParse({ email: "user@example.com", password: "secret123" });
-    expect(result.success).toBe(true);
+    expect(loginSchema.safeParse(validLogin).success).toBe(true);
   });
 
-  it("rejects empty email", () => {
-    const result = loginSchema.safeParse({ email: "", password: "secret123" });
-    expect(result.success).toBe(false);
-    expect(result.error.issues.some(i => i.path[0] === "email")).toBe(true);
-  });
-
-  it("rejects invalid email format", () => {
-    const result = loginSchema.safeParse({ email: "not-an-email", password: "secret123" });
-    expect(result.success).toBe(false);
-    expect(result.error.issues.some(i => i.path[0] === "email")).toBe(true);
-  });
-
-  it("rejects empty password", () => {
-    const result = loginSchema.safeParse({ email: "user@example.com", password: "" });
-    expect(result.success).toBe(false);
-    expect(result.error.issues.some(i => i.path[0] === "password")).toBe(true);
-  });
-
-  it("rejects email exceeding 255 characters", () => {
-    const longEmail = "a".repeat(250) + "@b.com";
-    const result = loginSchema.safeParse({ email: longEmail, password: "secret123" });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects password exceeding 72 characters", () => {
-    const result = loginSchema.safeParse({ email: "user@example.com", password: "a".repeat(73) });
-    expect(result.success).toBe(false);
+  it.each([
+    ["empty email",        { ...validLogin, email: "" },                  "email"],
+    ["invalid email",      { ...validLogin, email: "not-an-email" },      "email"],
+    ["email > 255 chars",  { ...validLogin, email: "a".repeat(250) + "@b.com" }, "email"],
+    ["empty password",     { ...validLogin, password: "" },               "password"],
+    ["password > 72 chars", { ...validLogin, password: "a".repeat(73) },  "password"],
+  ])("rejects %s", (_label, data, field) => {
+    expectFail(loginSchema, data, field);
   });
 });
 
+const validRegister = {
+  name: "María López",
+  email: "maria@example.com",
+  password: "password123",
+  password_confirmation: "password123",
+};
+
 describe("registerSchema", () => {
-  const valid = {
-    name: "María López",
-    email: "maria@example.com",
-    password: "password123",
-    password_confirmation: "password123",
-  };
-
   it("accepts valid registration data", () => {
-    const result = registerSchema.safeParse(valid);
-    expect(result.success).toBe(true);
+    expect(registerSchema.safeParse(validRegister).success).toBe(true);
   });
 
-  it("rejects name shorter than 2 characters", () => {
-    const result = registerSchema.safeParse({ ...valid, name: "A" });
-    expect(result.success).toBe(false);
-    expect(result.error.issues.some(i => i.path[0] === "name")).toBe(true);
-  });
-
-  it("rejects name that is only spaces", () => {
-    const result = registerSchema.safeParse({ ...valid, name: "   " });
-    expect(result.success).toBe(false);
-    expect(result.error.issues.some(i => i.path[0] === "name")).toBe(true);
-  });
-
-  it("rejects name exceeding 255 characters", () => {
-    const result = registerSchema.safeParse({ ...valid, name: "a".repeat(256) });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects invalid email", () => {
-    const result = registerSchema.safeParse({ ...valid, email: "bad" });
-    expect(result.success).toBe(false);
-    expect(result.error.issues.some(i => i.path[0] === "email")).toBe(true);
-  });
-
-  it("rejects password shorter than 8 characters", () => {
-    const result = registerSchema.safeParse({ ...valid, password: "short", password_confirmation: "short" });
-    expect(result.success).toBe(false);
-    expect(result.error.issues.some(i => i.path[0] === "password")).toBe(true);
-  });
-
-  it("rejects password exceeding 72 characters", () => {
-    const long = "a".repeat(73);
-    const result = registerSchema.safeParse({ ...valid, password: long, password_confirmation: long });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects mismatched password confirmation", () => {
-    const result = registerSchema.safeParse({ ...valid, password_confirmation: "different123" });
-    expect(result.success).toBe(false);
-    expect(result.error.issues.some(i => i.path.includes("password_confirmation"))).toBe(true);
-  });
-
-  it("rejects empty password confirmation", () => {
-    const result = registerSchema.safeParse({ ...valid, password_confirmation: "" });
-    expect(result.success).toBe(false);
+  it.each([
+    ["name < 2 chars",       { ...validRegister, name: "A" },             "name"],
+    ["name only spaces",     { ...validRegister, name: "   " },           "name"],
+    ["name > 255 chars",     { ...validRegister, name: "a".repeat(256) }, "name"],
+    ["invalid email",        { ...validRegister, email: "bad" },          "email"],
+    ["password < 8 chars",   { ...validRegister, password: "short", password_confirmation: "short" }, "password"],
+    ["password > 72 chars",  { ...validRegister, password: "a".repeat(73), password_confirmation: "a".repeat(73) }, "password"],
+    ["mismatched confirmation", { ...validRegister, password_confirmation: "different123" }, "password_confirmation"],
+    ["empty confirmation",   { ...validRegister, password_confirmation: "" }, "password_confirmation"],
+  ])("rejects %s", (_label, data, field) => {
+    expectFail(registerSchema, data, field);
   });
 });
