@@ -35,6 +35,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - app_net
       - db_net
@@ -125,6 +127,24 @@ services:
           memory: 64M
           cpus: "0.10"
 
+  # ── Redis (queue + cache) ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: cine_redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - db_net
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+
   # ── Queue worker ───────────────────────────────────────────────────────────
   queue:
     build:
@@ -152,6 +172,8 @@ services:
       app:
         condition: service_healthy # Espera a que el setup de app termine
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - db_net

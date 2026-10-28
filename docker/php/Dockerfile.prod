@@ -46,6 +46,8 @@ RUN apt-get update && apt-get install -y \
 
 RUN docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl opcache
 
+RUN pecl install redis && docker-php-ext-enable redis
+
 # OPcache optimizado para producción
 RUN { \
         echo 'opcache.enable=1'; \
