@@ -1,2 +1,8 @@
 .env
 .env.prod
+
+# Claude Code: artefactos locales (worktrees, capturas e informes de skills)
+.claude/worktrees/
+.claude/settings.local.json
+.taste-skill/
+.playwright-mcp/

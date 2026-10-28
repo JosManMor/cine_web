@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "voltagent-core-dev@voltagent-subagents": true,
+    "voltagent-qa-sec@voltagent-subagents": true
+  }
+}
