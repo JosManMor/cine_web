@@ -104,7 +104,6 @@ export default function HeroStage({ carousel, featuredIndex, setFeaturedIndex, t
             <PillButton size="lg" onClick={() => goToMovie(featured)}>
               <TicketIcon /> Comprar entradas
             </PillButton>
-            <PillButton as="a" href="#cartelera" variant="ghost" size="lg">Ver cartelera</PillButton>
           </div>
         </div>
 
@@ -114,8 +113,8 @@ export default function HeroStage({ carousel, featuredIndex, setFeaturedIndex, t
         </div>
 
         {carousel.length > 1 && (
-          <div className="px-5 pb-6 sm:px-8 lg:px-14 lg:pb-10 xl:absolute xl:right-0 xl:bottom-0 xl:w-[40rem] xl:max-w-[48%] xl:px-0 xl:pb-10">
-            <h2 className="m-0 mb-3 text-base font-semibold text-ink">Destacadas de la semana</h2>
+          <div className="px-5 pb-6 sm:px-8 lg:px-14 lg:pb-10 xl:absolute xl:right-0 xl:bottom-0 xl:w-[54rem] xl:max-w-[56%] xl:px-0 xl:pr-6 xl:pb-10">
+            <h2 className="m-0 mb-3 text-base font-semibold text-ink xl:text-lg">Destacadas de la semana</h2>
             <ul className="m-0 grid list-none grid-cols-3 gap-3 p-0 sm:grid-cols-5">
               {carousel.map((m, i) => (
                 <li key={m.id} className="min-w-0">
@@ -124,12 +123,12 @@ export default function HeroStage({ carousel, featuredIndex, setFeaturedIndex, t
                     onClick={() => setFeaturedIndex(i)}
                     aria-current={i === featuredIndex}
                     aria-label={`Destacar ${m.title}`}
-                    className={`block w-full cursor-pointer rounded-tile p-2 text-left transition focus-visible:outline-2 focus-visible:outline-white ${i === featuredIndex ? "bg-white/20" : "hover:bg-white/10"}`}
+                    className="group block w-full cursor-pointer rounded-tile text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
                   >
-                    <div className="aspect-video overflow-hidden rounded-lg bg-raised">
-                      {m.poster_url && <img src={landscapeUrl(m, 480, 270)} alt="" width="480" height="270" loading="lazy" className="size-full object-cover" />}
+                    <div className={`aspect-video overflow-hidden rounded-lg bg-raised ring-2 transition ${i === featuredIndex ? "ring-accent" : "ring-transparent"}`}>
+                      {m.poster_url && <img src={landscapeUrl(m, 480, 270)} alt="" width="480" height="270" loading="lazy" className={`size-full object-cover transition duration-300 motion-safe:group-hover:scale-105 ${i === featuredIndex ? "" : "opacity-70 group-hover:opacity-100"}`} />}
                     </div>
-                    <span className="mt-2 block truncate text-sm font-semibold">{m.title}</span>
+                    <span className={`mt-2 block truncate text-sm font-semibold transition-colors xl:text-base ${i === featuredIndex ? "text-ink" : "text-muted group-hover:text-ink"}`}>{m.title}</span>
                   </button>
                 </li>
               ))}

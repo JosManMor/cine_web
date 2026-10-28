@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { getMovies } from "../api/movies";
 import Spinner from "../components/ui/Spinner";
 import HeroStage from "../components/home/HeroStage";
@@ -22,6 +23,19 @@ export default function HomePage() {
       .catch(() => setError("No se pudo cargar la cartelera"))
       .finally(() => setLoading(false));
   }, []);
+
+  // "Inicio" lleva al principio y "Cartelera" a su sección; location.key cambia
+  // también al pulsar el enlace de la ruta en la que ya se está.
+  const location = useLocation();
+  useEffect(() => {
+    if (loading) return;
+    const smooth = window.matchMedia("(prefers-reduced-motion: no-preference)").matches ? "smooth" : "auto";
+    if (location.pathname === "/cartelera") {
+      document.getElementById("cartelera")?.scrollIntoView({ behavior: smooth, block: "start" });
+    } else {
+      window.scrollTo({ top: 0, behavior: smooth });
+    }
+  }, [location.key, location.pathname, loading]);
 
   useEffect(() => {
     if (carousel.length <= 1) return;
