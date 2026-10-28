@@ -17,7 +17,7 @@ class PurchaseRequest extends FormRequest
             'screening_id'        => ['required', 'integer', 'exists:screenings,id'],
             'seats'               => ['required', 'array', 'min:1'],
             'seats.*.row'         => ['required', 'string', 'size:1', 'regex:/^[A-Za-z]$/'],
-            'seats.*.seat_number' => ['required', 'integer', 'min:1'],
+            'seats.*.seat_number' => ['required', 'integer', 'min:1', 'max:30'],
             'payment_method'      => ['required', 'string', 'in:cash,card,online'],
         ];
     }

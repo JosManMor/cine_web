@@ -5,6 +5,7 @@ import { createPurchase } from "../api/purchases";
 import BtnPrimary from "../components/ui/BtnPrimary";
 import Spinner from "../components/ui/Spinner";
 import { useBooking } from "../context/BookingContext";
+import { purchaseSchema } from "../schemas/purchase.schemas";
 
 const PAYMENT_METHODS = [
   { id: "cash",   label: "Efectivo" },
@@ -41,13 +42,20 @@ export default function CheckoutPage({ addToast }) {
   const seatLabels = selectedSeats.map(s => `${s.row}${s.seat_number}`).join(", ");
 
   const handlePurchase = async () => {
+    const payload = {
+      screening_id:   schedule.id,
+      seats:          selectedSeats,
+      payment_method: paymentMethod,
+    };
+    const validation = purchaseSchema.safeParse(payload);
+    if (!validation.success) {
+      const msg = validation.error.issues.map(i => i.message).join(". ");
+      addToast(msg, "error");
+      return;
+    }
     setLoading(true);
     try {
-      const result = await createPurchase({
-        screening_id:   schedule.id,
-        seats:          selectedSeats,
-        payment_method: paymentMethod,
-      });
+      const result = await createPurchase(payload);
       setPurchaseResult({
         purchase_id:    result.purchase_id,
         payment_status: result.payment_status,
