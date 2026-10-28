@@ -30,6 +30,7 @@ services:
 
     volumes:
       - ./backend:/var/www
+      - ./.env:/var/www/.env
       - ./docker/php/php-dev.ini:/usr/local/etc/php/conf.d/99-dev.ini
 
     env_file:
