@@ -45,9 +45,9 @@ export default function HeroStage({ carousel, featuredIndex, setFeaturedIndex, t
   return (
     <section aria-label="Película destacada" className="frame relative isolate pt-20 lg:pt-24">
       <HeroBackdrop carousel={carousel} featuredIndex={featuredIndex} />
-      <div className="relative isolate overflow-hidden rounded-card bg-surface lg:min-h-[41rem] lg:bg-ground">
+      <div className="relative isolate flex min-h-[34rem] flex-col justify-end overflow-hidden rounded-card bg-ground sm:min-h-[38rem] lg:block lg:min-h-[41rem]">
 
-        <div className="relative h-60 sm:h-80 lg:absolute lg:inset-0 lg:h-auto">
+        <div className="absolute inset-0">
           {carousel.map((m, i) => {
             const image = landscapeUrl(m);
             return image && (
@@ -62,11 +62,12 @@ export default function HeroStage({ carousel, featuredIndex, setFeaturedIndex, t
               />
             );
           })}
+          {/* taste-skill-ignore: scrim neutro sobre fotografía */}<div aria-hidden="true" className="absolute inset-0 bg-linear-to-t from-ground from-35% via-ground/75 via-65% to-ground/25 lg:hidden" />
           {/* taste-skill-ignore: scrim neutro sobre fotografía */}<div aria-hidden="true" className="absolute inset-0 hidden lg:block lg:bg-linear-to-r lg:from-ground lg:from-25% lg:via-ground/70 lg:via-50% lg:to-ground/10" />
           {/* taste-skill-ignore: scrim neutro sobre fotografía */}<div aria-hidden="true" className="absolute inset-x-0 bottom-0 hidden h-2/5 bg-linear-to-t from-ground/80 to-transparent xl:block" />
         </div>
 
-        <div key={featured.id} className="flex max-w-3xl animate-rise flex-col gap-6 px-5 pt-6 pb-6 motion-reduce:animate-none sm:px-8 lg:relative lg:px-14 lg:pt-36 lg:pb-8">
+        <div key={featured.id} className="relative flex max-w-3xl animate-rise flex-col gap-6 px-5 pt-40 pb-8 motion-reduce:animate-none sm:px-8 sm:pt-56 lg:px-14 lg:pt-36 lg:pb-8">
           <h1 className="m-0 line-clamp-2 text-[clamp(1.75rem,5.2vw,4.5rem)] leading-[1.02] font-extrabold wrap-break-word tracking-tight text-balance text-ink">
             {featured.title}
           </h1>
@@ -113,7 +114,7 @@ export default function HeroStage({ carousel, featuredIndex, setFeaturedIndex, t
         </div>
 
         {carousel.length > 1 && (
-          <div className="px-5 pb-6 sm:px-8 lg:px-14 lg:pb-10 xl:absolute xl:right-0 xl:bottom-0 xl:w-[60rem] xl:max-w-[58%] xl:px-0 xl:pr-6 xl:pb-10">
+          <div className="hidden xl:absolute xl:block xl:right-0 xl:bottom-0 xl:w-[60rem] xl:max-w-[58%] xl:px-0 xl:pr-6 xl:pb-10">
             <h2 className="m-0 mb-3 text-base font-semibold text-ink xl:text-lg">Destacadas de la semana</h2>
             <ul className="m-0 grid list-none grid-cols-3 items-end gap-3 p-0 sm:flex sm:gap-4">
               {carousel.map((m, i) => (
