@@ -1,16 +1,20 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
     try {
       const stored = localStorage.getItem("auth_user");
-      return stored ? JSON.parse(stored) : null;
+      if (stored) setUser(JSON.parse(stored));
     } catch {
-      return null;
+      // corrupted storage — stay null
     }
-  });
+    setLoading(false);
+  }, []);
 
   const saveAuth = useCallback((userData, token) => {
     localStorage.setItem("auth_token", token);
@@ -33,7 +37,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, saveAuth, clearAuth, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, saveAuth, clearAuth, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
