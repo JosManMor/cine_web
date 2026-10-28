@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { C } from "../constants/theme";
+import { useLocation } from "react-router-dom";
 import { getMovies } from "../api/movies";
 import Spinner from "../components/ui/Spinner";
-import HeroCarousel from "../components/home/HeroCarousel";
-import MovieGrid from "../components/home/MovieGrid";
+import HeroStage from "../components/home/HeroStage";
+import MovieRail from "../components/home/MovieRail";
 
 export default function HomePage() {
   const [movies, setMovies]               = useState([]);
@@ -24,20 +24,33 @@ export default function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // "Inicio" lleva al principio y "Cartelera" a su sección; location.key cambia
+  // también al pulsar el enlace de la ruta en la que ya se está.
+  const location = useLocation();
+  useEffect(() => {
+    if (loading) return;
+    const smooth = window.matchMedia?.("(prefers-reduced-motion: no-preference)").matches ? "smooth" : "auto";
+    if (location.pathname === "/cartelera") {
+      document.getElementById("cartelera")?.scrollIntoView({ behavior: smooth, block: "start" });
+    } else {
+      window.scrollTo({ top: 0, behavior: smooth });
+    }
+  }, [location.key, location.pathname, loading]);
+
   useEffect(() => {
     if (carousel.length <= 1) return;
-    const id = setInterval(() => setFeaturedIndex(i => (i + 1) % carousel.length), 6000);
+    const id = setInterval(() => setFeaturedIndex(i => (i + 1) % carousel.length), 8000);
     return () => clearInterval(id);
-  }, [carousel.length]);
+  }, [carousel.length, featuredIndex]);
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div className="flex min-h-svh items-center justify-center bg-ground">
       <Spinner />
     </div>
   );
 
   if (error) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: C.gray }}>
+    <div className="flex min-h-svh items-center justify-center bg-ground text-base text-muted">
       {error}
     </div>
   );
@@ -46,19 +59,20 @@ export default function HomePage() {
   const filteredMovies = genreFilter === "Todos" ? movies : movies.filter(m => m.genre === genreFilter);
 
   return (
-    <div style={{ minHeight: "100vh" }}>
-      <HeroCarousel
+    <main className="min-h-svh overflow-x-clip bg-ground font-sans text-ink">
+      <HeroStage
         carousel={carousel}
         featuredIndex={featuredIndex}
         setFeaturedIndex={setFeaturedIndex}
+        totalMovies={movies.length}
       />
-      <MovieGrid
+      <MovieRail
         movies={movies}
         filteredMovies={filteredMovies}
         genres={genres}
         genreFilter={genreFilter}
         setGenreFilter={setGenreFilter}
       />
-    </div>
+    </main>
   );
 }

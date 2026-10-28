@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { C } from "../constants/theme";
-import BtnPrimary from "./ui/BtnPrimary";
+import logo from "../assets/logo-cine-sendera.png";
+import PillButton from "./ui/PillButton";
 import { demoBannerActive } from "./DemoBanner";
 
 function useClickOutside(ref, active, setter) {
@@ -15,11 +15,18 @@ function useClickOutside(ref, active, setter) {
   }, [ref, active, setter]);
 }
 
+const LINK = "cursor-pointer rounded-full px-3 py-2 text-base font-medium text-muted transition hover:text-ink focus-visible:outline-2 focus-visible:outline-white";
+
+function Logo({ className }) {
+  return <img src={logo} alt="" width="47" height="32" className={`w-auto ${className}`} />;
+}
+
 function SideLink({ label, path, go }) {
   return (
     <button
+      type="button"
       onClick={() => go(path)}
-      style={{ background: "none", border: "none", color: C.white, fontSize: 18, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textAlign: "left", padding: "14px 0", borderBottom: `1px solid ${C.border}`, width: "100%" }}
+      className="w-full cursor-pointer rounded-tile px-4 py-4 text-left text-lg font-medium text-ink transition hover:bg-white/10"
     >
       {label}
     </button>
@@ -32,29 +39,26 @@ function ProfileMenu({ user, onLogout }) {
   useClickOutside(ref, open, setOpen);
 
   return (
-    <div ref={ref} style={{ position: "relative" }}>
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
         aria-haspopup="true"
-        style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8, padding: "6px 14px", borderRadius: 4, background: C.card, border: `1px solid ${open ? C.red : C.border}`, cursor: "pointer", userSelect: "none", transition: "border-color .2s" }}
+        className="flex h-11 cursor-pointer items-center gap-2 rounded-full bg-white/10 py-1 pr-4 pl-1.5 transition select-none hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
       >
-        <div style={{ width: 24, height: 24, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{user.name[0]}</div>
-        <span style={{ fontSize: 13, color: C.gray }}>{user.name}</span>
-        <span style={{ fontSize: 10, color: C.grayDark, transition: "transform .2s", display: "inline-block", transform: open ? "rotate(180deg)" : "none" }}>▼</span>
+        <span className="flex size-8 items-center justify-center rounded-full bg-accent text-sm font-bold">{user.name[0]}</span>
+        <span className="text-sm font-semibold">{user.name}</span>
+        <span className={`inline-block text-[10px] text-muted transition-transform ${open ? "rotate-180" : ""}`}>▼</span>
       </button>
 
       {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, minWidth: 160, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,.5)" }}>
-          <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>{user.name}</div>
-          </div>
+        /* taste-skill-ignore: menú desplegable, overlay real */ <div className="absolute top-[calc(100%+8px)] right-0 z-10 min-w-48 overflow-hidden rounded-tile bg-raised shadow-2xl">
+          <div className="px-4 py-3 text-sm font-semibold">{user.name}</div>
           <button
+            type="button"
             onClick={() => { onLogout(); setOpen(false); }}
-            style={{ width: "100%", background: "none", border: "none", color: C.gray, padding: "10px 14px", fontSize: 13, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={e => e.currentTarget.style.background = C.grayDarker}
-            onMouseLeave={e => e.currentTarget.style.background = "none"}
+            className="w-full cursor-pointer px-4 py-3 text-left text-sm text-muted transition hover:bg-white/10 hover:text-ink"
           >
             Cerrar sesión
           </button>
@@ -70,32 +74,40 @@ function SidebarProfile({ user, onLogout, onClose }) {
   useClickOutside(ref, open, setOpen);
 
   return (
-    <div ref={ref} style={{ position: "relative", marginBottom: 24 }}>
+    <div ref={ref} className="mb-6">
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
         aria-haspopup="true"
-        style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: open ? "6px 6px 0 0" : 6, background: C.card, border: `1px solid ${open ? C.red : C.border}`, cursor: "pointer", userSelect: "none", transition: "border-color .2s", width: "100%" }}
+        className="flex w-full cursor-pointer items-center gap-3 rounded-tile bg-raised px-4 py-3.5 select-none"
       >
-        <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{user.name[0]}</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, color: C.white, fontWeight: 600 }}>{user.name}</div>
-        </div>
-        <span style={{ fontSize: 10, color: C.grayDark, transition: "transform .2s", display: "inline-block", transform: open ? "rotate(180deg)" : "none" }}>▼</span>
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-base font-bold">{user.name[0]}</span>
+        <span className="flex-1 text-left text-sm font-semibold">{user.name}</span>
+        <span className={`inline-block text-[10px] text-muted transition-transform ${open ? "rotate-180" : ""}`}>▼</span>
       </button>
       {open && (
         <button
+          type="button"
           onClick={() => { onLogout(); onClose(); setOpen(false); }}
-          style={{ width: "100%", background: C.grayDarker, border: `1px solid ${C.red}`, borderTop: "none", color: C.gray, padding: "11px 16px", fontSize: 14, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textAlign: "left", borderRadius: "0 0 6px 6px" }}
-          onMouseEnter={e => e.currentTarget.style.background = C.border}
-          onMouseLeave={e => e.currentTarget.style.background = C.grayDarker}
+          className="mt-2 w-full cursor-pointer rounded-tile bg-raised px-4 py-3 text-left text-sm text-muted transition hover:text-ink"
         >
           Cerrar sesión
         </button>
       )}
     </div>
   );
+}
+
+function useScrolled() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    function onScroll() { setScrolled(window.scrollY > 8); }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return scrolled;
 }
 
 function useBannerOffset() {
@@ -106,7 +118,6 @@ function useBannerOffset() {
     if (!el) return;
     const ro = new ResizeObserver(([entry]) => setOffset(entry.contentRect.height));
     ro.observe(el);
-    setOffset(el.offsetHeight);
     return () => ro.disconnect();
   }, []);
   return offset;
@@ -118,7 +129,12 @@ export default function Navbar({ user, onLogout }) {
   const navigate  = useNavigate();
   const location  = useLocation();
 
-  useEffect(() => { setSideOpen(false); }, [location.pathname]);
+  // Cierra el menú lateral al cambiar de ruta (ajuste de estado durante el render).
+  const [lastPath, setLastPath] = useState(location.pathname);
+  if (lastPath !== location.pathname) {
+    setLastPath(location.pathname);
+    setSideOpen(false);
+  }
 
   useEffect(() => {
     function onKey(e) { if (e.key === "Escape") setSideOpen(false); }
@@ -136,68 +152,83 @@ export default function Navbar({ user, onLogout }) {
     setSideOpen(false);
   }
 
+  const bar = "bg-white";
+  const scrolled = useScrolled();
+
   return (
     <>
-      <nav style={{ background: "linear-gradient(to bottom, rgba(0,0,0,.95), rgba(10,10,10,0))", position: "fixed", top: bannerOffset, left: 0, right: 0, zIndex: 200, padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <nav
+        style={{ top: bannerOffset }}
+        className={`frame fixed inset-x-0 z-200 flex h-16 items-center justify-between gap-4 font-sans text-ink transition-colors duration-300 motion-reduce:transition-none ${scrolled ? "bg-ground/85 backdrop-blur-xl" : "bg-ground/40 backdrop-blur-md"}`}
+      >
+        <div className="flex items-center gap-4 lg:gap-8">
+          <button
+            type="button"
+            onClick={() => go("/")}
+            className="flex cursor-pointer items-center gap-3 rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+          >
+            <Logo className="h-7 sm:h-8" />
+            <span className="text-lg font-extrabold tracking-wide whitespace-nowrap">CINE SENDERA</span>
+          </button>
 
-        <button
-          onClick={() => go("/")}
-          style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, padding: 0 }}
-        >
-          <div style={{ width: 32, height: 32, background: C.red, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🎬</div>
-          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 2, color: C.white }}>CINE SENDERA</span>
-        </button>
+          <div className="hidden items-center md:flex">
+            <button type="button" onClick={() => go("/")} className={LINK}>Inicio</button>
+            <button type="button" onClick={() => go("/cartelera")} className={LINK}>Cartelera</button>
+            {user?.role === "admin" && (
+              <button type="button" onClick={() => go("/admin")} className={LINK}>Admin</button>
+            )}
+            {user && <button type="button" onClick={() => go("/mis-entradas")} className={LINK}>Mis tickets</button>}
+          </div>
+        </div>
 
-        <div className="nav-desktop" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="hidden items-center gap-3 md:flex">
           {user ? (
-            <>
-              {user.role === "admin" && (
-                <button onClick={() => go("/admin")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Admin</button>
-              )}
-              <button onClick={() => go("/mis-entradas")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Mis tickets</button>
-              <ProfileMenu user={user} onLogout={onLogout} />
-            </>
+            <ProfileMenu user={user} onLogout={onLogout} />
           ) : (
             <>
-              <button onClick={() => go("/login")} style={{ background: "none", border: "none", color: C.gray, fontSize: 15, fontFamily: "'Open Sans', sans-serif", cursor: "pointer", textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>Iniciar sesión</button>
-              <BtnPrimary onClick={() => go("/registro")} style={{ padding: "7px 16px" }}>Registrarse</BtnPrimary>
+              <PillButton variant="ghost" onClick={() => go("/registro")}>Registrarse</PillButton>
+              <PillButton variant="light" onClick={() => go("/login")}>Iniciar sesión</PillButton>
             </>
           )}
         </div>
 
         <button
-          className="nav-hamburger"
+          type="button"
           onClick={() => setSideOpen(v => !v)}
           aria-label="Menú"
-          style={{ display: "none", background: "none", border: "none", cursor: "pointer", padding: 6, flexDirection: "column", gap: 5, alignItems: "center", justifyContent: "center" }}
+          aria-expanded={sideOpen}
+          className="flex size-11 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-full md:hidden"
         >
-          <span style={{ display: "block", width: 22, height: 2, background: sideOpen ? C.red : C.gray, borderRadius: 2, transition: "transform .25s, opacity .25s", transform: sideOpen ? "translateY(7px) rotate(45deg)" : "none" }} />
-          <span style={{ display: "block", width: 22, height: 2, background: C.gray, borderRadius: 2, transition: "opacity .25s", opacity: sideOpen ? 0 : 1 }} />
-          <span style={{ display: "block", width: 22, height: 2, background: sideOpen ? C.red : C.gray, borderRadius: 2, transition: "transform .25s, opacity .25s", transform: sideOpen ? "translateY(-7px) rotate(-45deg)" : "none" }} />
+          <span className={`block h-0.5 w-5.5 rounded-full transition ${bar} ${sideOpen ? "translate-y-2 rotate-45" : ""}`} />
+          <span className={`block h-0.5 w-5.5 rounded-full transition ${bar} ${sideOpen ? "opacity-0" : ""}`} />
+          <span className={`block h-0.5 w-5.5 rounded-full transition ${bar} ${sideOpen ? "-translate-y-2 -rotate-45" : ""}`} />
         </button>
       </nav>
 
       <div
         aria-hidden="true"
         onClick={() => setSideOpen(false)}
-        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 210, opacity: sideOpen ? 1 : 0, pointerEvents: sideOpen ? "auto" : "none", transition: "opacity .3s" }}
+        className={`fixed inset-0 z-210 bg-black/60 transition-opacity duration-300 ${sideOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
       />
 
       <aside
-        style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 280, background: C.surface, zIndex: 220, transform: sideOpen ? "translateX(0)" : "translateX(100%)", transition: "transform .3s cubic-bezier(.4,0,.2,1)", display: "flex", flexDirection: "column", padding: "24px 28px", overflowY: "auto" }}
+        className={`fixed top-0 right-0 bottom-0 z-220 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-surface px-6 py-6 font-sans text-ink transition-transform duration-300 ${sideOpen ? "translate-x-0" : "translate-x-full"}`}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 26, height: 26, background: C.red, borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🎬</div>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2, color: C.white }}>CINE SENDERA</span>
+        <div className="mb-7 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Logo className="h-7" />
+            <span className="text-base font-extrabold tracking-wide">CINE SENDERA</span>
           </div>
-          <button onClick={() => setSideOpen(false)} aria-label="Cerrar" style={{ background: "none", border: "none", color: C.gray, fontSize: 22, cursor: "pointer", lineHeight: 1 }}>✕</button>
+          <button type="button" onClick={() => setSideOpen(false)} aria-label="Cerrar" className="size-10 cursor-pointer rounded-full text-muted hover:text-ink">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" className="mx-auto" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3l12 12M15 3 3 15" /></svg>
+          </button>
         </div>
 
         {user && <SidebarProfile user={user} onLogout={onLogout} onClose={() => setSideOpen(false)} />}
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div className="flex flex-1 flex-col">
           <SideLink label="Inicio" path="/" go={go} />
+          <SideLink label="Cartelera" path="/cartelera" go={go} />
           {user ? (
             <>
               {user.role === "admin" && <SideLink label="Panel Admin" path="/admin" go={go} />}
@@ -206,20 +237,13 @@ export default function Navbar({ user, onLogout }) {
           ) : (
             <>
               <SideLink label="Iniciar sesión" path="/login" go={go} />
-              <BtnPrimary onClick={() => go("/registro")} style={{ width: "100%", textAlign: "center", padding: "11px 0", marginTop: 16 }}>
+              <PillButton variant="primary" size="lg" onClick={() => go("/registro")} className="mt-4 w-full">
                 Registrarse
-              </BtnPrimary>
+              </PillButton>
             </>
           )}
         </div>
       </aside>
-
-      <style>{`
-        @media (max-width: 600px) {
-          .nav-desktop   { display: none !important; }
-          .nav-hamburger { display: flex !important; }
-        }
-      `}</style>
     </>
   );
 }
