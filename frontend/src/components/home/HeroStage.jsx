@@ -6,6 +6,7 @@ import { useBooking } from "../../context/BookingContext";
 import PillButton from "../ui/PillButton";
 import MovieMeta from "./MovieMeta";
 import ShowtimeChip from "./ShowtimeChip";
+import HeroBackdrop from "./HeroBackdrop";
 
 function TicketIcon() {
   return (
@@ -42,7 +43,8 @@ export default function HeroStage({ carousel, featuredIndex, setFeaturedIndex, t
   }
 
   return (
-    <section aria-label="Película destacada" className="frame pt-20 lg:pt-24">
+    <section aria-label="Película destacada" className="frame relative isolate pt-20 lg:pt-24">
+      <HeroBackdrop carousel={carousel} featuredIndex={featuredIndex} />
       <div className="relative isolate overflow-hidden rounded-card bg-surface lg:min-h-[41rem] lg:bg-ground">
 
         <div className="relative h-60 sm:h-80 lg:absolute lg:inset-0 lg:h-auto">
@@ -65,7 +67,7 @@ export default function HeroStage({ carousel, featuredIndex, setFeaturedIndex, t
         </div>
 
         <div key={featured.id} className="flex max-w-3xl animate-rise flex-col gap-6 px-5 pt-6 pb-6 motion-reduce:animate-none sm:px-8 lg:relative lg:px-14 lg:pt-36 lg:pb-8">
-          <h1 className="m-0 line-clamp-2 text-[clamp(1.75rem,5.2vw,4.5rem)] leading-[1.02] font-extrabold tracking-tight text-balance text-ink">
+          <h1 className="m-0 line-clamp-2 text-[clamp(1.75rem,5.2vw,4.5rem)] leading-[1.02] font-extrabold wrap-break-word tracking-tight text-balance text-ink">
             {featured.title}
           </h1>
 
@@ -114,15 +116,15 @@ export default function HeroStage({ carousel, featuredIndex, setFeaturedIndex, t
         {carousel.length > 1 && (
           <div className="px-5 pb-6 sm:px-8 lg:px-14 lg:pb-10 xl:absolute xl:right-0 xl:bottom-0 xl:w-[40rem] xl:max-w-[48%] xl:px-0 xl:pb-10">
             <h2 className="m-0 mb-3 text-base font-semibold text-ink">Destacadas de la semana</h2>
-            <ul className="no-scrollbar m-0 flex list-none snap-x gap-3 overflow-x-auto p-0">
+            <ul className="m-0 grid list-none grid-cols-3 gap-3 p-0 sm:grid-cols-5">
               {carousel.map((m, i) => (
-                <li key={m.id} className="shrink-0 snap-start">
+                <li key={m.id} className="min-w-0">
                   <button
                     type="button"
                     onClick={() => setFeaturedIndex(i)}
                     aria-current={i === featuredIndex}
                     aria-label={`Destacar ${m.title}`}
-                    className={`block w-40 cursor-pointer rounded-tile p-2 text-left transition focus-visible:outline-2 focus-visible:outline-white ${i === featuredIndex ? "bg-white/20" : "hover:bg-white/10"}`}
+                    className={`block w-full cursor-pointer rounded-tile p-2 text-left transition focus-visible:outline-2 focus-visible:outline-white ${i === featuredIndex ? "bg-white/20" : "hover:bg-white/10"}`}
                   >
                     <div className="aspect-video overflow-hidden rounded-lg bg-raised">
                       {m.poster_url && <img src={landscapeUrl(m, 480, 270)} alt="" width="480" height="270" loading="lazy" className="size-full object-cover" />}

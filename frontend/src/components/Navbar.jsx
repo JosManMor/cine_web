@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import logo from "../assets/logo-cine-sendera.png";
 import PillButton from "./ui/PillButton";
 import { demoBannerActive } from "./DemoBanner";
 
@@ -16,12 +17,8 @@ function useClickOutside(ref, active, setter) {
 
 const LINK = "cursor-pointer rounded-full px-3 py-2 text-base font-medium text-muted transition hover:text-ink focus-visible:outline-2 focus-visible:outline-white";
 
-function DiamondMark({ size = 28 }) {
-  return (
-    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 28 28" fill="none">
-      <path d="M14 2.5 25.5 14 14 25.5 2.5 14 14 2.5Z" stroke="#ee3a50" strokeWidth="3.5" strokeLinejoin="round" />
-    </svg>
-  );
+function Logo({ className }) {
+  return <img src={logo} alt="" width="47" height="32" className={`w-auto ${className}`} />;
 }
 
 function SideLink({ label, path, go }) {
@@ -56,7 +53,7 @@ function ProfileMenu({ user, onLogout }) {
       </button>
 
       {open && (
-        <div className="absolute top-[calc(100%+8px)] right-0 z-10 min-w-48 overflow-hidden rounded-tile bg-raised shadow-2xl">
+        /* taste-skill-ignore: menú desplegable, overlay real */ <div className="absolute top-[calc(100%+8px)] right-0 z-10 min-w-48 overflow-hidden rounded-tile bg-raised shadow-2xl">
           <div className="px-4 py-3 text-sm font-semibold">{user.name}</div>
           <button
             type="button"
@@ -102,6 +99,17 @@ function SidebarProfile({ user, onLogout, onClose }) {
   );
 }
 
+function useScrolled() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    function onScroll() { setScrolled(window.scrollY > 8); }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return scrolled;
+}
+
 function useBannerOffset() {
   const [offset, setOffset] = useState(0);
   useEffect(() => {
@@ -145,12 +153,13 @@ export default function Navbar({ user, onLogout }) {
   }
 
   const bar = "bg-white";
+  const scrolled = useScrolled();
 
   return (
     <>
       <nav
         style={{ top: bannerOffset }}
-        className="frame fixed inset-x-0 z-200 flex h-16 items-center justify-between gap-4 bg-ground/95 font-sans text-ink"
+        className={`frame fixed inset-x-0 z-200 flex h-16 items-center justify-between gap-4 font-sans text-ink transition-colors duration-300 motion-reduce:transition-none ${scrolled ? "bg-ground/85 backdrop-blur-xl" : "bg-ground/40 backdrop-blur-md"}`}
       >
         <div className="flex items-center gap-4 lg:gap-8">
           <button
@@ -158,7 +167,7 @@ export default function Navbar({ user, onLogout }) {
             onClick={() => go("/")}
             className="flex cursor-pointer items-center gap-3 rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
           >
-            <DiamondMark />
+            <Logo className="h-7 sm:h-8" />
             <span className="text-lg font-extrabold tracking-wide whitespace-nowrap">CINE SENDERA</span>
           </button>
 
@@ -207,7 +216,7 @@ export default function Navbar({ user, onLogout }) {
       >
         <div className="mb-7 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <DiamondMark size={22} />
+            <Logo className="h-7" />
             <span className="text-base font-extrabold tracking-wide">CINE SENDERA</span>
           </div>
           <button type="button" onClick={() => setSideOpen(false)} aria-label="Cerrar" className="size-10 cursor-pointer rounded-full text-muted hover:text-ink">

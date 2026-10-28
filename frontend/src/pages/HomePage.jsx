@@ -45,7 +45,7 @@ export default function HomePage() {
   const filteredMovies = genreFilter === "Todos" ? movies : movies.filter(m => m.genre === genreFilter);
 
   return (
-    <main className="min-h-svh bg-ground font-sans text-ink">
+    <main className="min-h-svh overflow-x-clip bg-ground font-sans text-ink">
       <HeroStage
         carousel={carousel}
         featuredIndex={featuredIndex}
@@ -58,7 +58,6 @@ export default function HomePage() {
         genres={genres}
         genreFilter={genreFilter}
         setGenreFilter={setGenreFilter}
-        activeId={carousel[featuredIndex]?.id}
       />
     </main>
   );
