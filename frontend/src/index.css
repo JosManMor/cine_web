@@ -25,16 +25,22 @@
 }
 
 /* Margen lateral único del marco de la home. */
-@utility frame {
+.frame {
   padding-inline: 1.25rem;
-  @media (min-width: 768px) { padding-inline: 1.5rem; }
-  @media (min-width: 1024px) { padding-inline: 2.5rem; }
+}
+@media (min-width: 768px) {
+  .frame { padding-inline: 1.5rem; }
+}
+@media (min-width: 1024px) {
+  .frame { padding-inline: 2.5rem; }
 }
 
 /* Carriles horizontales sin barra de desplazamiento visible. */
-@utility no-scrollbar {
+.no-scrollbar {
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Reglas heredadas, en una capa para que las utilidades de Tailwind las puedan sobrescribir. */
@@ -67,19 +73,12 @@
     font-size: 56px;
     letter-spacing: -1.68px;
     margin: 32px 0;
-    @media (max-width: 1024px) {
-      font-size: 36px;
-      margin: 20px 0;
-    }
   }
   h2 {
     font-size: 24px;
     line-height: 118%;
     letter-spacing: -0.24px;
     margin: 0 0 8px;
-    @media (max-width: 1024px) {
-      font-size: 20px;
-    }
   }
   p {
     margin: 0;
@@ -98,5 +97,15 @@
     line-height: 135%;
     padding: 4px 8px;
     background: var(--code-bg);
+  }
+}
+
+@media (max-width: 1024px) {
+  h1 {
+    font-size: 36px;
+    margin: 20px 0;
+  }
+  h2 {
+    font-size: 20px;
   }
 }
