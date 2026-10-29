@@ -127,7 +127,7 @@ jobs:
   # ── Job 4: E2E tests with Playwright ──────────────────────────────────────
   test-e2e:
     name: E2E Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [docker-integration]
 
     steps:
