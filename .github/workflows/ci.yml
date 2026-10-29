@@ -134,6 +134,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies (host — for Playwright)
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
       - name: Prepare environment
         run: |
           cp .env.example .env
@@ -152,27 +167,9 @@ jobs:
       - name: Wait for healthy containers
         run: bash scripts/wait-healthy.sh 180
 
-      - name: Setup Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Clean Docker-created node_modules
-        run: sudo rm -rf frontend/node_modules
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci --ignore-scripts
-
-      - name: Install Playwright browsers
-        working-directory: frontend
-        run: npx --no-install playwright@1.52.0 install --with-deps chromium
-
       - name: Run Playwright tests
         working-directory: frontend
-        run: npx --no-install playwright@1.52.0 test
+        run: npx playwright test
         env:
           BASE_URL: http://localhost
 

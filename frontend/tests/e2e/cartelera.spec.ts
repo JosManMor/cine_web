@@ -12,9 +12,9 @@ test.describe("Movie listings (Cartelera)", () => {
   test("clicking a movie navigates to detail page", async ({ page }) => {
     await page.goto("/");
 
-    const firstLink = page.locator("a[href*='/pelicula/']").first();
-    await expect(firstLink).toBeVisible({ timeout: 15_000 });
-    await firstLink.click();
+    const firstMovie = page.locator("button[aria-label^='Ver ']").first();
+    await expect(firstMovie).toBeVisible({ timeout: 15_000 });
+    await firstMovie.click();
 
     await expect(page).toHaveURL(/\/pelicula\/\d+/, { timeout: 10_000 });
     await expect(page.locator("h1, h2").first()).toBeVisible({ timeout: 10_000 });
