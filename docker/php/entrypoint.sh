@@ -32,4 +32,7 @@ php artisan migrate --force --no-interaction
 echo "[entrypoint] Ejecutando seeders..."
 php artisan db:seed --force --no-interaction
 
+echo "[entrypoint] Reagendando funciones demo..."
+php artisan screenings:refresh-demo
+
 exec "$@"
