@@ -5,31 +5,46 @@ import BtnPrimary from "../components/ui/BtnPrimary";
 import Spinner from "../components/ui/Spinner";
 import { register } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
+import { registerSchema } from "../schemas/auth.schemas";
 
 export default function RegisterPage({ addToast }) {
   const { saveAuth } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "", password_confirmation: "" });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
 
   const handleReg = async () => {
-    if (!form.name || !form.email || !form.password) { setError("Completa todos los campos"); return; }
-    if (form.password !== form.password_confirmation) { setError("Las contraseñas no coinciden"); return; }
-    setError(""); setLoading(true);
+    const result = registerSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors = {};
+      for (const issue of result.error.issues) {
+        const key = issue.path[0];
+        if (!fieldErrors[key]) fieldErrors[key] = [];
+        fieldErrors[key].push(issue.message);
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({}); setLoading(true);
     try {
       const { data } = await register(form);
       saveAuth({ ...data.user, verified: false }, data.token);
       addToast("Cuenta creada. Revisa tu correo", "info");
       navigate("/email/pendiente");
     } catch (err) {
-      const errors = err.response?.data?.errors;
-      const first = errors ? Object.values(errors)[0]?.[0] : null;
-      setError(first ?? err.response?.data?.message ?? "Error al registrar");
+      const serverErrors = err.response?.data?.errors;
+      if (serverErrors) {
+        setErrors(serverErrors);
+      } else {
+        setErrors({ _general: [err.response?.data?.message ?? "Error al registrar"] });
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const generalError = errors._general?.[0];
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", paddingTop: 64 }}>
@@ -39,7 +54,7 @@ export default function RegisterPage({ addToast }) {
           <p style={{ color: C.gray, fontSize: 14 }}>Únete a Cine Sendera</p>
         </div>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 28 }}>
-          {error && <div style={{ background: "#3D0000", border: `1px solid ${C.red}`, borderRadius: 4, padding: "10px 14px", fontSize: 13, color: "#FF6B6B", marginBottom: 16 }}>{error}</div>}
+          {generalError && <div style={{ background: "#3D0000", border: `1px solid ${C.red}`, borderRadius: 4, padding: "10px 14px", fontSize: 13, color: "#FF6B6B", marginBottom: 16 }}>{generalError}</div>}
           {[
             ["Nombre completo",       "name",                  "text",     "Tu nombre"],
             ["Correo electrónico",    "email",                 "email",    "tu@correo.com"],
@@ -49,6 +64,7 @@ export default function RegisterPage({ addToast }) {
             <div key={key} style={{ marginBottom: 14 }}>
               <label>{label}</label>
               <input type={type} value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} placeholder={ph} />
+              {errors[key] && <p style={{ color: "#FF6B6B", fontSize: 12, marginTop: 4 }}>{errors[key][0]}</p>}
             </div>
           ))}
           {loading

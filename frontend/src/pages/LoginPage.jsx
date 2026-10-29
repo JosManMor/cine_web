@@ -5,6 +5,7 @@ import BtnPrimary from "../components/ui/BtnPrimary";
 import Spinner from "../components/ui/Spinner";
 import { login } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
+import { loginSchema } from "../schemas/auth.schemas";
 
 export default function LoginPage({ addToast }) {
   const { saveAuth } = useAuth();
@@ -12,22 +13,34 @@ export default function LoginPage({ addToast }) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
 
   const handle = async () => {
-    if (!email || !pass) { setError("Completa todos los campos"); return; }
-    setError(""); setLoading(true);
+    const result = loginSchema.safeParse({ email, password: pass });
+    if (!result.success) {
+      const fieldErrors = {};
+      for (const issue of result.error.issues) {
+        const key = issue.path[0];
+        if (!fieldErrors[key]) fieldErrors[key] = [];
+        fieldErrors[key].push(issue.message);
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({}); setLoading(true);
     try {
       const { data } = await login({ email, password: pass });
       saveAuth(data.user, data.token);
       addToast("Sesión iniciada ✓", "success");
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message ?? "Error al iniciar sesión");
+      setErrors({ _general: [err.response?.data?.message ?? "Error al iniciar sesión"] });
     } finally {
       setLoading(false);
     }
   };
+
+  const generalError = errors._general?.[0];
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", paddingTop: 64 }}>
@@ -38,14 +51,16 @@ export default function LoginPage({ addToast }) {
           <p style={{ color: C.gray, fontSize: 14 }}>Accede a tu cuenta de Cine Sendera</p>
         </div>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 28 }}>
-          {error && <div style={{ background: "#3D0000", border: `1px solid ${C.red}`, borderRadius: 4, padding: "10px 14px", fontSize: 13, color: "#FF6B6B", marginBottom: 16 }}>{error}</div>}
+          {generalError && <div style={{ background: "#3D0000", border: `1px solid ${C.red}`, borderRadius: 4, padding: "10px 14px", fontSize: 13, color: "#FF6B6B", marginBottom: 16 }}>{generalError}</div>}
           <div style={{ marginBottom: 16 }}>
             <label>Correo electrónico</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@correo.com" />
+            {errors.email && <p style={{ color: "#FF6B6B", fontSize: 12, marginTop: 4 }}>{errors.email[0]}</p>}
           </div>
           <div style={{ marginBottom: 20 }}>
             <label>Contraseña</label>
             <input type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" onKeyDown={e => e.key === "Enter" && handle()} />
+            {errors.password && <p style={{ color: "#FF6B6B", fontSize: 12, marginTop: 4 }}>{errors.password[0]}</p>}
           </div>
           {loading
             ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: 14 }}>
