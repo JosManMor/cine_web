@@ -85,7 +85,7 @@ jobs:
       - name: Prepare environment
         run: |
           cp .env.example .env
-          sed -i 's/^APP_KEY=$/APP_KEY=base64:dGVzdGluZ2tleWZvcmNpZW52MTIzNA==/' .env
+          sed -i 's/^APP_KEY=$/APP_KEY=base64:Q2lUZXN0S2V5Rm9yR2l0SHViQWN0aW9uczEyMzQ1Njc=/' .env
           sed -i 's/^HOST_UID=.*/HOST_UID=1001/' .env
           sed -i 's/^HOST_GID=.*/HOST_GID=1001/' .env
 
@@ -143,16 +143,16 @@ jobs:
 
       - name: Install frontend dependencies (host — for Playwright)
         working-directory: frontend
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Install Playwright browsers
         working-directory: frontend
-        run: npx playwright install --with-deps chromium
+        run: npx --no-install playwright install --with-deps chromium
 
       - name: Prepare environment
         run: |
           cp .env.example .env
-          sed -i 's/^APP_KEY=$/APP_KEY=base64:dGVzdGluZ2tleWZvcmNpZW52MTIzNA==/' .env
+          sed -i 's/^APP_KEY=$/APP_KEY=base64:Q2lUZXN0S2V5Rm9yR2l0SHViQWN0aW9uczEyMzQ1Njc=/' .env
           sed -i 's/^HOST_UID=.*/HOST_UID=1001/' .env
           sed -i 's/^HOST_GID=.*/HOST_GID=1001/' .env
 
@@ -169,7 +169,7 @@ jobs:
 
       - name: Run Playwright tests
         working-directory: frontend
-        run: npx playwright test
+        run: npx --no-install playwright test
         env:
           BASE_URL: http://localhost
 
