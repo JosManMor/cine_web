@@ -14,7 +14,7 @@ done
 echo "Waiting for all services in ${COMPOSE_FILE} to be healthy (timeout: ${TIMEOUT}s)..."
 
 elapsed=0
-while [ "$elapsed" -lt "$TIMEOUT" ]; do
+while [[ "$elapsed" -lt "$TIMEOUT" ]]; do
   all_healthy=true
 
   # Get health status of every service that defines a healthcheck
@@ -22,7 +22,7 @@ while [ "$elapsed" -lt "$TIMEOUT" ]; do
     service=$(echo "$line" | awk '{print $1}')
     health=$(echo "$line" | awk '{print $2}')
 
-    if [ "$health" != "healthy" ]; then
+    if [[ "$health" != "healthy" ]]; then
       all_healthy=false
       break
     fi

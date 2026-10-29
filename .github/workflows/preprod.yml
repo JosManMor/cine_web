@@ -64,7 +64,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build production bundle
         run: npm run build
@@ -83,9 +83,11 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Prepare .env.prod
+        env:
+          CI_APP_KEY: ${{ secrets.APP_KEY }}
         run: |
           cp .env.prod.example .env.prod
-          sed -i "s|^APP_KEY=.*|APP_KEY=${{ secrets.APP_KEY }}|" .env.prod
+          sed -i "s|^APP_KEY=.*|APP_KEY=${CI_APP_KEY}|" .env.prod
           sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=ci_test_password|" .env.prod
           sed -i "s|^MYSQL_PASSWORD=.*|MYSQL_PASSWORD=ci_test_password|" .env.prod
           sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=ci_root_password|" .env.prod
@@ -109,9 +111,11 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Prepare .env.prod
+        env:
+          CI_APP_KEY: ${{ secrets.APP_KEY }}
         run: |
           cp .env.prod.example .env.prod
-          sed -i "s|^APP_KEY=.*|APP_KEY=${{ secrets.APP_KEY }}|" .env.prod
+          sed -i "s|^APP_KEY=.*|APP_KEY=${CI_APP_KEY}|" .env.prod
           sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=ci_test_password|" .env.prod
           sed -i "s|^MYSQL_PASSWORD=.*|MYSQL_PASSWORD=ci_test_password|" .env.prod
           sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=ci_root_password|" .env.prod
@@ -130,10 +134,13 @@ jobs:
           node-version: '20'
 
       - name: Install Playwright
-        run: npx playwright install --with-deps chromium
+        run: |
+          npm init -y > /dev/null
+          npm install --save-dev @playwright/test@1.52.0 --ignore-scripts
+          npx --yes playwright@1.52.0 install --with-deps chromium
 
       - name: Run E2E tests
-        run: npx playwright test
+        run: npx playwright@1.52.0 test
         env:
           BASE_URL: http://localhost
 
@@ -160,9 +167,11 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Prepare .env.prod
+        env:
+          CI_APP_KEY: ${{ secrets.APP_KEY }}
         run: |
           cp .env.prod.example .env.prod
-          sed -i "s|^APP_KEY=.*|APP_KEY=${{ secrets.APP_KEY }}|" .env.prod
+          sed -i "s|^APP_KEY=.*|APP_KEY=${CI_APP_KEY}|" .env.prod
           sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=ci_test_password|" .env.prod
           sed -i "s|^MYSQL_PASSWORD=.*|MYSQL_PASSWORD=ci_test_password|" .env.prod
           sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=ci_root_password|" .env.prod
@@ -176,7 +185,7 @@ jobs:
           bash scripts/wait-healthy.sh -f docker-compose.prod.yml
 
       - name: ZAP Baseline Scan (frontend)
-        uses: zaproxy/action-baseline@v0.14.0
+        uses: zaproxy/action-baseline@2b5fc7f98d837319798ab7f128ea50b7d40563b6 # v0.14.0
         with:
           target: http://localhost
           rules_file_name: .zap/rules.tsv
@@ -185,7 +194,7 @@ jobs:
           allow_issue_writing: false
 
       - name: ZAP API Scan
-        uses: zaproxy/action-api-scan@v0.9.0
+        uses: zaproxy/action-api-scan@a9a916402665623ce9d37a6998d7b48e6b35dd6c # v0.9.0
         with:
           target: http://localhost/api
           rules_file_name: .zap/rules.tsv
@@ -198,11 +207,9 @@ jobs:
         run: |
           # Check ZAP reports for HIGH/CRITICAL alerts
           for report in zap_baseline_report.html zap_api_report.html; do
-            if [ -f "$report" ]; then
-              if grep -qiE '(High|Critical)\s*\(' "$report" 2>/dev/null; then
-                echo "::error::$report contains HIGH or CRITICAL findings"
-                FOUND_CRITICAL=true
-              fi
+            if [ -f "$report" ] && grep -qiE '(High|Critical)\s*\(' "$report" 2>/dev/null; then
+              echo "::error::$report contains HIGH or CRITICAL findings"
+              FOUND_CRITICAL=true
             fi
           done
           if [ "${FOUND_CRITICAL:-false}" = "true" ]; then
