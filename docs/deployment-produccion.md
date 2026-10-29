@@ -13,7 +13,7 @@ Este documento describe cómo levantar y mantener el entorno de producción simu
 | Frontend             | Servicio `frontend` (Vite `:5173`)              | Build estático en `public/build/`                    |
 | PHP vendor           | Montado desde host (`composer install` manual)  | Instalado sin `--dev` en la imagen                   |
 | Base de datos        | Expuesta en el host (`FORWARD_DB_PORT`)         | Solo accesible en `db_net`                           |
-| Redis                | Servicio `redis` (`CACHE_STORE=redis`)          | No incluido (`CACHE_STORE=database`)                 |
+| Redis                | Servicio `redis` (`CACHE_STORE=redis`)          | Servicio `redis` (`CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`) |
 | phpMyAdmin           | Incluido                                        | Excluido                                             |
 | Mailpit              | Excluido                                        | Incluido (captura emails en :8025)                   |
 | Servidor web         | Apache (httpd:2.4)                              | Nginx (nginx:1.27-alpine)                            |
@@ -165,11 +165,11 @@ docker compose -f docker-compose.prod.yml down -v
  │  app_www:/var/www (rw)  │
  └────────────┬────────────┘
               │ (db_net)
-     ┌────────┼────────────┐
-     ▼        ▼            ▼
- [mysql]   [mailpit]   [queue/cron/scheduler]
- :3306     :1025 SMTP
-           :8025 UI (expuesto al host)
+     ┌────────┼──────────┬─────────────┐
+     ▼        ▼          ▼             ▼
+ [mysql]   [redis]   [mailpit]   [queue/cron/scheduler]
+ :3306     :6379     :1025 SMTP
+                     :8025 UI (expuesto al host)
 ```
 
 Los servicios `queue`, `scheduler` y `cron` reutilizan la imagen `cine-sendera:prod`. `queue` y `scheduler` comparten el volumen `app_www` con `app`; `cron` no lo monta y guarda los dumps en el volumen `cine_backups`. Solo `nginx` está en `public_net` (además de `app_net`); el resto vive únicamente en `db_net` o en `app_net` + `db_net`.
