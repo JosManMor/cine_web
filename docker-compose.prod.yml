@@ -35,6 +35,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - app_net
       - db_net
@@ -108,6 +110,24 @@ services:
           memory: 1G
           cpus: "1.00"
 
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: cine_redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - db_net
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+
   # ── Mailpit (captura de emails en simulación) ──────────────────────────────
   mailpit:
     image: axllent/mailpit:v1.31.4
@@ -147,6 +167,8 @@ services:
       app:
         condition: service_healthy # Espera a que el setup de app termine
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - db_net
