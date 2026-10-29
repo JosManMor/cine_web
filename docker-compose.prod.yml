@@ -127,11 +127,6 @@ services:
 
   # ── Queue worker ───────────────────────────────────────────────────────────
   queue:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile.prod
-      args:
-        VITE_DEMO_MODE: "true"
     image: cine-sendera:prod
     container_name: cine_queue
     restart: unless-stopped
