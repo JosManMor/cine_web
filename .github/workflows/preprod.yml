@@ -93,12 +93,7 @@ jobs:
           sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=ci_root_password|" .env.prod
 
       - name: Build and start Docker Compose
-        run: docker compose -f docker-compose.prod.yml up -d --build
-
-      - name: Wait for services to be healthy
-        run: |
-          chmod +x scripts/wait-healthy.sh
-          bash scripts/wait-healthy.sh -f docker-compose.prod.yml
+        run: docker compose -f docker-compose.prod.yml up -d --build --wait --wait-timeout 180
 
   # ── Job 4: E2E tests (Playwright) ─────────────────────────────────────────
   test-e2e:
@@ -121,12 +116,7 @@ jobs:
           sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=ci_root_password|" .env.prod
 
       - name: Build and start Docker Compose
-        run: docker compose -f docker-compose.prod.yml up -d --build
-
-      - name: Wait for services to be healthy
-        run: |
-          chmod +x scripts/wait-healthy.sh
-          bash scripts/wait-healthy.sh -f docker-compose.prod.yml
+        run: docker compose -f docker-compose.prod.yml up -d --build --wait --wait-timeout 180
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642195f882787471af267e5 # v4
@@ -177,12 +167,7 @@ jobs:
           sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=ci_root_password|" .env.prod
 
       - name: Build and start Docker Compose
-        run: docker compose -f docker-compose.prod.yml up -d --build
-
-      - name: Wait for services to be healthy
-        run: |
-          chmod +x scripts/wait-healthy.sh
-          bash scripts/wait-healthy.sh -f docker-compose.prod.yml
+        run: docker compose -f docker-compose.prod.yml up -d --build --wait --wait-timeout 180
 
       - name: ZAP Baseline Scan (frontend)
         uses: zaproxy/action-baseline@2b5fc7f98d837319798ab7f128ea50b7d40563b6 # v0.14.0
