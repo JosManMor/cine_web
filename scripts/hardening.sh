@@ -11,7 +11,7 @@ SSH_PORT=2222
 SSHD_CONFIG="/etc/ssh/sshd_config"
 
 # ── Verificar root ────────────────────────────────────────────────────────────
-if [ "$(id -u)" -ne 0 ]; then
+if [[ "$(id -u)" -ne 0 ]]; then
     echo "Este script debe ejecutarse como root: sudo bash $0"
     exit 1
 fi
@@ -24,7 +24,7 @@ log "Iniciando hardening del servidor..."
 # apt-get upgrade activa el configure de openssh-server. Si sshd_config es un
 # directorio (estado corrupto), el configure falla y bloquea todo lo demás.
 # Se repara primero para que apt pueda correr sin errores.
-if [ -d "$SSHD_CONFIG" ]; then
+if [[ -d "$SSHD_CONFIG" ]]; then
     log "AVISO: $SSHD_CONFIG es un directorio — reparando antes de apt..."
 
     BACKUP_DIR="/etc/ssh/sshd_config_dir_bak_$(date +%F_%H%M%S)"
@@ -35,7 +35,7 @@ if [ -d "$SSHD_CONFIG" ]; then
     # "eliminado por admin". Limpiar su hashfile directamente es más
     # fiable que ucf --purge cuando el estado está muy corrupto.
     UCF_HASH="/var/lib/ucf/hashfile"
-    if [ -f "$UCF_HASH" ]; then
+    if [[ -f "$UCF_HASH" ]]; then
         cp "$UCF_HASH" "${UCF_HASH}.bak.$(date +%F)"
         sed -i '\|/etc/ssh/sshd_config|d' "$UCF_HASH"
         log "Entrada sshd_config eliminada del hashfile de ucf."
@@ -79,7 +79,7 @@ if ! command -v sshd > /dev/null 2>&1; then
     apt-get install -y openssh-server
 fi
 
-if [ ! -f "$SSHD_CONFIG" ]; then
+if [[ ! -f "$SSHD_CONFIG" ]]; then
     log "ERROR: $SSHD_CONFIG no existe tras la reparación."
     exit 1
 fi

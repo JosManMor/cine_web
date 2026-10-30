@@ -212,7 +212,6 @@ function ServerMonitor() {
   return (
     <div
       role="region"
-      tabIndex={0}
       aria-label={ariaLabel}
       style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 20px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 20, boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
     >

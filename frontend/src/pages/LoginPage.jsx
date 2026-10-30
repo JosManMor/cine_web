@@ -53,13 +53,13 @@ export default function LoginPage({ addToast }) {
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 28 }}>
           {generalError && <div style={{ background: "#3D0000", border: `1px solid ${C.red}`, borderRadius: 4, padding: "10px 14px", fontSize: 13, color: "#FF6B6B", marginBottom: 16 }}>{generalError}</div>}
           <div style={{ marginBottom: 16 }}>
-            <label>Correo electrónico</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@correo.com" />
+            <label htmlFor="login-email">Correo electrónico</label>
+            <input id="login-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@correo.com" />
             {errors.email && <p style={{ color: "#FF6B6B", fontSize: 12, marginTop: 4 }}>{errors.email[0]}</p>}
           </div>
           <div style={{ marginBottom: 20 }}>
-            <label>Contraseña</label>
-            <input type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" onKeyDown={e => e.key === "Enter" && handle()} />
+            <label htmlFor="login-password">Contraseña</label>
+            <input id="login-password" type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" onKeyDown={e => e.key === "Enter" && handle()} />
             {errors.password && <p style={{ color: "#FF6B6B", fontSize: 12, marginTop: 4 }}>{errors.password[0]}</p>}
           </div>
           {loading

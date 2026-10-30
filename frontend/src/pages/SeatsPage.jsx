@@ -127,11 +127,16 @@ export default function SeatsPage({ addToast }) {
                         : [];
                       return [
                         ...gap,
-                        <div
+                        <button
+                          type="button"
                           key={`${rowLabel}-${seatNum}`}
                           onClick={() => toggleSeat(rowLabel, seatNum)}
+                          aria-label={`Asiento ${rowLabel}${seatNum}${status === "occupied" ? " ocupado" : status === "selected" ? " seleccionado" : ""}`}
+                          aria-pressed={status === "selected"}
+                          disabled={status === "occupied"}
                           title={`${rowLabel}${seatNum}`}
                           style={{
+                            padding: 0, font: "inherit", outline: "none",
                             width: 26, height: 22, borderRadius: "4px 4px 2px 2px",
                             background: col.bg, border: `1.5px solid ${col.border}`,
                             cursor: status === "occupied" ? "not-allowed" : "pointer",
@@ -142,7 +147,7 @@ export default function SeatsPage({ addToast }) {
                         >
                           {status === "selected" && <span style={{ color: "#0A2A12" }}>✓</span>}
                           {status === "occupied"  && <span style={{ color: "#5A0000", fontSize: 8 }}>✕</span>}
-                        </div>,
+                        </button>,
                       ];
                     })}
                     <span style={{ width: 16, textAlign: "center", fontSize: 11, color: C.grayDark, fontFamily: "'Montserrat', sans-serif" }}>{rowLabel}</span>

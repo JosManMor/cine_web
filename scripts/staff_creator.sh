@@ -37,7 +37,7 @@ create_user() {
 
 # ── Fuente de datos ──────────────────────────────────────────────────────────
 
-if [ -n "$1" ] && [ -f "$1" ]; then
+if [[ -n "$1" ]] && [[ -f "$1" ]]; then
     echo "Leyendo usuarios desde: $1"
     while IFS=',' read -r username password group; do
         [[ "$username" =~ ^#.*$ || -z "$username" ]] && continue
