@@ -125,13 +125,14 @@ export default function SeatsPage({ addToast }) {
                       const gap    = seatNum === halfCol + 1
                         ? [<div key={`${rowLabel}-gap`} style={{ width: 10 }} />]
                         : [];
+                      const statusLabel = status === "occupied" ? " ocupado" : status === "selected" ? " seleccionado" : "";
                       return [
                         ...gap,
                         <button
                           type="button"
                           key={`${rowLabel}-${seatNum}`}
                           onClick={() => toggleSeat(rowLabel, seatNum)}
-                          aria-label={`Asiento ${rowLabel}${seatNum}${status === "occupied" ? " ocupado" : status === "selected" ? " seleccionado" : ""}`}
+                          aria-label={`Asiento ${rowLabel}${seatNum}${statusLabel}`}
                           aria-pressed={status === "selected"}
                           disabled={status === "occupied"}
                           title={`${rowLabel}${seatNum}`}
