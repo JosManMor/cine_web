@@ -1,13 +1,27 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import CheckoutPage from '../CheckoutPage';
 
 vi.mock('../../api/purchases', () => ({
   createPurchase: vi.fn(),
 }));
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
+vi.mock('../../context/BookingContext', () => ({
+  useBooking: vi.fn(),
+}));
+
 import { createPurchase } from '../../api/purchases';
+import { useBooking } from '../../context/BookingContext';
+
+const mockUseBooking = useBooking as unknown as ReturnType<typeof vi.fn>;
 
 const mockCreatePurchase = createPurchase as ReturnType<typeof vi.fn>;
 
@@ -18,25 +32,35 @@ const schedule = {
   base_price: '150',
   room: { name: 'Sala IMAX' },
 };
-const user = { id: 4, name: 'Laura', role: 'client', verified: true };
 const selectedSeats = [
   { row: 'B', seat_number: 3 },
   { row: 'B', seat_number: 4 },
 ];
 
-const baseProps = {
-  movie,
-  schedule,
-  user,
-  selectedSeats,
-  setPage: vi.fn(),
-  addToast: vi.fn(),
-  setPurchaseResult: vi.fn(),
-};
+const setPurchaseResult = vi.fn();
+const addToast = vi.fn();
+
+function setBooking(seats: typeof selectedSeats = selectedSeats) {
+  mockUseBooking.mockReturnValue({
+    selectedMovie: movie,
+    selectedSchedule: schedule,
+    selectedSeats: seats,
+    setPurchaseResult,
+  });
+}
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <CheckoutPage addToast={addToast} />
+    </MemoryRouter>,
+  );
+}
 
 describe('CheckoutPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    setBooking();
   });
 
   afterEach(() => {
@@ -44,7 +68,7 @@ describe('CheckoutPage', () => {
   });
 
   it('muestra el resumen correcto: película, asientos y total', () => {
-    render(<CheckoutPage {...baseProps} />);
+    renderPage();
 
     expect(screen.getByText('Dune')).toBeInTheDocument();
     // 2 seats × $150 = $300.00
@@ -56,7 +80,8 @@ describe('CheckoutPage', () => {
   });
 
   it('muestra mensaje y botón de regreso cuando no hay asientos seleccionados', () => {
-    render(<CheckoutPage {...baseProps} selectedSeats={[]} />);
+    setBooking([]);
+    renderPage();
 
     expect(screen.getByText('No hay asientos seleccionados.')).toBeInTheDocument();
     expect(screen.getByText(/Volver a selección de asientos/)).toBeInTheDocument();
@@ -68,7 +93,7 @@ describe('CheckoutPage', () => {
       payment_status: 'completed',
     });
 
-    render(<CheckoutPage {...baseProps} />);
+    renderPage();
 
     fireEvent.click(screen.getByText('Confirmar compra'));
 
@@ -88,7 +113,7 @@ describe('CheckoutPage', () => {
       payment_status: 'completed',
     });
 
-    render(<CheckoutPage {...baseProps} />);
+    renderPage();
 
     // Use act + runAllTimersAsync so both the resolved promise AND the 800ms
     // setTimeout inside the component fire without real waiting.
@@ -97,8 +122,8 @@ describe('CheckoutPage', () => {
       await vi.runAllTimersAsync();
     });
 
-    expect(baseProps.addToast).toHaveBeenCalledWith('Compra registrada con éxito', 'success');
-    expect(baseProps.setPage).toHaveBeenCalledWith('ticket');
+    expect(addToast).toHaveBeenCalledWith('Compra registrada con éxito', 'success');
+    expect(mockNavigate).toHaveBeenCalledWith('/ticket');
   });
 
   it('muestra error de toast cuando la API devuelve 409 (asiento ya ocupado)', async () => {
@@ -107,17 +132,17 @@ describe('CheckoutPage', () => {
     });
     mockCreatePurchase.mockRejectedValue(conflict);
 
-    render(<CheckoutPage {...baseProps} />);
+    renderPage();
 
     fireEvent.click(screen.getByText('Confirmar compra'));
 
     await waitFor(() => {
-      expect(baseProps.addToast).toHaveBeenCalledWith(
+      expect(addToast).toHaveBeenCalledWith(
         'Uno o más asientos ya fueron reservados. Elige otros.',
         'error',
       );
     });
-    expect(baseProps.setPage).toHaveBeenCalledWith('seats');
+    expect(mockNavigate).toHaveBeenCalledWith('/asientos/20');
   });
 
   it('muestra error genérico de toast cuando la API falla sin 409', async () => {
@@ -126,12 +151,12 @@ describe('CheckoutPage', () => {
     });
     mockCreatePurchase.mockRejectedValue(serverError);
 
-    render(<CheckoutPage {...baseProps} />);
+    renderPage();
 
     fireEvent.click(screen.getByText('Confirmar compra'));
 
     await waitFor(() => {
-      expect(baseProps.addToast).toHaveBeenCalledWith('Error interno del servidor', 'error');
+      expect(addToast).toHaveBeenCalledWith('Error interno del servidor', 'error');
     });
   });
 
@@ -141,7 +166,7 @@ describe('CheckoutPage', () => {
       payment_status: 'completed',
     });
 
-    render(<CheckoutPage {...baseProps} />);
+    renderPage();
 
     // Switch to "Tarjeta"
     fireEvent.click(screen.getByText('Tarjeta'));

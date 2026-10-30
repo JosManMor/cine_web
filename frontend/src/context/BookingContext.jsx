@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useState } from "react";
 
-const BookingContext = createContext(null);
+export const BookingContext = createContext(null);
 
 export function BookingProvider({ children }) {
   const [selectedMovie, setSelectedMovie]       = useState(null);
