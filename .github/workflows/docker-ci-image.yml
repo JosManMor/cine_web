@@ -2,9 +2,7 @@ name: Build CI Docker Image
 
 on:
   push:
-    branches: [dev]
-    paths:
-      - 'docker/php/Dockerfile.ci'
+    branches: [dev, pre]
 
   workflow_dispatch:
 
@@ -15,10 +13,24 @@ jobs:
   build-push:
     name: Build & Push CI Image
     runs-on: ubuntu-latest
+    if: >-
+      github.ref_name == 'pre'
+      || contains(join(github.event.commits.*.modified, ','), 'docker/php/Dockerfile.ci')
+      || contains(join(github.event.commits.*.added, ','), 'docker/php/Dockerfile.ci')
+      || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [ "${{ github.ref_name }}" = "pre" ]; then
+            echo "suffix=staging" >> "$GITHUB_OUTPUT"
+          else
+            echo "suffix=latest" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Log in to Docker Hub
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
@@ -34,4 +46,4 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/cine-php-ci:8.3.36-alpine
-            ${{ secrets.DOCKERHUB_USERNAME }}/cine-php-ci:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/cine-php-ci:${{ steps.tag.outputs.suffix }}
