@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [dev, pre, main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -167,11 +170,15 @@ jobs:
       - name: Wait for healthy containers
         run: bash scripts/wait-healthy.sh 180
 
+      - name: Wait for frontend dev server
+        run: |
+          timeout 60 bash -c 'until curl -fsS http://localhost:5173 >/dev/null; do sleep 2; done'
+
       - name: Run Playwright tests
         working-directory: frontend
         run: npx --no-install playwright test
         env:
-          BASE_URL: http://localhost
+          BASE_URL: http://localhost:5173
 
       - name: Upload Playwright report
         if: failure()
