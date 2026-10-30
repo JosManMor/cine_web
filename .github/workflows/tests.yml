@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [dev, pre, main]
+    branches: [dev]
 
 jobs:
   phpunit:
