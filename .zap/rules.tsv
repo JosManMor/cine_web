@@ -1,0 +1,2 @@
+10202	IGNORE	XSRF-TOKEN		Laravel Sanctum CSRF token — by design
+10038	IGNORE				CSP header — to be configured per deployment
