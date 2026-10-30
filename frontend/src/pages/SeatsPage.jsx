@@ -45,7 +45,7 @@ export default function SeatsPage({ addToast }) {
   const rows        = screeningData?.room?.rows ?? 0;
   const seatsPerRow = screeningData?.room?.seats_per_row ?? 0;
   const occupied    = screeningData?.occupied_seats ?? [];
-  const rowLabels   = Array.from({ length: rows }, (_, i) => String.fromCharCode(65 + i));
+  const rowLabels   = Array.from({ length: rows }, (_, i) => String.fromCodePoint(65 + i));
   const halfCol     = Math.floor(seatsPerRow / 2);
 
   const isOccupied = (r, n) => occupied.some(s => s.row === r && s.seat_number === n);
@@ -62,7 +62,12 @@ export default function SeatsPage({ addToast }) {
   };
 
   const getSeatStatus = (r, n) =>
-    isOccupied(r, n) ? "occupied" : isSelected(r, n) ? "selected" : "free";
+
+    {
+      if (isOccupied(r, n)) return "occupied";
+      if (isSelected(r, n)) return "selected";
+      return "free";
+    };
 
   const seatColor = (status) => ({
     free:     { bg: "transparent", border: C.green },
@@ -211,14 +216,16 @@ export default function SeatsPage({ addToast }) {
               </div>
             </div>
 
-            {confirming
-              ? <div style={{ display: "flex", justifyContent: "center", padding: 24, background: C.card, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                  <Spinner />
-                </div>
-              : <BtnPrimary onClick={handleConfirm} disabled={!selected.length || fetchLoading} style={{ width: "100%", padding: 14, fontSize: 14 }}>
-                  Confirmar {selected.length > 0 ? `(${selected.length})` : ""}
-                </BtnPrimary>
-            }
+            {confirming && (
+              <div style={{ display: "flex", justifyContent: "center", padding: 24, background: C.card, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                <Spinner />
+              </div>
+            )}
+            {!confirming && (
+              <BtnPrimary onClick={handleConfirm} disabled={!selected.length || fetchLoading} style={{ width: "100%", padding: 14, fontSize: 14 }}>
+                Confirmar {selected.length > 0 ? `(${selected.length})` : ""}
+              </BtnPrimary>
+            )}
             <p style={{ fontSize: 11, color: C.grayDark, textAlign: "center" }}>Máximo 8 asientos por transacción</p>
           </div>
         </div>

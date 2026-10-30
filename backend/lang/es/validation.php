@@ -1,5 +1,7 @@
 <?php
 
+$invalidSelection = 'El :attribute seleccionado no es válido.';
+
 return [
     'accepted'             => 'El campo :attribute debe ser aceptado.',
     'accepted_if'          => 'El campo :attribute debe ser aceptado cuando :other es :value.',
@@ -34,8 +36,8 @@ return [
     'doesnt_start_with'    => 'El campo :attribute no debe comenzar con uno de los siguientes: :values.',
     'email'                => 'El campo :attribute debe ser una dirección de correo válida.',
     'ends_with'            => 'El campo :attribute debe terminar con uno de los siguientes: :values.',
-    'enum'                 => 'El :attribute seleccionado no es válido.',
-    'exists'               => 'El :attribute seleccionado no es válido.',
+    'enum'                 => $invalidSelection,
+    'exists'               => $invalidSelection,
     'file'                 => 'El campo :attribute debe ser un archivo.',
     'filled'               => 'El campo :attribute debe tener un valor.',
     'gt'                   => [
@@ -51,7 +53,7 @@ return [
         'string'  => 'El campo :attribute debe tener :value caracteres o más.',
     ],
     'image'                => 'El campo :attribute debe ser una imagen.',
-    'in'                   => 'El :attribute seleccionado no es válido.',
+    'in'                   => $invalidSelection,
     'in_array'             => 'El campo :attribute no existe en :other.',
     'integer'              => 'El campo :attribute debe ser un número entero.',
     'ip'                   => 'El campo :attribute debe ser una dirección IP válida.',
@@ -94,7 +96,7 @@ return [
     'missing_with'         => 'El campo :attribute debe estar ausente cuando :values está presente.',
     'missing_with_all'     => 'El campo :attribute debe estar ausente cuando :values están presentes.',
     'multiple_of'          => 'El campo :attribute debe ser múltiplo de :value.',
-    'not_in'               => 'El :attribute seleccionado no es válido.',
+    'not_in'               => $invalidSelection,
     'not_regex'            => 'El formato del campo :attribute no es válido.',
     'numeric'              => 'El campo :attribute debe ser numérico.',
     'password'             => [
