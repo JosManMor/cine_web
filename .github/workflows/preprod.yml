@@ -1,0 +1,32 @@
+name: Preproducción
+
+on:
+  push:
+    branches: [pre]
+
+jobs:
+  push-prod:
+    name: Push prod image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6
+        with:
+          context: .
+          file: docker/php/Dockerfile.prod
+          push: true
+          build-args: |
+            VITE_DEMO_MODE=true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/cine-sendera:staging
+            ${{ secrets.DOCKERHUB_USERNAME }}/cine-sendera:${{ github.sha }}

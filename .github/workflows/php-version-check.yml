@@ -1,0 +1,65 @@
+name: PHP Version Security Check
+
+on:
+  pull_request:
+    branches: [dev, main]
+  schedule:
+    - cron: '0 8 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  check-php-version:
+    name: Verify PHP is not vulnerable
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Check Dockerfile PHP versions are patched
+        run: |
+          MIN_PATCH=36
+
+          check_version() {
+            local file="$1"
+            local version
+            version=$(grep -oP 'FROM php:\K[0-9]+\.[0-9]+\.[0-9]+' "$file" | head -1)
+
+            if [ -z "$version" ]; then
+              echo "WARN: No pinned PHP version found in $file (using floating tag)"
+              return 1
+            fi
+
+            local major minor patch
+            IFS='.' read -r major minor patch <<< "$version"
+
+            echo "Found PHP $version in $file"
+
+            if [ "$major" -eq 8 ] && [ "$minor" -eq 3 ] && [ "$patch" -lt "$MIN_PATCH" ]; then
+              echo "FAIL: PHP $version in $file is vulnerable to PHP2Shell (CVE-2026-109618/CVE-2026-109619)"
+              echo "      Minimum safe version: 8.3.$MIN_PATCH"
+              return 1
+            fi
+
+            echo "PASS: PHP $version is patched against PHP2Shell"
+            return 0
+          }
+
+          failed=0
+          for df in docker/php/Dockerfile docker/php/Dockerfile.prod docker/php/Dockerfile.ci; do
+            if [ -f "$df" ] && ! check_version "$df"; then
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -eq 1 ]; then
+            echo ""
+            echo "::error::One or more Dockerfiles use a PHP version vulnerable to PHP2Shell."
+            echo "::error::Update to php:8.3.36 or later. See https://github.com/JosManMor/cine_web/issues/79"
+            exit 1
+          fi
+
+          echo ""
+          echo "All Dockerfiles use patched PHP versions."
