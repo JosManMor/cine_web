@@ -38,13 +38,19 @@ RUN mkdir -p /project/backend/public/build && npm run build
 # ─────────────────────────────────────────────────────────────────────────────
 FROM php:8.3.36-fpm
 
-RUN apt-get update && apt-get install -y \
-        curl git unzip zip \
-        libzip-dev libpng-dev libonig-dev libxml2-dev \
-        default-mysql-client cron \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        cron \
+        curl \
+        default-mysql-client \
+        git \
+        libonig-dev \
+        libpng-dev \
+        libxml2-dev \
+        libzip-dev \
+        unzip \
+        zip \
+    && docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl opcache \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl opcache
 
 # OPcache optimizado para producción
 RUN { \
