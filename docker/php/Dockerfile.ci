@@ -1,7 +1,7 @@
 FROM php:8.3.36-fpm-alpine
 
 RUN apk add --no-cache \
-    curl git icu-dev libxml2-dev libzip-dev oniguruma-dev unzip \
+    curl git icu-dev libxml2-dev libzip-dev oniguruma-dev sqlite-dev unzip \
   && docker-php-ext-install \
     bcmath intl mbstring pcntl pdo_mysql pdo_sqlite xml zip
 
