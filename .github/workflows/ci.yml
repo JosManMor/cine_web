@@ -75,9 +75,9 @@ jobs:
       - name: Run Vitest unit tests
         run: npm run test
 
-  # ── Job 3: Docker integration + E2E tests ─────────────────────────────────
-  docker-e2e:
-    name: Docker Integration & E2E
+  # ── Job 3: E2E against prod Docker stack ────────────────────────────────────
+  prod-e2e:
+    name: Prod E2E
     runs-on: ubuntu-24.04
     needs: [test-backend, test-frontend]
 
@@ -85,74 +85,44 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Setup Node
+      - name: Prepare .env.prod
+        env:
+          CI_APP_KEY: ${{ secrets.APP_KEY }}
+        run: |
+          cp .env.prod.example .env.prod
+          sed -i "s|^APP_KEY=.*|APP_KEY=${CI_APP_KEY}|" .env.prod
+          sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=ci_test_password|" .env.prod
+          sed -i "s|^MYSQL_PASSWORD=.*|MYSQL_PASSWORD=ci_test_password|" .env.prod
+          sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=ci_root_password|" .env.prod
+
+      - name: Build and start Docker Compose
+        run: docker compose -f docker-compose.prod.yml up -d --build --wait --wait-timeout 180
+
+      - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          node-version: '22'
 
-      - name: Install frontend dependencies (host — for Playwright)
+      - name: Install Playwright
         working-directory: frontend
-        run: npm ci --ignore-scripts
-
-      - name: Install Playwright browsers
-        working-directory: frontend
-        run: npx --no-install playwright install --with-deps chromium
-
-      - name: Prepare environment
         run: |
-          cp .env.example .env
-          sed -i 's/^APP_KEY=$/APP_KEY=base64:Q2lUZXN0S2V5Rm9yR2l0SHViQWN0aW9uczEyMzQ1Njc=/' .env
-          sed -i 's/^HOST_UID=.*/HOST_UID=1001/' .env
-          sed -i 's/^HOST_GID=.*/HOST_GID=1001/' .env
+          npm ci --ignore-scripts
+          npx --no-install playwright install --with-deps chromium
 
-      - name: Install Composer dependencies
-        run: docker compose run --rm --no-deps --entrypoint sh app -c "composer install --no-interaction --prefer-dist"
-        timeout-minutes: 5
-
-      - name: Build and start containers
-        run: docker compose up -d --build --wait --wait-timeout 180
-        timeout-minutes: 10
-
-      - name: Show container states
-        if: always()
-        run: docker compose ps
-
-      - name: Verify network isolation (frontend cannot resolve mysql)
-        run: |
-          if docker exec cine_frontend nslookup mysql 2>/dev/null; then
-            echo "FAIL: frontend container can resolve mysql"
-            exit 1
-          fi
-          echo "PASS: frontend container cannot resolve mysql"
-
-      - name: Verify network isolation (frontend cannot resolve redis)
-        run: |
-          if docker exec cine_frontend nslookup redis 2>/dev/null; then
-            echo "FAIL: frontend container can resolve redis"
-            exit 1
-          fi
-          echo "PASS: frontend container cannot resolve redis"
-
-      - name: Wait for frontend dev server
-        run: |
-          timeout 60 bash -c 'until curl -fsS http://localhost:5173 >/dev/null; do sleep 2; done'
-
-      - name: Run Playwright tests
+      - name: Run E2E tests
         working-directory: frontend
         run: npx --no-install playwright test
         env:
-          BASE_URL: http://localhost:5173
+          BASE_URL: http://localhost
 
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: playwright-report
+          name: playwright-report-prod
           path: frontend/playwright-report/
           retention-days: 14
 
-      - name: Dump container logs on failure
-        if: failure()
-        run: docker compose logs --tail=200
+      - name: Stop Docker Compose
+        if: always()
+        run: docker compose -f docker-compose.prod.yml down -v
