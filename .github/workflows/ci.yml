@@ -78,7 +78,7 @@ jobs:
   # ── Job 3: E2E + OWASP ZAP against prod Docker stack ────────────────────────
   prod-validation:
     name: Prod E2E & Security
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [test-backend, test-frontend]
 
     steps:
@@ -101,16 +101,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install Playwright
+        working-directory: frontend
         run: |
-          npm init -y > /dev/null
-          npm install --save-dev @playwright/test@1.52.0 --ignore-scripts
-          ./node_modules/.bin/playwright install --with-deps chromium
+          npm ci --ignore-scripts
+          npx --no-install playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: ./node_modules/.bin/playwright test
+        working-directory: frontend
+        run: npx --no-install playwright test
         env:
           BASE_URL: http://localhost
 
@@ -119,7 +120,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: playwright-report-prod
-          path: playwright-report/
+          path: frontend/playwright-report/
           retention-days: 14
 
       - name: ZAP Baseline Scan (frontend)
