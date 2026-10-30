@@ -33,5 +33,5 @@ jobs:
           file: docker/php/Dockerfile.ci
           push: true
           tags: |
-            josmanmor/cine-php-ci:8.3.36-alpine
-            josmanmor/cine-php-ci:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/cine-php-ci:8.3.36-alpine
+            ${{ secrets.DOCKERHUB_USERNAME }}/cine-php-ci:latest
