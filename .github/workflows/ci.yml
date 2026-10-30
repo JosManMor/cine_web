@@ -16,6 +16,8 @@ jobs:
   test-backend:
     name: Backend Tests
     runs-on: ubuntu-latest
+    container:
+      image: josmanmor/cine-php-ci:8.3.36-alpine
     defaults:
       run:
         working-directory: backend
@@ -23,13 +25,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
-        with:
-          php-version: "8.3"
-          extensions: pdo_sqlite, mbstring, xml, ctype, json, bcmath
-          coverage: none
 
       - name: Cache Composer dependencies
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4

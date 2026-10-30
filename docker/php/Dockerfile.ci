@@ -1,0 +1,10 @@
+FROM php:8.3.36-fpm-alpine
+
+RUN apk add --no-cache \
+    git unzip curl \
+    libzip-dev libxml2-dev icu-dev oniguruma-dev \
+  && docker-php-ext-install \
+    pdo_sqlite pdo_mysql mbstring xml zip bcmath intl pcntl \
+  && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+WORKDIR /var/www
