@@ -26,7 +26,7 @@ ENV VITE_DEMO_MODE=$VITE_DEMO_MODE
 
 # Instala dependencias primero (capa cacheada si package.json no cambia)
 COPY frontend/package*.json ./
-RUN npm ci --prefer-offline
+RUN npm ci --prefer-offline --ignore-scripts
 
 COPY frontend/ ./
 
@@ -36,15 +36,21 @@ RUN mkdir -p /project/backend/public/build && npm run build
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 3 — Imagen final PHP-FPM
 # ─────────────────────────────────────────────────────────────────────────────
-FROM php:8.3-fpm
+FROM php:8.3.36-fpm
 
-RUN apt-get update && apt-get install -y \
-        curl git unzip zip \
-        libzip-dev libpng-dev libonig-dev libxml2-dev \
-        default-mysql-client cron \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        cron \
+        curl \
+        default-mysql-client \
+        git \
+        libonig-dev \
+        libpng-dev \
+        libxml2-dev \
+        libzip-dev \
+        unzip \
+        zip \
+    && docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl opcache \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl opcache
 
 # OPcache optimizado para producción
 RUN { \
@@ -77,9 +83,7 @@ RUN mkdir -p storage/logs \
 COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
 COPY docker/php/cron-entrypoint.sh /usr/local/bin/cron-entrypoint.sh
 COPY scripts/ /usr/local/scripts/
-RUN chmod +x /usr/local/bin/entrypoint.sh \
-             /usr/local/bin/cron-entrypoint.sh \
-             /usr/local/scripts/*.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/cron-entrypoint.sh /usr/local/scripts/*.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]

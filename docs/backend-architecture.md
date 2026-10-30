@@ -140,9 +140,8 @@ storage/
 └── logs/
 
 scripts/
-├── watchdog.sh
 ├── backup.sh
-└── staff_creator.sh
+└── cine.cron
 ```
 
 ---
@@ -327,62 +326,7 @@ Log::info();
 
 # 13. Automatización Bash
 
-# 13.1 Watchdog
-
-**Script:** [`scripts/watchdog.sh`](../scripts/watchdog.sh)
-
-## Objetivo
-
-Reiniciar Apache/MySQL automáticamente.
-
-## Servicios monitoreados
-
-- apache2
-- mysql
-
-## Flujo
-
-```txt
-Verificar servicio
-↓
-¿Activo?
-↓
-NO
-↓
-Reiniciar
-↓
-Registrar incidente
-```
-
-## Log
-
-```txt
-/var/log/cine_error.log
-```
-
-## Ejemplo básico
-
-```bash
-#!/bin/bash
-
-services=("apache2" "mysql")
-
-for service in "${services[@]}"
-do
-    systemctl is-active --quiet $service
-
-    if [ $? -ne 0 ]; then
-        systemctl restart $service
-
-        echo "$(date) - Restarted $service" >> /var/log/cine_error.log
-    fi
-
-done
-```
-
----
-
-# 13.2 Backup Script
+# 13.1 Backup Script
 
 **Script:** [`scripts/backup.sh`](../scripts/backup.sh)
 
@@ -426,123 +370,7 @@ fi
 
 ---
 
-# 13.3 Gestión Masiva de Staff
-
-**Script:** [`scripts/staff_creator.sh`](../scripts/staff_creator.sh)
-
-## Objetivo
-
-Crear usuarios Linux automáticamente.
-
-## Uso
-
-El script está disponible dentro del contenedor `cine_app` de **producción** (`Dockerfile.prod` copia `scripts/` a `/usr/local/scripts/`) en `/usr/local/scripts/staff_creator.sh`. La imagen de desarrollo no lo incluye.
-
-**Con la lista interna por defecto:**
-
-```bash
-docker exec -it cine_app /usr/local/scripts/staff_creator.sh
-```
-
-**Con un CSV personalizado (montado desde el host):**
-
-```bash
-# Copia el CSV al contenedor
-docker cp usuarios.csv cine_app:/tmp/usuarios.csv
-
-# Ejecuta con el archivo
-docker exec -it cine_app /usr/local/scripts/staff_creator.sh /tmp/usuarios.csv
-```
-
-**En servidor nativo (sin Docker):**
-
-```bash
-sudo bash scripts/staff_creator.sh [usuarios.csv]
-```
-
-## Formato CSV
-
-```csv
-# username,password,grupo
-vendedor1,TempPass1!,ventas
-tecnico1,TempPass2!,soporte
-```
-
-## Ejemplo integrado
-
-```bash
-#!/bin/bash
-
-for user in vendedor1 vendedor2 tecnico1
-do
-    useradd -m -d /home/$user $user
-
-    echo "$user:Password123" | chpasswd
-
-done
-```
-
----
-
-# 14. Hardening y Seguridad
-
-**Script:** [`scripts/hardening.sh`](../scripts/hardening.sh) — ejecutar una sola vez con `sudo bash scripts/hardening.sh`
-
-# Firewall UFW
-
-## Política por defecto
-
-```bash
-ufw default deny incoming
-ufw default allow outgoing
-```
-
-## Reglas
-
-```bash
-ufw allow 80/tcp
-ufw allow 2222/tcp
-```
-
-## Activación
-
-```bash
-ufw enable
-```
-
----
-
-# Protección SSH
-
-## Cambiar puerto
-
-Archivo:
-
-```txt
-/etc/ssh/sshd_config
-```
-
-Configuración:
-
-```txt
-Port 2222
-PermitRootLogin no
-PasswordAuthentication yes
-```
-
----
-
-# Protección contra fuerza bruta
-
-## UFW Limit
-
-```bash
-ufw limit 2222/tcp
-```
-
----
-
-# 15. Escalabilidad
+# 14. Escalabilidad
 
 ## Escalabilidad horizontal futura
 
@@ -557,7 +385,7 @@ La arquitectura propuesta permite:
 
 ---
 
-# 16. Estrategia de Deployment
+# 15. Estrategia de Deployment
 
 ## Producción
 
@@ -580,7 +408,7 @@ php artisan optimize
 
 ---
 
-# 17. Variables de Entorno
+# 16. Variables de Entorno
 
 Archivo:
 
@@ -601,7 +429,7 @@ DB_PASSWORD=strong_password
 
 ---
 
-# 18. Cron Jobs
+# 17. Cron Jobs
 
 ## Despliegue con Docker (producción)
 
@@ -610,8 +438,6 @@ El scheduling se configura automáticamente al levantar `docker-compose.prod.yml
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
 ```
-
-> `watchdog.sh` **no aplica en Docker**: `restart: always` en cada servicio ya cubre los reinicios de contenedores caídos.
 
 ## Despliegue nativo Linux (sin Docker)
 
@@ -632,15 +458,13 @@ sudo crontab scripts/cine.cron
 
 ## Resumen de entradas
 
-| Script             | Frecuencia    | Docker                                                         | Nativo                               |
-| ------------------ | ------------- | -------------------------------------------------------------- | ------------------------------------ |
-| `watchdog.sh`      | `*/1 * * * *` | No aplica (`restart: always`)                                  | Sí                                   |
-| `backup.sh`        | `0 2 * * *`   | Servicio `cron` (automático)                                   | Sí                                   |
-| `staff_creator.sh` | —             | `docker exec -it cine_app /usr/local/scripts/staff_creator.sh` | `sudo bash scripts/staff_creator.sh` |
+| Script       | Frecuencia  | Docker                       | Nativo |
+| ------------ | ----------- | ---------------------------- | ------ |
+| `backup.sh`  | `0 2 * * *` | Servicio `cron` (automático) | Sí     |
 
 ---
 
-# 19. Pruebas Recomendadas
+# 18. Pruebas Recomendadas
 
 ## Backend
 

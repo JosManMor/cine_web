@@ -8,6 +8,7 @@ import { useBooking } from "../context/BookingContext";
 import { useAuth } from "../context/AuthContext";
 
 const LANG_LABEL = { original: "Original", dubbed: "Doblada", subtitled: "Subtitulada" };
+const SEAT_STATUS_LABEL = { occupied: " ocupado", selected: " seleccionado" };
 
 function fmtTime(dateStr) {
   if (!dateStr) return "";
@@ -45,7 +46,7 @@ export default function SeatsPage({ addToast }) {
   const rows        = screeningData?.room?.rows ?? 0;
   const seatsPerRow = screeningData?.room?.seats_per_row ?? 0;
   const occupied    = screeningData?.occupied_seats ?? [];
-  const rowLabels   = Array.from({ length: rows }, (_, i) => String.fromCharCode(65 + i));
+  const rowLabels   = Array.from({ length: rows }, (_, i) => String.fromCodePoint(65 + i));
   const halfCol     = Math.floor(seatsPerRow / 2);
 
   const isOccupied = (r, n) => occupied.some(s => s.row === r && s.seat_number === n);
@@ -62,7 +63,12 @@ export default function SeatsPage({ addToast }) {
   };
 
   const getSeatStatus = (r, n) =>
-    isOccupied(r, n) ? "occupied" : isSelected(r, n) ? "selected" : "free";
+
+    {
+      if (isOccupied(r, n)) return "occupied";
+      if (isSelected(r, n)) return "selected";
+      return "free";
+    };
 
   const seatColor = (status) => ({
     free:     { bg: "transparent", border: C.green },
@@ -125,13 +131,19 @@ export default function SeatsPage({ addToast }) {
                       const gap    = seatNum === halfCol + 1
                         ? [<div key={`${rowLabel}-gap`} style={{ width: 10 }} />]
                         : [];
+                      const statusLabel = SEAT_STATUS_LABEL[status] ?? "";
                       return [
                         ...gap,
-                        <div
+                        <button
+                          type="button"
                           key={`${rowLabel}-${seatNum}`}
                           onClick={() => toggleSeat(rowLabel, seatNum)}
+                          aria-label={`Asiento ${rowLabel}${seatNum}${statusLabel}`}
+                          aria-pressed={status === "selected"}
+                          disabled={status === "occupied"}
                           title={`${rowLabel}${seatNum}`}
                           style={{
+                            padding: 0, font: "inherit", outline: "none",
                             width: 26, height: 22, borderRadius: "4px 4px 2px 2px",
                             background: col.bg, border: `1.5px solid ${col.border}`,
                             cursor: status === "occupied" ? "not-allowed" : "pointer",
@@ -142,7 +154,7 @@ export default function SeatsPage({ addToast }) {
                         >
                           {status === "selected" && <span style={{ color: "#0A2A12" }}>✓</span>}
                           {status === "occupied"  && <span style={{ color: "#5A0000", fontSize: 8 }}>✕</span>}
-                        </div>,
+                        </button>,
                       ];
                     })}
                     <span style={{ width: 16, textAlign: "center", fontSize: 11, color: C.grayDark, fontFamily: "'Montserrat', sans-serif" }}>{rowLabel}</span>
@@ -205,14 +217,16 @@ export default function SeatsPage({ addToast }) {
               </div>
             </div>
 
-            {confirming
-              ? <div style={{ display: "flex", justifyContent: "center", padding: 24, background: C.card, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                  <Spinner />
-                </div>
-              : <BtnPrimary onClick={handleConfirm} disabled={!selected.length || fetchLoading} style={{ width: "100%", padding: 14, fontSize: 14 }}>
-                  Confirmar {selected.length > 0 ? `(${selected.length})` : ""}
-                </BtnPrimary>
-            }
+            {confirming && (
+              <div style={{ display: "flex", justifyContent: "center", padding: 24, background: C.card, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                <Spinner />
+              </div>
+            )}
+            {!confirming && (
+              <BtnPrimary onClick={handleConfirm} disabled={!selected.length || fetchLoading} style={{ width: "100%", padding: 14, fontSize: 14 }}>
+                Confirmar {selected.length > 0 ? `(${selected.length})` : ""}
+              </BtnPrimary>
+            )}
             <p style={{ fontSize: 11, color: C.grayDark, textAlign: "center" }}>Máximo 8 asientos por transacción</p>
           </div>
         </div>

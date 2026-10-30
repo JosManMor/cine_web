@@ -1,4 +1,4 @@
-FROM php:8.3-fpm
+FROM php:8.3.36-fpm
 
 ARG HOST_UID=1000
 ARG HOST_GID=1000

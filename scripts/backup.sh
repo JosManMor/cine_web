@@ -7,7 +7,7 @@ BACKUP_DIR="/var/backups/cine"
 LOG_FILE="/var/log/cine_error.log"
 
 # Prefiere variables de entorno (Docker); si no están, lee desde .env
-if [ -z "$DB_DATABASE" ] && [ -f "$ENV_FILE" ]; then
+if [[ -z "$DB_DATABASE" ]] && [[ -f "$ENV_FILE" ]]; then
     DB_DATABASE=$(grep '^DB_DATABASE=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '"'"'"' ')
     DB_USERNAME=$(grep '^DB_USERNAME=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '"'"'"' ')
     DB_PASSWORD=$(grep '^DB_PASSWORD=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '"'"'"' ')
@@ -21,7 +21,7 @@ DB_HOST="${DB_HOST:-127.0.0.1}"
 # Comprueba espacio libre en /
 FREE=$(df / | awk 'NR==2 {print 100 - $5}' | tr -d '%')
 
-if [ "$FREE" -gt 15 ]; then
+if [[ "$FREE" -gt 15 ]]; then
     mkdir -p "$BACKUP_DIR"
     BACKUP_FILE="$BACKUP_DIR/cine_backup_$(date +%F_%H%M%S).sql"
 
@@ -30,7 +30,7 @@ if [ "$FREE" -gt 15 ]; then
         -u "$DB_USERNAME" \
         "$DB_DATABASE" > "$BACKUP_FILE"
 
-    if [ $? -eq 0 ]; then
+    if [[ $? -eq 0 ]]; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') [BACKUP] Success: $BACKUP_FILE" >> "$LOG_FILE"
     else
         echo "$(date '+%Y-%m-%d %H:%M:%S') [BACKUP] Error during mysqldump" >> "$LOG_FILE"

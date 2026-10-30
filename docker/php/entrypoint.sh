@@ -10,22 +10,14 @@ if [ -z "$APP_KEY" ]; then
     fi
 
     if [ -n "$FILE_KEY" ]; then
-        APP_KEY="$FILE_KEY"
+        export APP_KEY="$FILE_KEY"
     else
-        APP_KEY=$(php -r "echo 'base64:'.base64_encode(random_bytes(32));")
-        if [ -f .env ]; then
-            sed -i "s|^APP_KEY=.*|APP_KEY=$APP_KEY|" .env
-            echo "[entrypoint] APP_KEY generada y guardada en backend/.env"
-        else
-            # En Docker las variables llegan desde el .env de la raíz (env_file),
-            # que no está montado en el contenedor: la clave solo vive en memoria.
-            echo "[entrypoint] AVISO: APP_KEY vacía — se generó una clave temporal que cambiará en cada reinicio." >&2
-            echo "[entrypoint] Copia la siguiente línea al .env de la raíz del proyecto y recrea el contenedor (docker compose up -d app):" >&2
-            echo "[entrypoint] APP_KEY=$APP_KEY" >&2
-        fi
+        echo "[entrypoint] APP_KEY vacía — generando y persistiendo en .env..."
+        php artisan key:generate --force --no-interaction
+        APP_KEY=$(grep '^APP_KEY=' .env | cut -d'=' -f2- | tr -d '[:space:]')
+        export APP_KEY
+        echo "[entrypoint] APP_KEY generada y guardada en .env (persistida en el host via bind mount)"
     fi
-
-    export APP_KEY
 fi
 
 if [ ! -f vendor/autoload.php ]; then
@@ -39,5 +31,8 @@ php artisan migrate --force --no-interaction
 
 echo "[entrypoint] Ejecutando seeders..."
 php artisan db:seed --force --no-interaction
+
+echo "[entrypoint] Reagendando funciones demo..."
+php artisan screenings:refresh-demo
 
 exec "$@"

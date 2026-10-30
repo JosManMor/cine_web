@@ -40,8 +40,14 @@ function minutesLeft(dateStr) {
 const STATUS_LABEL = { showing: "EN FUNCIÓN", upcoming: "PRÓXIMA", idle: "SIN FUNCIÓN" };
 const STATUS_COLOR = { showing: C.green, upcoming: "#EF9F27", idle: C.grayDark };
 
+function thresholdColor(pct) {
+  if (pct > 80) return C.red;
+  if (pct > 50) return "#EF9F27";
+  return C.green;
+}
+
 function RoomCard({ r }) {
-  const col       = r.occupancy_pct > 80 ? C.red : r.occupancy_pct > 50 ? "#EF9F27" : C.green;
+  const col       = thresholdColor(r.occupancy_pct);
   const statusCol = STATUS_COLOR[r.status];
 
   return (
@@ -185,7 +191,7 @@ function ServerMonitor() {
     return (
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, minHeight: 82 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
           <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 13, color: C.red }}>
             Error al cargar recursos del servidor
           </h3>
@@ -199,26 +205,18 @@ function ServerMonitor() {
 
   const { cpu_percent = 0, cpu_label = "0%", ram_percent = 0, ram_label = "0 GB / 0 GB" } = stats || {};
 
-  const getBarColor = (pct) => {
-    if (pct > 80) return C.red;
-    if (pct > 50) return "#EF9F27";
-    return C.green;
-  };
-
-  const cpuColor = getBarColor(cpu_percent);
-  const ramColor = getBarColor(ram_percent);
+  const cpuColor = thresholdColor(cpu_percent);
+  const ramColor = thresholdColor(ram_percent);
   const ariaLabel = `Recursos del servidor: Uso de CPU al ${cpu_percent} por ciento, Uso de memoria RAM al ${ram_percent} por ciento, equivalente a ${ram_label}.`;
 
   return (
-    <div
-      role="region"
-      tabIndex={0}
+    <section
       aria-label={ariaLabel}
       style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 20px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 20, boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
     >
       <div style={{ minWidth: 160 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
           <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 13 }}>
             Consumo del Servidor
           </h3>
@@ -244,7 +242,7 @@ function ServerMonitor() {
           <SegmentedBar percent={ram_percent} color={ramColor} />
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 

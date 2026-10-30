@@ -147,8 +147,5 @@ Tests use in-memory SQLite regardless of the `.env` DB setting (configured in `p
 
 ## Bash Scripts (`scripts/`)
 
-`scripts/watchdog.sh` — restarts Apache/MySQL if down, logs to `/var/log/cine_error.log` (native server only; not used in Docker)  
 `scripts/backup.sh` — `mysqldump` only if disk free > 15% (runs in the prod `cron` container at 02:00)  
-`scripts/staff_creator.sh` — bulk Linux user creation for staff (copied into the prod image at `/usr/local/scripts/`)  
-`scripts/hardening.sh` — one-time server hardening (UFW, SSH)  
-`scripts/cine.cron` — cron file for a native install: watchdog every minute (`*/1 * * * *`), backup at 2 AM (`0 2 * * *`).
+`scripts/cine.cron` — cron file: backup at 2 AM (`0 2 * * *`), demo screenings refresh at 00:05.

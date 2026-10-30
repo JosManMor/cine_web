@@ -1,0 +1,7 @@
+# Force LF line endings for files that run inside Linux containers
+*.sh text eol=lf
+docker/php/entrypoint.sh text eol=lf
+docker/php/entrypoint.prod.sh text eol=lf
+docker/php/cron-entrypoint.sh text eol=lf
+scripts/*.sh text eol=lf
+*.cron text eol=lf

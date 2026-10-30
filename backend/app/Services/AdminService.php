@@ -209,11 +209,9 @@ class AdminService
 
         $parts = explode(' ', trim(file_get_contents('/proc/loadavg')));
 
-        if (count($parts) < 3) {
-            return [];
-        }
-
-        return [(float) $parts[0], (float) $parts[1], (float) $parts[2]];
+        return count($parts) >= 3
+            ? [(float) $parts[0], (float) $parts[1], (float) $parts[2]]
+            : [];
     }
 
     private function getCoreCount(): int
@@ -232,25 +230,23 @@ class AdminService
 
     private function readRamStats(): array
     {
+        $unknown = [0, 'Desconocido'];
+
         if (!is_readable('/proc/meminfo')) {
-            return [0, 'Desconocido'];
+            return $unknown;
         }
 
         $meminfo = file_get_contents('/proc/meminfo');
         preg_match('/MemTotal:\s+(\d+)/i', $meminfo, $totalMatches);
-
-        if (empty($totalMatches)) {
-            return [0, 'Desconocido'];
-        }
-
-        $totalKb = (float) $totalMatches[1];
-        $usedKb  = $this->calculateUsedMemoryKb($meminfo, $totalKb);
+        $totalKb = empty($totalMatches) ? 0 : (float) $totalMatches[1];
         $totalMb = $totalKb / 1024;
-        $usedMb  = $usedKb / 1024;
 
         if ($totalMb <= 0) {
-            return [0, 'Desconocido'];
+            return $unknown;
         }
+
+        $usedKb  = $this->calculateUsedMemoryKb($meminfo, $totalKb);
+        $usedMb  = $usedKb / 1024;
 
         $ramPercent = max(0, min(100, (int) round(($usedMb / $totalMb) * 100)));
         $totalGb    = number_format($totalMb / 1024, 1);
