@@ -97,11 +97,8 @@ jobs:
         timeout-minutes: 5
 
       - name: Build and start containers
-        run: docker compose up -d --build
+        run: docker compose up -d --build --wait --wait-timeout 180
         timeout-minutes: 10
-
-      - name: Wait for healthy containers
-        run: bash scripts/wait-healthy.sh 180
 
       - name: Show container states
         if: always()
@@ -164,11 +161,8 @@ jobs:
         timeout-minutes: 5
 
       - name: Build and start containers
-        run: docker compose up -d --build
+        run: docker compose up -d --build --wait --wait-timeout 180
         timeout-minutes: 10
-
-      - name: Wait for healthy containers
-        run: bash scripts/wait-healthy.sh 180
 
       - name: Wait for frontend dev server
         run: |
