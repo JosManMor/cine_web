@@ -40,8 +40,14 @@ function minutesLeft(dateStr) {
 const STATUS_LABEL = { showing: "EN FUNCIÓN", upcoming: "PRÓXIMA", idle: "SIN FUNCIÓN" };
 const STATUS_COLOR = { showing: C.green, upcoming: "#EF9F27", idle: C.grayDark };
 
+function occupancyColor(pct) {
+  if (pct > 80) return C.red;
+  if (pct > 50) return "#EF9F27";
+  return C.green;
+}
+
 function RoomCard({ r }) {
-  const col       = (() => { if (r.occupancy_pct > 80) return C.red; if (r.occupancy_pct > 50) return "#EF9F27"; return C.green; })();
+  const col       = occupancyColor(r.occupancy_pct);
   const statusCol = STATUS_COLOR[r.status];
 
   return (
