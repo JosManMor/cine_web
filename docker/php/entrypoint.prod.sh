@@ -36,4 +36,4 @@ if [ "$1" = "php-fpm" ]; then
     echo "[prod] Listo."
 fi
 
-exec "$@"
+exec gosu www-data "$@"
