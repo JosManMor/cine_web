@@ -238,19 +238,15 @@ class AdminService
 
         $meminfo = file_get_contents('/proc/meminfo');
         preg_match('/MemTotal:\s+(\d+)/i', $meminfo, $totalMatches);
-
-        if (empty($totalMatches)) {
-            return $unknown;
-        }
-
-        $totalKb = (float) $totalMatches[1];
-        $usedKb  = $this->calculateUsedMemoryKb($meminfo, $totalKb);
+        $totalKb = empty($totalMatches) ? 0 : (float) $totalMatches[1];
         $totalMb = $totalKb / 1024;
-        $usedMb  = $usedKb / 1024;
 
         if ($totalMb <= 0) {
             return $unknown;
         }
+
+        $usedKb  = $this->calculateUsedMemoryKb($meminfo, $totalKb);
+        $usedMb  = $usedKb / 1024;
 
         $ramPercent = max(0, min(100, (int) round(($usedMb / $totalMb) * 100)));
         $totalGb    = number_format($totalMb / 1024, 1);

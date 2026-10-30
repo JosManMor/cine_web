@@ -8,6 +8,7 @@ import { useBooking } from "../context/BookingContext";
 import { useAuth } from "../context/AuthContext";
 
 const LANG_LABEL = { original: "Original", dubbed: "Doblada", subtitled: "Subtitulada" };
+const SEAT_STATUS_LABEL = { occupied: " ocupado", selected: " seleccionado" };
 
 function fmtTime(dateStr) {
   if (!dateStr) return "";
@@ -130,7 +131,7 @@ export default function SeatsPage({ addToast }) {
                       const gap    = seatNum === halfCol + 1
                         ? [<div key={`${rowLabel}-gap`} style={{ width: 10 }} />]
                         : [];
-                      const statusLabel = status === "occupied" ? " ocupado" : status === "selected" ? " seleccionado" : "";
+                      const statusLabel = SEAT_STATUS_LABEL[status] ?? "";
                       return [
                         ...gap,
                         <button

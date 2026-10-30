@@ -40,14 +40,14 @@ function minutesLeft(dateStr) {
 const STATUS_LABEL = { showing: "EN FUNCIÓN", upcoming: "PRÓXIMA", idle: "SIN FUNCIÓN" };
 const STATUS_COLOR = { showing: C.green, upcoming: "#EF9F27", idle: C.grayDark };
 
-function occupancyColor(pct) {
+function thresholdColor(pct) {
   if (pct > 80) return C.red;
   if (pct > 50) return "#EF9F27";
   return C.green;
 }
 
 function RoomCard({ r }) {
-  const col       = occupancyColor(r.occupancy_pct);
+  const col       = thresholdColor(r.occupancy_pct);
   const statusCol = STATUS_COLOR[r.status];
 
   return (
@@ -205,14 +205,8 @@ function ServerMonitor() {
 
   const { cpu_percent = 0, cpu_label = "0%", ram_percent = 0, ram_label = "0 GB / 0 GB" } = stats || {};
 
-  const getBarColor = (pct) => {
-    if (pct > 80) return C.red;
-    if (pct > 50) return "#EF9F27";
-    return C.green;
-  };
-
-  const cpuColor = getBarColor(cpu_percent);
-  const ramColor = getBarColor(ram_percent);
+  const cpuColor = thresholdColor(cpu_percent);
+  const ramColor = thresholdColor(ram_percent);
   const ariaLabel = `Recursos del servidor: Uso de CPU al ${cpu_percent} por ciento, Uso de memoria RAM al ${ram_percent} por ciento, equivalente a ${ram_label}.`;
 
   return (
