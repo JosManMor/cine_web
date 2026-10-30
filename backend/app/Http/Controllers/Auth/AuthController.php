@@ -15,6 +15,8 @@ use OpenApi\Attributes as OA;
 
 class AuthController extends Controller
 {
+    private const TAG_AUTH = 'Autenticación';
+
     public function __construct(private readonly AuthService $authService) {}
 
     #[OA\Post(
@@ -33,7 +35,7 @@ class AuthController extends Controller
                 ]
             )
         ),
-        tags: ['Autenticación'],
+        tags: [self::TAG_AUTH],
         responses: [
             new OA\Response(
                 response: 201,
@@ -72,7 +74,7 @@ class AuthController extends Controller
                 ]
             )
         ),
-        tags: ['Autenticación'],
+        tags: [self::TAG_AUTH],
         responses: [
             new OA\Response(
                 response: 200,
@@ -103,7 +105,7 @@ class AuthController extends Controller
         summary: 'Cierre de sesión',
         description: 'Revoca el Bearer Token actual.',
         security: [['bearerAuth' => []]],
-        tags: ['Autenticación'],
+        tags: [self::TAG_AUTH],
         responses: [
             new OA\Response(response: 200, description: 'Sesión cerrada', content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string', example: 'Sesión cerrada correctamente.')])),
             new OA\Response(response: 401, description: 'No autenticado'),

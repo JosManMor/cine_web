@@ -9,6 +9,9 @@ use OpenApi\Attributes as OA;
 
 class AdminController extends Controller
 {
+    private const MSG_UNAUTHENTICATED = 'No autenticado';
+    private const MSG_FORBIDDEN = 'Acceso denegado — no es admin';
+
     public function __construct(private readonly AdminService $adminService) {}
 
     #[OA\Get(
@@ -48,8 +51,8 @@ class AdminController extends Controller
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'No autenticado'),
-            new OA\Response(response: 403, description: 'Acceso denegado — no es admin'),
+            new OA\Response(response: 401, description: self::MSG_UNAUTHENTICATED),
+            new OA\Response(response: 403, description: self::MSG_FORBIDDEN),
         ]
     )]
     public function metrics(): JsonResponse
@@ -78,8 +81,8 @@ class AdminController extends Controller
                     )
                 )
             ),
-            new OA\Response(response: 401, description: 'No autenticado'),
-            new OA\Response(response: 403, description: 'Acceso denegado — no es admin'),
+            new OA\Response(response: 401, description: self::MSG_UNAUTHENTICATED),
+            new OA\Response(response: 403, description: self::MSG_FORBIDDEN),
         ]
     )]
     public function activity(): JsonResponse
@@ -114,8 +117,8 @@ class AdminController extends Controller
                     )
                 )
             ),
-            new OA\Response(response: 401, description: 'No autenticado'),
-            new OA\Response(response: 403, description: 'Acceso denegado — no es admin'),
+            new OA\Response(response: 401, description: self::MSG_UNAUTHENTICATED),
+            new OA\Response(response: 403, description: self::MSG_FORBIDDEN),
         ]
     )]
     public function rooms(): JsonResponse
@@ -142,8 +145,8 @@ class AdminController extends Controller
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'No autenticado'),
-            new OA\Response(response: 403, description: 'Acceso denegado — no es admin'),
+            new OA\Response(response: 401, description: self::MSG_UNAUTHENTICATED),
+            new OA\Response(response: 403, description: self::MSG_FORBIDDEN),
         ]
     )]
     public function system(): JsonResponse
