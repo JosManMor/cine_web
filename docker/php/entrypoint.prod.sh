@@ -23,15 +23,15 @@ if [ "$1" = "php-fpm" ]; then
     esac
 
     echo "[prod] Ejecutando migraciones..."
-    php artisan migrate --force
+    gosu www-data php artisan migrate --force
 
     echo "[prod] Ejecutando seeders..."
-    php artisan db:seed --force
+    gosu www-data php artisan db:seed --force
 
     echo "[prod] Cacheando configuración, rutas y vistas..."
-    php artisan config:cache
-    php artisan route:cache
-    php artisan view:cache
+    gosu www-data php artisan config:cache
+    gosu www-data php artisan route:cache
+    gosu www-data php artisan view:cache
 
     echo "[prod] Listo."
 fi
