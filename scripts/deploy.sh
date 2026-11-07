@@ -14,7 +14,7 @@ COMPOSE=(docker compose -p "$PROJECT" --project-directory "$DEPLOY_DIR" -f "$DEP
 
 # .env.prod lo gestiona el administrador del servidor; aquí solo se comprueba
 # que exista y sea legible, nunca se crea ni se modifica.
-if [ ! -r "$DEPLOY_DIR/.env.prod" ]; then
+if [[ ! -r "$DEPLOY_DIR/.env.prod" ]]; then
     echo "[deploy] ERROR: $DEPLOY_DIR/.env.prod no existe o el runner no puede leerlo." >&2
     exit 1
 fi
