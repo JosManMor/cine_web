@@ -1,72 +1,89 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { C } from "../constants/theme";
-import Spinner from "../components/ui/Spinner";
-import BtnPrimary from "../components/ui/BtnPrimary";
+import PillButton from "../components/ui/PillButton";
+import { AlertIcon, CheckIcon, RefreshIcon, SpinnerIcon } from "../components/ui/icons";
 import { verifyEmail } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
+
+const TITLE = "m-0 mt-8 text-[clamp(2rem,5vw,3.5rem)] leading-[1.05] font-extrabold tracking-tight text-balance text-ink";
+const TEXT = "mx-auto mt-4 max-w-md text-lg leading-relaxed text-ink";
 
 export default function EmailVerifyPage({ addToast }) {
   const { updateUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState("loading");
-  const [errorMsg, setErrorMsg] = useState("");
+  const id        = searchParams.get("id");
+  const hash      = searchParams.get("hash");
+  const expires   = searchParams.get("expires");
+  const signature = searchParams.get("signature");
+  const linkComplete = Boolean(id && hash && expires && signature);
+  const [status, setStatus] = useState(linkComplete ? "loading" : "error");
+  const [errorMsg, setErrorMsg] = useState(linkComplete ? "" : "Al enlace le faltan datos.");
 
+  // El enlace firmado se consume una sola vez, al montar la página.
   useEffect(() => {
-    const id        = searchParams.get("id");
-    const hash      = searchParams.get("hash");
-    const expires   = searchParams.get("expires");
-    const signature = searchParams.get("signature");
+    if (!linkComplete) return;
 
-    if (!id || !hash || !expires || !signature) {
-      setStatus("error");
-      setErrorMsg("Enlace de verificación inválido.");
-      return;
-    }
-
+    let timer;
     verifyEmail(id, hash, { expires, signature })
       .then(() => {
         updateUser({ verified: true });
         setStatus("success");
-        addToast("¡Correo verificado! ✓", "success");
-        setTimeout(() => navigate("/", { replace: true }), 2000);
+        addToast("Correo verificado", "success");
+        timer = setTimeout(() => navigate("/", { replace: true }), 2000);
       })
       .catch(err => {
         setStatus("error");
         setErrorMsg(err.response?.data?.message ?? "El enlace expiró o no es válido.");
       });
-  }, []);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ maxWidth: 400, width: "100%", textAlign: "center", animation: "fadeUp .5s ease forwards" }}>
+    <main className="frame flex min-h-svh items-center justify-center bg-ground pt-28 pb-20 font-sans text-ink">
+      <div key={status} aria-live="polite" className="w-full max-w-xl animate-rise text-center motion-reduce:animate-none">
         {status === "loading" && (
           <>
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-              <Spinner />
-            </div>
-            <p style={{ color: C.gray, fontSize: 14 }}>Verificando tu correo...</p>
+            <span className="mx-auto flex size-20 items-center justify-center rounded-full bg-surface text-accent">
+              <SpinnerIcon size={34} />
+            </span>
+            <h1 className={TITLE}>Verificando tu correo</h1>
+            <p className={TEXT}>Esto solo tarda un momento.</p>
           </>
         )}
+
         {status === "success" && (
           <>
-            <div style={{ width: 72, height: 72, background: C.green, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, margin: "0 auto 16px" }}>✓</div>
-            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, marginBottom: 8 }}>¡CORREO VERIFICADO!</h1>
-            <p style={{ color: C.gray, fontSize: 14 }}>Redirigiendo a la cartelera...</p>
+            <span className="mx-auto flex size-20 items-center justify-center rounded-full bg-ink text-ground">
+              <CheckIcon size={36} />
+            </span>
+            <h1 className={TITLE}>Correo verificado</h1>
+            <p className={TEXT}>Tu cuenta ya está activa. Te llevamos a la cartelera en un momento.</p>
+            <PillButton size="lg" className="mt-10" onClick={() => navigate("/", { replace: true })}>
+              Ir a la cartelera
+            </PillButton>
           </>
         )}
+
         {status === "error" && (
           <>
-            <div style={{ fontSize: 56, marginBottom: 16 }}>⚠️</div>
-            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, marginBottom: 12 }}>ENLACE INVÁLIDO</h1>
-            <p style={{ color: C.gray, fontSize: 14, marginBottom: 24 }}>{errorMsg}</p>
-            <BtnPrimary onClick={() => navigate("/email/pendiente", { replace: true })} style={{ padding: "12px 24px", fontSize: 14 }}>
-              Reenviar verificación
-            </BtnPrimary>
+            <span className="mx-auto flex size-20 items-center justify-center rounded-full bg-surface text-accent">
+              <AlertIcon size={34} />
+            </span>
+            <h1 className={TITLE}>Enlace no válido</h1>
+            <p className={TEXT}>{errorMsg} Solicita un enlace nuevo para activar tu cuenta.</p>
+            <div className="mt-10 flex flex-wrap justify-center gap-3">
+              <PillButton size="lg" className="w-full sm:w-auto" onClick={() => navigate("/email/pendiente", { replace: true })}>
+                <RefreshIcon />
+                Solicitar enlace nuevo
+              </PillButton>
+              <PillButton size="lg" variant="ghost" className="w-full sm:w-auto" onClick={() => navigate("/", { replace: true })}>
+                Volver al inicio
+              </PillButton>
+            </div>
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 }
