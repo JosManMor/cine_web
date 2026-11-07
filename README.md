@@ -115,6 +115,7 @@ El entorno de producción (`docker-compose.prod.yml`) agrega contenedores de que
 - [Sistema de diseño frontend](./docs/frontend-design-system.md)
 - [Entorno Docker y orquestación](./docs/docker-entorno-desarrollo.md)
 - [Deployment en producción](./docs/deployment-produccion.md)
+- [Deployment en servidor personal (preproducción)](./docs/deployment-servidor-personal.md)
 - [Diseño de base de datos](./docs/database-design.md)
 
 ---

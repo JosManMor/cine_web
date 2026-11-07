@@ -34,3 +34,35 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/cine-sendera:staging
             ${{ secrets.DOCKERHUB_USERNAME }}/cine-sendera:${{ github.sha }}
+
+  deploy:
+    name: Deploy to personal server
+    needs: push-prod
+    # Runner instalado en el servidor personal con la etiqueta `cine-deploy`.
+    runs-on: [self-hosted, linux, cine-deploy]
+    environment:
+      name: preprod
+    # Un solo despliegue a la vez; uno nuevo espera a que termine el anterior.
+    concurrency:
+      group: deploy-preprod
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Deploy
+        env:
+          CINE_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/cine-sendera:${{ github.sha }}
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR || '/opt/cine-sendera' }}
+        run: scripts/deploy.sh
+
+      - name: Log out of Docker Hub
+        if: always()
+        run: docker logout
