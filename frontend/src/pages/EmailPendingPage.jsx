@@ -44,7 +44,7 @@ export default function EmailPendingPage({ addToast }) {
           </h1>
 
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink">
-            Enviamos un enlace de verificación a
+            Enviamos un enlace de verificación a{" "}
             <strong className="mt-1 block text-xl font-semibold [overflow-wrap:anywhere] sm:text-2xl">{user?.email}</strong>
           </p>
           <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink">
@@ -72,14 +72,14 @@ export default function EmailPendingPage({ addToast }) {
             </PillButton>
           </div>
 
-          <p role="status" className="mt-5 flex min-h-6 items-center gap-2 text-base text-muted">
+          <output className="mt-5 flex min-h-6 items-center gap-2 text-base text-muted">
             {sent && (
               <>
                 <CheckIcon size={18} className="text-ink" />
                 Te enviamos un enlace nuevo. Revisa también la carpeta de spam.
               </>
             )}
-          </p>
+          </output>
         </section>
 
         <aside aria-labelledby="inbox-title" className="rounded-card bg-surface p-6 sm:p-8 lg:p-10">
