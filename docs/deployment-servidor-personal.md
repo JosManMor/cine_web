@@ -2,8 +2,11 @@
 
 Cada merge (push) a la rama `pre` dispara `.github/workflows/preprod.yml`:
 
+0. **`release`** (GitHub-hosted): ejecuta semantic-release, que calcula la versión, crea el
+   tag `vX.Y.Z` y el GitHub Release (ver [Versionado](#versionado)).
 1. **`push-prod`** (GitHub-hosted): construye `docker/php/Dockerfile.prod` y publica en Docker Hub
-   `<usuario>/cine-sendera:staging` y `<usuario>/cine-sendera:<sha>`.
+   `<usuario>/cine-sendera:staging`, `<usuario>/cine-sendera:<sha>` y, si hubo versión nueva,
+   `<usuario>/cine-sendera:vX.Y.Z`.
 2. **`deploy`** (self-hosted runner en el servidor): ejecuta `scripts/deploy.sh`, que copia
    `docker-compose.prod.yml` al servidor y lo levanta con la imagen `:<sha>` recién publicada.
 
@@ -15,6 +18,33 @@ servidor en el siguiente despliegue.
 
 Se despliega el tag `:<sha>` (no `:staging`) para que cada despliegue sea reproducible y se
 sepa exactamente qué commit está corriendo.
+
+## Versionado
+
+El proyecto se versiona **solo al hacer merge en `pre`** (no existe `main`), con
+[SemVer](https://semver.org/lang/es/) y [semantic-release](https://semantic-release.org/)
+(configuración en `.releaserc.json`). Nadie elige la versión a mano: se deduce de los
+mensajes de commit ([Conventional Commits](https://www.conventionalcommits.org/es/))
+desde el último tag.
+
+| Commit | Efecto | Ejemplo |
+|---|---|---|
+| `fix: …` / `perf: …` | PARCHE (`1.2.0` → `1.2.1`) | `fix(docker): corregir healthcheck` |
+| `feat: …` | MENOR (`1.2.0` → `1.3.0`) | `feat(ui): rediseño de la cartelera` |
+| `feat!: …` o `BREAKING CHANGE:` en el cuerpo | MAYOR (`1.2.0` → `2.0.0`) | `feat(api)!: renombrar /purchases` |
+| `docs`, `chore`, `ci`, `refactor`, `test`, `style`, `build` | ninguno | `docs: actualizar README` |
+
+Si un merge a `pre` no contiene ningún commit que versione, no se crea tag ni release; el
+despliegue se hace igual. Los commits `Merge pull request …` se ignoran, así que lo que
+cuenta son los mensajes de los commits de cada rama.
+
+Resultado de cada versión:
+
+- Tag de git `vX.Y.Z` sobre el commit desplegado.
+- GitHub Release con las notas generadas a partir de los commits.
+- Imagen `<usuario>/cine-sendera:vX.Y.Z` (misma imagen que `:<sha>`).
+
+La primera ejecución analiza todo el historial y publica `v1.0.0`.
 
 ## Requisitos del servidor
 
