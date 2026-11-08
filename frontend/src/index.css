@@ -99,15 +99,16 @@
     padding: 4px 8px;
     background: var(--code-bg);
   }
-}
 
-@media (max-width: 1024px) {
-  h1 {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-  h2 {
-    font-size: 20px;
+  /* Dentro de la capa base para que utilidades como text-2xl o m-0 ganen también por debajo de 1024px. */
+  @media (max-width: 1024px) {
+    h1 {
+      font-size: 36px;
+      margin: 20px 0;
+    }
+    h2 {
+      font-size: 20px;
+    }
   }
 }
 
