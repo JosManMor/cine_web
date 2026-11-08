@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { C } from "../constants/theme";
-import BtnPrimary from "../components/ui/BtnPrimary";
-import BtnSecondary from "../components/ui/BtnSecondary";
-import Spinner from "../components/ui/Spinner";
+import PillButton from "../components/ui/PillButton";
+import { CheckIcon, ClockIcon, ExternalIcon, InboxIcon, MailIcon, RefreshIcon, SpinnerIcon } from "../components/ui/icons";
 import { resendVerification } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
@@ -11,12 +9,15 @@ export default function EmailPendingPage({ addToast }) {
   const { user, clearAuth } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const handleResend = async () => {
     setLoading(true);
+    setSent(false);
     try {
       await resendVerification();
-      addToast("Correo reenviado ✓", "success");
+      setSent(true);
+      addToast("Correo reenviado", "success");
     } catch {
       addToast("No se pudo reenviar. Intenta más tarde.", "error");
     } finally {
@@ -31,69 +32,80 @@ export default function EmailPendingPage({ addToast }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ maxWidth: 480, width: "100%", textAlign: "center", animation: "fadeUp .5s ease forwards" }}>
-        <div style={{ fontSize: 56, marginBottom: 16 }}>📧</div>
-        <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, letterSpacing: 3, marginBottom: 12 }}>VERIFICA TU CORREO</h1>
-        <p style={{ color: C.gray, fontSize: 15, lineHeight: 1.7, marginBottom: 6 }}>
-          Enviamos un enlace de verificación a
-        </p>
-        <p style={{ color: C.white, fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 15, marginBottom: 24 }}>
-          {user?.email}
-        </p>
-        <p style={{ color: C.gray, fontSize: 14, lineHeight: 1.7, marginBottom: 32 }}>
-          Haz clic en el enlace del correo para activar tu cuenta. El enlace expira en 60 minutos.
-        </p>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 20 }}>
-          <p style={{ color: C.gray, fontSize: 13, marginBottom: 16 }}>¿No llegó? Revisa tu carpeta de spam o solicita un nuevo correo.</p>
-          {loading
-            ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-                <Spinner />
-                <span style={{ color: C.gray, fontSize: 14 }}>Enviando...</span>
-              </div>
-            : <BtnPrimary onClick={handleResend} style={{ width: "100%", padding: 12, fontSize: 14 }}>
-                Reenviar correo
-              </BtnPrimary>
-          }
-        </div>
-        <div style={{
-          background: "#451a03",
-          border: "1px solid #92400e",
-          borderRadius: 10,
-          padding: "16px 20px",
-          marginBottom: 20,
-          textAlign: "left",
-        }}>
-          <p style={{ color: "#fbbf24", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>
-            📬 Revisar bandeja de correo
+    <main className="frame flex min-h-svh items-center bg-ground pt-28 pb-20 font-sans text-ink">
+      <div className="mx-auto grid w-full max-w-6xl animate-rise items-start gap-10 motion-reduce:animate-none lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
+        <section aria-labelledby="pending-title">
+          <span className="flex size-14 items-center justify-center rounded-full bg-accent text-ink">
+            <MailIcon size={26} />
+          </span>
+
+          <h1 id="pending-title" className="m-0 mt-8 text-[clamp(2.25rem,6vw,4.5rem)] leading-[1.02] font-extrabold tracking-tight text-balance text-ink">
+            Verifica tu correo
+          </h1>
+
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink">
+            Enviamos un enlace de verificación a{" "}
+            <strong className="mt-1 block text-xl font-semibold [overflow-wrap:anywhere] sm:text-2xl">{user?.email}</strong>
           </p>
-          <p style={{ color: "#fde68a", fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
-            Puedes ver el correo de verificación directamente en el buzón de esta simulación.
+          <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink">
+            Ábrelo para activar tu cuenta y poder comprar entradas.
           </p>
-          <a
+
+          <p className="mt-4 flex items-center gap-2 text-base text-muted">
+            <ClockIcon size={18} />
+            El enlace caduca en 60 minutos.
+          </p>
+
+          <div className="mt-10 flex flex-wrap gap-3">
+            <PillButton
+              size="lg"
+              onClick={handleResend}
+              disabled={loading}
+              aria-busy={loading}
+              className="w-full disabled:cursor-wait disabled:opacity-70 sm:w-auto"
+            >
+              {loading ? <SpinnerIcon /> : <RefreshIcon />}
+              {loading ? "Enviando…" : "Reenviar correo"}
+            </PillButton>
+            <PillButton size="lg" variant="ghost" onClick={handleLogout} className="w-full sm:w-auto">
+              Cerrar sesión
+            </PillButton>
+          </div>
+
+          <output className="mt-5 flex min-h-6 items-center gap-2 text-base text-muted">
+            {sent && (
+              <>
+                <CheckIcon size={18} className="text-ink" />
+                Te enviamos un enlace nuevo. Revisa también la carpeta de spam.
+              </>
+            )}
+          </output>
+        </section>
+
+        <aside aria-labelledby="inbox-title" className="rounded-card bg-surface p-6 sm:p-8 lg:p-10">
+          <InboxIcon size={28} className="text-accent" />
+          <h2 id="inbox-title" className="m-0 mt-6 text-2xl font-bold tracking-tight text-ink">
+            Bandeja de la demostración
+          </h2>
+          <p className="mt-3 text-base leading-relaxed text-ink">
+            En esta simulación los correos no salen a internet: llegan a un buzón de prueba donde puedes abrir el enlace de verificación.
+          </p>
+          <PillButton
+            as="a"
             href="/mailpit/"
             target="_blank"
             rel="noopener noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              background: "#f59e0b",
-              color: "#1c1917",
-              fontWeight: 600,
-              fontSize: 13,
-              padding: "8px 16px",
-              borderRadius: 6,
-              textDecoration: "none",
-            }}
+            variant="light"
+            className="mt-8"
           >
-            Abrir bandeja de correo →
-          </a>
-        </div>
-        <BtnSecondary onClick={handleLogout} style={{ padding: "10px 24px", fontSize: 13 }}>
-          Cerrar sesión
-        </BtnSecondary>
+            Abrir bandeja de correo
+            <ExternalIcon size={18} />
+          </PillButton>
+          <p className="mt-6 text-sm leading-relaxed text-muted">
+            ¿No aparece? Espera unos segundos o pulsa «Reenviar correo».
+          </p>
+        </aside>
       </div>
-    </div>
+    </main>
   );
 }
