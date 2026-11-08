@@ -34,9 +34,10 @@ const EMOJI = /\p{Extended_Pictographic}/u;
 beforeEach(() => vi.clearAllMocks());
 
 describe('EmailPendingPage', () => {
-  it('muestra el correo del usuario sin emojis', () => {
+  it('pone la bandeja de demostración como título principal', () => {
     const { container } = render(<MemoryRouter><EmailPendingPage addToast={addToast} /></MemoryRouter>);
-    expect(screen.getByRole('heading', { level: 1, name: 'Verifica tu correo' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Revisa la bandeja de demostración' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Verifica tu correo' })).toBeInTheDocument();
     expect(screen.getByText('ana@cine.test')).toBeInTheDocument();
     expect(container.textContent).not.toMatch(EMOJI);
   });
