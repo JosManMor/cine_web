@@ -3,7 +3,8 @@ export function fieldErrors(zodError) {
   const errors = {};
   for (const issue of zodError.issues) {
     const key = issue.path[0];
-    (errors[key] ??= []).push(issue.message);
+    if (!errors[key]) errors[key] = [];
+    errors[key].push(issue.message);
   }
   return errors;
 }
