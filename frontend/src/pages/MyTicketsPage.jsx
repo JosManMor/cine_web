@@ -95,6 +95,8 @@ function FunctionCard({ group, featured, open, onToggle, now }) {
   const titleId = `fn-${group.key}`;
   const panelId = `qr-${group.key}`;
   const count = group.tickets.length;
+  const codeWord = count === 1 ? "código" : "códigos";
+  const toggleLabel = open ? "Ocultar código" : `Mostrar ${codeWord}`;
 
   return (
     <article aria-labelledby={titleId} className="rounded-card bg-surface">
@@ -135,7 +137,7 @@ function FunctionCard({ group, featured, open, onToggle, now }) {
           onClick={onToggle}
           className="-mr-2 inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-ink transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white"
         >
-          {open ? "Ocultar código" : `Mostrar ${count === 1 ? "código" : "códigos"}`}
+          {toggleLabel}
           <ChevronDown size={18} className={`transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`} />
         </button>
       </div>
@@ -210,9 +212,9 @@ export default function MyTicketsPage() {
         </header>
 
         {state.status === "loading" && (
-          <div className="flex justify-center py-24" role="status" aria-label="Cargando tus tickets">
+          <output aria-label="Cargando tus tickets" className="flex justify-center py-24">
             <Spinner />
-          </div>
+          </output>
         )}
 
         {state.status === "error" && (
@@ -236,23 +238,26 @@ export default function MyTicketsPage() {
 
         {state.status === "ready" && groups.length > 0 && (
           <>
-            <div role="group" aria-label="Filtrar funciones por fecha" className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {FILTERS.map(f => {
-                const active = f.id === filter;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => setFilter(f.id)}
-                    className={`flex cursor-pointer flex-col items-start rounded-tile px-4 py-3 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${active ? "bg-raised text-ink ring-[1.5px] ring-ink ring-inset" : "bg-surface text-ink hover:bg-raised"}`}
-                  >
-                    <span className="text-sm text-muted">{f.label}</span>
-                    <span className="mt-0.5 text-xl font-bold tabular-nums">{counts[f.id]}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <fieldset className="m-0 mt-8 min-w-0 border-0 p-0">
+              <legend className="sr-only">Filtrar funciones por fecha</legend>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {FILTERS.map(f => {
+                  const active = f.id === filter;
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setFilter(f.id)}
+                      className={`flex cursor-pointer flex-col items-start rounded-tile px-4 py-3 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${active ? "bg-raised text-ink ring-[1.5px] ring-ink ring-inset" : "bg-surface text-ink hover:bg-raised"}`}
+                    >
+                      <span className="text-sm text-muted">{f.label}</span>
+                      <span className="mt-0.5 text-xl font-bold tabular-nums">{counts[f.id]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
 
             {visible.length === 0 && (
               <div className="mt-6">
