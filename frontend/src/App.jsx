@@ -7,7 +7,7 @@ import { logout } from "./api/auth";
 import Navbar from "./components/Navbar";
 import Toast from "./components/ui/Toast";
 import DemoBanner from "./components/DemoBanner";
-import TermsDialog from "./components/TermsDialog";
+import { TermsConsentDialog, TermsReviewDialog } from "./components/TermsDialog";
 import { hasAcceptedTerms, saveTermsAcceptance } from "./utils/simulationNotice";
 import HomePage from "./pages/HomePage";
 import MovieDetailPage from "./pages/MovieDetailPage";
@@ -53,12 +53,11 @@ export default function App() {
   return (
     <>
       {termsAccepted && <DemoBanner onShowTerms={() => setReviewingTerms(true)} />}
-      <TermsDialog
-        open={!termsAccepted || reviewingTerms}
-        reviewOnly={termsAccepted}
+      <TermsConsentDialog
+        open={!termsAccepted}
         onAccept={() => { saveTermsAcceptance(); setTermsAccepted(true); }}
-        onClose={() => setReviewingTerms(false)}
       />
+      <TermsReviewDialog open={reviewingTerms} onClose={() => setReviewingTerms(false)} />
       <style>{FONTS}</style>
       <div style={{ background: C.bg, minHeight: "100vh" }}>
         <Toast toasts={toasts} />

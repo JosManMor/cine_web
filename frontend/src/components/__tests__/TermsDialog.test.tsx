@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, createEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import TermsDialog from '../TermsDialog';
+import { TermsConsentDialog, TermsReviewDialog } from '../TermsDialog';
 
 // Escape en un <dialog> modal dispara el evento `cancel`.
 function pressEscape() {
@@ -11,21 +11,21 @@ function pressEscape() {
   return event;
 }
 
-describe('TermsDialog', () => {
+describe('TermsConsentDialog', () => {
   it('usa el elemento <dialog> nativo y lo abre', () => {
-    render(<TermsDialog open />);
+    render(<TermsConsentDialog open />);
     const dialog = screen.getByRole('dialog');
     expect(dialog.tagName).toBe('DIALOG');
     expect(dialog).toHaveAttribute('open');
   });
 
   it('no renderiza nada cuando está cerrado', () => {
-    render(<TermsDialog open={false} />);
+    render(<TermsConsentDialog open={false} />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('muestra el aviso de simulación, los términos y el aviso de privacidad', () => {
-    render(<TermsDialog open />);
+    render(<TermsConsentDialog open />);
     expect(screen.getByRole('dialog', { name: 'Antes de continuar' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Esto es un entorno de simulación' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Términos y condiciones' })).toBeInTheDocument();
@@ -34,7 +34,7 @@ describe('TermsDialog', () => {
 
   it('solo permite aceptar cuando se marcan las tres casillas', () => {
     const onAccept = vi.fn();
-    render(<TermsDialog open onAccept={onAccept} />);
+    render(<TermsConsentDialog open onAccept={onAccept} />);
     const button = screen.getByRole('button', { name: 'Aceptar y continuar' });
     const boxes = screen.getAllByRole('checkbox');
 
@@ -51,16 +51,23 @@ describe('TermsDialog', () => {
     expect(onAccept).toHaveBeenCalledTimes(1);
   });
 
-  it('en modo consentimiento Escape no cierra el diálogo', () => {
-    const onClose = vi.fn();
-    render(<TermsDialog open onClose={onClose} />);
+  it('Escape no cierra el diálogo', () => {
+    render(<TermsConsentDialog open />);
     expect(pressEscape().defaultPrevented).toBe(true);
-    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+});
+
+describe('TermsReviewDialog', () => {
+  it('no renderiza nada cuando está cerrado', () => {
+    render(<TermsReviewDialog open={false} onClose={vi.fn()} />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('en modo consulta no muestra casillas y se cierra con Escape o con el botón', () => {
+  it('no muestra casillas y se cierra con Escape o con el botón', () => {
     const onClose = vi.fn();
-    render(<TermsDialog open reviewOnly onClose={onClose} />);
+    render(<TermsReviewDialog open onClose={onClose} />);
+    expect(screen.getByRole('dialog', { name: 'Términos y privacidad' })).toBeInTheDocument();
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 
     pressEscape();

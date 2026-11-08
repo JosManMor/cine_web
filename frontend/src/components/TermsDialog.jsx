@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import PillButton from "./ui/PillButton";
 
 const CONSENTS = [
@@ -17,26 +17,20 @@ function Section({ title, children }) {
 }
 
 /**
- * Diálogo modal con el aviso de simulación, los términos y condiciones y el aviso de privacidad.
- * - Modo consentimiento (por defecto): no se puede cerrar hasta marcar todas las casillas y aceptar.
- * - Modo consulta (`reviewOnly`): solo lectura, se cierra con el botón o con Escape.
+ * Contenedor común: `<dialog>` modal con el aviso de simulación, los términos y el aviso de privacidad.
+ * Solo se monta mientras está visible. El comportamiento lo deciden los handlers que recibe:
+ * - `onEscape`: qué hacer al pulsar Escape (si se omite, Escape se ignora).
+ * - `onForcedClose`: qué hacer si el navegador cierra el diálogo por su cuenta.
  */
-export default function TermsDialog({ open, reviewOnly = false, onAccept, onClose }) {
-  const [checked, setChecked] = useState({});
-  const panelRef = useRef(null);
-  const onCloseRef = useRef(onClose);
+function TermsDialogShell({ title, onEscape, onForcedClose, onSubmit, footer }) {
+  const dialogRef = useRef(null);
   const titleId = useId();
   const descId = useId();
-
-  const allChecked = CONSENTS.every(c => checked[c.id]);
-
-  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   // `showModal()` coloca el diálogo en la capa superior: el resto de la página queda inerte y el foco
   // atrapado dentro. jsdom no lo implementa, así que en los tests se cae al atributo `open`.
   useLayoutEffect(() => {
-    const dialog = panelRef.current;
-    if (!open || !dialog) return;
+    const dialog = dialogRef.current;
     const previousFocus = document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -51,44 +45,27 @@ export default function TermsDialog({ open, reviewOnly = false, onAccept, onClos
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus?.();
     };
-  }, [open]);
+  }, []);
 
-  if (!open) return null;
-
-  function toggle(id) {
-    setChecked(prev => ({ ...prev, [id]: !prev[id] }));
-  }
-
-  // Escape dispara `cancel`: en modo consentimiento se ignora; en modo consulta cierra.
+  // Escape dispara `cancel`; el cierre lo controla siempre React, no el navegador.
   function handleCancel(e) {
     e.preventDefault();
-    if (reviewOnly) onCloseRef.current?.();
-  }
-
-  // Algunos navegadores cierran igualmente tras varios Escape; sin aceptar, el diálogo se reabre.
-  function handleNativeClose() {
-    if (reviewOnly) onCloseRef.current?.();
-    else panelRef.current?.showModal?.();
-  }
-
-  function submit(e) {
-    e.preventDefault();
-    if (allChecked) onAccept?.();
+    onEscape?.();
   }
 
   return (
     <dialog
-      ref={panelRef}
+      ref={dialogRef}
       aria-labelledby={titleId}
       aria-describedby={descId}
       onCancel={handleCancel}
-      onClose={handleNativeClose}
+      onClose={() => onForcedClose(dialogRef.current)}
       /* taste-skill-ignore: diálogo modal, overlay real */ className="m-auto mb-0 max-h-[92svh] w-full max-w-2xl animate-rise flex-col overflow-hidden rounded-t-card bg-surface p-0 font-sans text-ink shadow-2xl outline-none backdrop:bg-ground/80 open:flex motion-reduce:animate-none sm:mb-auto sm:max-h-[min(88svh,52rem)] sm:rounded-card"
     >
-      <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+      <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
         <header className="px-5 pt-6 pb-4 sm:px-8 sm:pt-8">
           <h2 id={titleId} className="m-0 text-2xl leading-tight font-extrabold text-ink sm:text-3xl">
-            {reviewOnly ? "Términos y privacidad" : "Antes de continuar"}
+            {title}
           </h2>
           <p id={descId} className="mt-2 text-sm leading-relaxed text-muted sm:text-base">
             Cine Sendera es un proyecto académico. Lee estas condiciones antes de usar el sitio.
@@ -127,43 +104,90 @@ export default function TermsDialog({ open, reviewOnly = false, onAccept, onClos
         </div>
 
         <footer className="space-y-4 bg-raised px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-8 sm:pb-6">
-          {reviewOnly ? (
-            <div className="flex justify-end">
-              <PillButton variant="light" onClick={onClose}>Cerrar</PillButton>
-            </div>
-          ) : (
-            <>
-              <fieldset className="flex flex-col gap-3 border-0 p-0">
-                <legend className="sr-only">Confirmaciones requeridas</legend>
-                {CONSENTS.map(c => (
-                  /* `!`: la hoja global heredada de constants/theme.js fija label/input sin capa. */
-                  <label key={c.id} className="m-0! flex! cursor-pointer items-start gap-3 font-sans! text-sm! leading-snug text-ink!">
-                    <input
-                      type="checkbox"
-                      checked={!!checked[c.id]}
-                      onChange={() => toggle(c.id)}
-                      className="mt-0.5 size-5! shrink-0 cursor-pointer p-0! accent-accent"
-                    />
-                    <span>{c.label}</span>
-                  </label>
-                ))}
-              </fieldset>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-muted" aria-live="polite">
-                  {allChecked ? "Listo, ya puedes continuar." : "Marca las tres casillas para continuar."}
-                </p>
-                <PillButton
-                  type="submit"
-                  disabled={!allChecked}
-                  className="w-full disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-muted disabled:active:scale-100 sm:w-auto"
-                >
-                  Aceptar y continuar
-                </PillButton>
-              </div>
-            </>
-          )}
+          {footer}
         </footer>
       </form>
     </dialog>
+  );
+}
+
+/** Primera visita: bloquea el sitio hasta marcar las tres casillas y aceptar. Escape no lo cierra. */
+export function TermsConsentDialog({ open, onAccept }) {
+  const [checked, setChecked] = useState({});
+
+  if (!open) return null;
+
+  const allChecked = CONSENTS.every(c => checked[c.id]);
+
+  function toggle(id) {
+    setChecked(prev => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    if (allChecked) onAccept?.();
+  }
+
+  // Algunos navegadores cierran igualmente tras varios Escape; sin aceptar, el diálogo se reabre.
+  function reopen(dialog) {
+    dialog?.showModal?.();
+  }
+
+  return (
+    <TermsDialogShell
+      title="Antes de continuar"
+      onForcedClose={reopen}
+      onSubmit={submit}
+      footer={
+        <>
+          <fieldset className="flex flex-col gap-3 border-0 p-0">
+            <legend className="sr-only">Confirmaciones requeridas</legend>
+            {CONSENTS.map(c => (
+              /* `!`: la hoja global heredada de constants/theme.js fija label/input sin capa. */
+              <label key={c.id} className="m-0! flex! cursor-pointer items-start gap-3 font-sans! text-sm! leading-snug text-ink!">
+                <input
+                  type="checkbox"
+                  checked={!!checked[c.id]}
+                  onChange={() => toggle(c.id)}
+                  className="mt-0.5 size-5! shrink-0 cursor-pointer p-0! accent-accent"
+                />
+                <span>{c.label}</span>
+              </label>
+            ))}
+          </fieldset>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-muted" aria-live="polite">
+              {allChecked ? "Listo, ya puedes continuar." : "Marca las tres casillas para continuar."}
+            </p>
+            <PillButton
+              type="submit"
+              disabled={!allChecked}
+              className="w-full disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-muted disabled:active:scale-100 sm:w-auto"
+            >
+              Aceptar y continuar
+            </PillButton>
+          </div>
+        </>
+      }
+    />
+  );
+}
+
+/** Consulta posterior desde el banner: solo lectura, se cierra con el botón o con Escape. */
+export function TermsReviewDialog({ open, onClose }) {
+  if (!open) return null;
+
+  return (
+    <TermsDialogShell
+      title="Términos y privacidad"
+      onEscape={onClose}
+      onForcedClose={onClose}
+      onSubmit={e => e.preventDefault()}
+      footer={
+        <div className="flex justify-end">
+          <PillButton variant="light" onClick={onClose}>Cerrar</PillButton>
+        </div>
+      }
+    />
   );
 }
