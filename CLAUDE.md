@@ -13,6 +13,16 @@ Cine Sendera is a cinema management system (ticketing, seat selection, admin das
 - **Documentation** (docs/, comments explaining business rules): Spanish
 - **Exception**: `CLAUDE.md` se mantiene en inglés por compatibilidad con herramientas y asistentes que consumen este archivo.
 
+## Git Workflow — Mandatory
+
+**Never commit directly to `dev`, `pre` or `main`.** Every change — feature, fix, refactor, docs, CI, even a one-line tweak — goes through a branch and a PR to `dev`:
+
+1. Branch from an up-to-date `dev`: `git fetch origin && git switch -c <type>/<short-description> origin/dev`.
+2. Branch prefixes match the change type: `feat/`, `fix/`, `refactor/`, `docs/`, `ci/`, `chore/`, `test/`.
+3. Commit with Conventional Commits (`fix(frontend): …`, `docs: …`); semantic-release derives versions from them. Commit messages are written in Spanish.
+4. Push the branch and open a PR with base `dev`. Unrelated changes go in separate branches/PRs.
+5. If work was started on `dev` by mistake, move it to a new branch before committing (`git switch -c <type>/<name>` keeps the uncommitted changes).
+
 ## Development Setup
 
 ```bash
@@ -140,7 +150,7 @@ DB::transaction(function () {
 
 ### Frontend redesign workflow
 
-UI redesigns are done **one view at a time**, each in its own git worktree and branch:
+UI redesigns follow the Git Workflow above and are done **one view at a time**, each in its own git worktree and branch:
 
 1. **Worktree per view:** `git worktree add -b feat/redesign-<view> .claude/worktrees/redesign-<view> dev`. Never redesign two views in the same worktree; never touch files owned by another view's worktree (shared components go in their own PR first).
 2. **Agent:** delegate the implementation to the `voltagent-core-dev:frontend-developer` subagent (React + Tailwind). Use `voltagent-core-dev:ui-designer` only for design-system decisions, and `voltagent-qa-sec:accessibility-tester` / `ui-ux-tester` for review.
