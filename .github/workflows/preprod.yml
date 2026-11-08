@@ -39,11 +39,14 @@ jobs:
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: >
-          npx --yes
-          -p semantic-release@25.0.9
-          -p conventional-changelog-conventionalcommits@9.3.1
-          semantic-release
+        # Instalación explícita con versiones fijas y sin scripts de ciclo de
+        # vida (en vez de `npx`, que instala bajo demanda y los ejecuta).
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund \
+            --prefix "$RUNNER_TEMP/semantic-release" \
+            semantic-release@25.0.9 \
+            conventional-changelog-conventionalcommits@9.3.1
+          "$RUNNER_TEMP/semantic-release/node_modules/.bin/semantic-release"
 
       - name: Read released version
         id: version
