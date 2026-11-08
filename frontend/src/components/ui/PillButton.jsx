@@ -14,7 +14,7 @@ export default function PillButton({ variant = "primary", size = "md", className
   const props = Tag === "button" ? { type: "button", ...rest } : rest;
   return (
     <Tag
-      className={`inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full font-semibold whitespace-nowrap transition active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={`inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full font-semibold whitespace-nowrap transition enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
       {...props}
     >
       {children}
