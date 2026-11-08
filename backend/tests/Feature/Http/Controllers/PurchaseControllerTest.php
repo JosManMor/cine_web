@@ -323,4 +323,22 @@ class PurchaseControllerTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_my_tickets_includes_screening_and_poster(): void
+    {
+        $user      = $this->makeVerifiedUser();
+        $movie     = $this->makeMovie();
+        $movie->update(['poster_url' => 'https://example.com/poster.jpg']);
+        $screening = $this->makeScreening($this->makeRoom(), $movie);
+        $purchase  = $this->makePurchase($user, $screening);
+        $purchase->purchaseSeats()->update(['ticket_code' => 'TEST-CODE-1']);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson(self::MY_TICKETS_URI);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('0.ticket_code', 'TEST-CODE-1')
+            ->assertJsonPath('0.screening_id', $screening->id)
+            ->assertJsonPath('0.poster_url', 'https://example.com/poster.jpg');
+    }
 }
