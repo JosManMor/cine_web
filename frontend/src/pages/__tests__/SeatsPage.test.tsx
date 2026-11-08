@@ -75,12 +75,62 @@ describe('SeatsPage', () => {
     await waitFor(() => expect(screen.getByTitle('A2')).toBeInTheDocument());
 
     const occupiedSeat = screen.getByTitle('A2');
-    expect(occupiedSeat).toHaveStyle({ cursor: 'not-allowed' });
+    expect(occupiedSeat).toHaveAttribute('aria-disabled', 'true');
 
     fireEvent.click(occupiedSeat);
 
-    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(occupiedSeat).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText(/Toca una butaca libre/)).toBeInTheDocument();
     expect(addToast).not.toHaveBeenCalled();
+  });
+
+  it('registra varios toques seguidos sin perder ninguno y suma el total', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByTitle('A1')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTitle('A1'));
+    fireEvent.click(screen.getByTitle('B3'));
+    fireEvent.click(screen.getByTitle('C4'));
+
+    for (const label of ['A1', 'B3', 'C4']) {
+      expect(screen.getByTitle(label)).toHaveAttribute('aria-pressed', 'true');
+    }
+    expect(screen.getAllByText('$360.00').length).toBeGreaterThan(0);
+  });
+
+  it('quita un asiento desde el resumen', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByTitle('A1')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTitle('A1'));
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar asiento A1' }));
+
+    expect(screen.getByTitle('A1')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('avisa al pasar de 8 asientos y no agrega el noveno', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByTitle('A1')).toBeInTheDocument());
+
+    const free = ['A1', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4', 'C1', 'C2'];
+    free.forEach(t => fireEvent.click(screen.getByTitle(t)));
+
+    expect(addToast).toHaveBeenCalledWith('Máximo 8 asientos por compra', 'error');
+    expect(screen.getByTitle('C2')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('mueve el foco entre butacas con las flechas y deja un solo tabulador en el plano', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByTitle('A1')).toBeInTheDocument());
+
+    const seats = screen.getAllByRole('button', { name: /^Asiento / });
+    expect(seats.filter(b => b.tabIndex === 0)).toHaveLength(1);
+
+    screen.getByTitle('A1').focus();
+    fireEvent.keyDown(screen.getByTitle('A1'), { key: 'ArrowRight' });
+    expect(screen.getByTitle('A2')).toHaveFocus();
+    fireEvent.keyDown(screen.getByTitle('A2'), { key: 'ArrowDown' });
+    expect(screen.getByTitle('B2')).toHaveFocus();
   });
 
   it('no consulta la API ni renderiza asientos cuando la URL no incluye screeningId', () => {
