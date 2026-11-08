@@ -57,9 +57,11 @@ export default function SeatMap({ rowLabels, seatsPerRow, getStatus, onToggle })
           {seatNumbers.map(n => <span key={n} style={{ gridColumn: cell(n) }}>{n}</span>)}
         </div>
 
-        <div role="group" aria-label="Plano de asientos" className="flex flex-col gap-1.5 sm:gap-2">
+        <fieldset className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0 sm:gap-2">
+          <legend className="sr-only">Plano de asientos</legend>
           {rowLabels.map((rowLabel, r) => (
-            <div key={rowLabel} role="group" aria-label={`Fila ${rowLabel}`} className="grid items-center gap-x-0.5 sm:gap-x-1.5" style={template}>
+            <fieldset key={rowLabel} className="m-0 grid min-w-0 border-0 p-0 items-center gap-x-0.5 sm:gap-x-1.5" style={template}>
+              <legend className="sr-only">Fila {rowLabel}</legend>
               <span aria-hidden="true" className="text-center text-xs font-semibold text-muted">{rowLabel}</span>
               {seatNumbers.map((seatNum, c) => {
                 const status = getStatus(rowLabel, seatNum);
@@ -86,9 +88,9 @@ export default function SeatMap({ rowLabels, seatsPerRow, getStatus, onToggle })
                 );
               })}
               <span aria-hidden="true" className="text-center text-xs font-semibold text-muted" style={{ gridColumn: seatsPerRow + 3 }}>{rowLabel}</span>
-            </div>
+            </fieldset>
           ))}
-        </div>
+        </fieldset>
       </div>
     </div>
   );
