@@ -14,7 +14,9 @@ class TicketResource extends JsonResource
         return [
             'ticket_code'   => $this->ticket_code,
             'status'        => $this->status,
+            'screening_id'  => $screening->id,
             'movie_title'   => $screening->movie->title,
+            'poster_url'    => $screening->movie->poster_url,
             'start_time'    => $screening->start_time,
             'format'        => $screening->format,
             'language_type' => $screening->language_type,
