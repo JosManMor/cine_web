@@ -1,5 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import PillButton from "./ui/PillButton";
 
 const CONSENTS = [
@@ -33,27 +32,26 @@ export default function TermsDialog({ open, reviewOnly = false, onAccept, onClos
 
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
-  useEffect(() => {
-    if (!open) return;
-    const root = document.getElementById("root");
+  // `showModal()` coloca el diálogo en la capa superior: el resto de la página queda inerte y el foco
+  // atrapado dentro. jsdom no lo implementa, así que en los tests se cae al atributo `open`.
+  useLayoutEffect(() => {
+    const dialog = panelRef.current;
+    if (!open || !dialog) return;
     const previousFocus = document.activeElement;
     const previousOverflow = document.body.style.overflow;
-    root?.setAttribute("inert", "");
     document.body.style.overflow = "hidden";
-    panelRef.current?.focus();
-
-    function onKey(e) {
-      if (e.key === "Escape" && reviewOnly) onCloseRef.current?.();
+    if (!dialog.open) {
+      if (typeof dialog.showModal === "function") dialog.showModal();
+      else dialog.setAttribute("open", "");
     }
-    document.addEventListener("keydown", onKey);
+    // Sin esto el navegador enfoca el área con scroll; así el lector de pantalla anuncia el título.
+    dialog.focus();
 
     return () => {
-      document.removeEventListener("keydown", onKey);
-      root?.removeAttribute("inert");
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus?.();
     };
-  }, [open, reviewOnly]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -61,23 +59,33 @@ export default function TermsDialog({ open, reviewOnly = false, onAccept, onClos
     setChecked(prev => ({ ...prev, [id]: !prev[id] }));
   }
 
+  // Escape dispara `cancel`: en modo consentimiento se ignora; en modo consulta cierra.
+  function handleCancel(e) {
+    e.preventDefault();
+    if (reviewOnly) onCloseRef.current?.();
+  }
+
+  // Algunos navegadores cierran igualmente tras varios Escape; sin aceptar, el diálogo se reabre.
+  function handleNativeClose() {
+    if (reviewOnly) onCloseRef.current?.();
+    else panelRef.current?.showModal?.();
+  }
+
   function submit(e) {
     e.preventDefault();
     if (allChecked) onAccept?.();
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-400 flex items-end justify-center bg-ground/80 font-sans sm:items-center sm:p-6">
-      <form
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={descId}
-        tabIndex={-1}
-        onSubmit={submit}
-        /* taste-skill-ignore: diálogo modal, overlay real */ className="flex max-h-[92svh] w-full max-w-2xl animate-rise flex-col overflow-hidden rounded-t-card bg-surface text-ink shadow-2xl outline-none motion-reduce:animate-none sm:max-h-[min(88svh,52rem)] sm:rounded-card"
-      >
+  return (
+    <dialog
+      ref={panelRef}
+      aria-labelledby={titleId}
+      aria-describedby={descId}
+      onCancel={handleCancel}
+      onClose={handleNativeClose}
+      /* taste-skill-ignore: diálogo modal, overlay real */ className="m-auto mb-0 max-h-[92svh] w-full max-w-2xl animate-rise flex-col overflow-hidden rounded-t-card bg-surface p-0 font-sans text-ink shadow-2xl outline-none backdrop:bg-ground/80 open:flex motion-reduce:animate-none sm:mb-auto sm:max-h-[min(88svh,52rem)] sm:rounded-card"
+    >
+      <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
         <header className="px-5 pt-6 pb-4 sm:px-8 sm:pt-8">
           <h2 id={titleId} className="m-0 text-2xl leading-tight font-extrabold text-ink sm:text-3xl">
             {reviewOnly ? "Términos y privacidad" : "Antes de continuar"}
@@ -156,7 +164,6 @@ export default function TermsDialog({ open, reviewOnly = false, onAccept, onClos
           )}
         </footer>
       </form>
-    </div>,
-    document.body,
+    </dialog>
   );
 }

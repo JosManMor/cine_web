@@ -1,9 +1,24 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, createEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import TermsDialog from '../TermsDialog';
 
+// Escape en un <dialog> modal dispara el evento `cancel`.
+function pressEscape() {
+  const dialog = screen.getByRole('dialog');
+  const event = createEvent('cancel', dialog, { cancelable: true });
+  fireEvent(dialog, event);
+  return event;
+}
+
 describe('TermsDialog', () => {
+  it('usa el elemento <dialog> nativo y lo abre', () => {
+    render(<TermsDialog open />);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.tagName).toBe('DIALOG');
+    expect(dialog).toHaveAttribute('open');
+  });
+
   it('no renderiza nada cuando está cerrado', () => {
     render(<TermsDialog open={false} />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -39,7 +54,7 @@ describe('TermsDialog', () => {
   it('en modo consentimiento Escape no cierra el diálogo', () => {
     const onClose = vi.fn();
     render(<TermsDialog open onClose={onClose} />);
-    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(pressEscape().defaultPrevented).toBe(true);
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -48,7 +63,7 @@ describe('TermsDialog', () => {
     render(<TermsDialog open reviewOnly onClose={onClose} />);
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 
-    fireEvent.keyDown(document, { key: 'Escape' });
+    pressEscape();
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
     expect(onClose).toHaveBeenCalledTimes(2);
   });
