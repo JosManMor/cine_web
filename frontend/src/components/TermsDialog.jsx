@@ -111,6 +111,11 @@ function TermsDialogShell({ title, onEscape, onForcedClose, onSubmit, footer }) 
   );
 }
 
+// Algunos navegadores cierran igualmente tras varios Escape; sin aceptar, el diálogo se reabre.
+function reopen(dialog) {
+  dialog?.showModal?.();
+}
+
 /** Primera visita: bloquea el sitio hasta marcar las tres casillas y aceptar. Escape no lo cierra. */
 export function TermsConsentDialog({ open, onAccept }) {
   const [checked, setChecked] = useState({});
@@ -126,11 +131,6 @@ export function TermsConsentDialog({ open, onAccept }) {
   function submit(e) {
     e.preventDefault();
     if (allChecked) onAccept?.();
-  }
-
-  // Algunos navegadores cierran igualmente tras varios Escape; sin aceptar, el diálogo se reabre.
-  function reopen(dialog) {
-    dialog?.showModal?.();
   }
 
   return (
