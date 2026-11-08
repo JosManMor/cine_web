@@ -7,6 +7,14 @@ export function isBookable(screening) {
   return ["open", "scheduled"].includes(screening.status ?? "open") && (screening.room?.available_seats ?? 1) > 0;
 }
 
+/** Texto de disponibilidad de una función: butacas libres, "Disponible" si no se conocen, o "Agotada". */
+export function availabilityLabel(screening) {
+  if (!isBookable(screening)) return "Agotada";
+  const seats = screening.room?.available_seats;
+  if (seats == null) return "Disponible";
+  return `${seats} butacas libres`;
+}
+
 function dayKey(date) {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }

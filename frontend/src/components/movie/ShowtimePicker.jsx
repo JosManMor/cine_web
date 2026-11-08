@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Armchair, Ticket } from "lucide-react";
 import PillButton from "../ui/PillButton";
-import { LANG_LABEL, fmtPrice, fmtTime, groupByDay, isBookable, longDate } from "./showtimes";
+import { LANG_LABEL, availabilityLabel, fmtPrice, fmtTime, groupByDay, isBookable, longDate } from "./showtimes";
 
 // Retardo escalonado de entrada de los horarios (clases literales para que Tailwind las genere).
 const STAGGER = ["", "[animation-delay:60ms]", "[animation-delay:120ms]", "[animation-delay:180ms]", "[animation-delay:240ms]", "[animation-delay:300ms]"];
@@ -51,7 +51,6 @@ export default function ShowtimePicker({ screenings, onContinue }) {
           {day.screenings.map((s, i) => {
             const bookable = isBookable(s);
             const active = s.id === selectedId;
-            const seats = s.room?.available_seats;
             return (
               <li key={s.id} className={`min-w-0 animate-rise motion-reduce:animate-none ${STAGGER[Math.min(i, STAGGER.length - 1)]}`}>
                 <button
@@ -66,7 +65,7 @@ export default function ShowtimePicker({ screenings, onContinue }) {
                     {[s.format, LANG_LABEL[s.language_type] ?? s.language_type].filter(Boolean).join(" · ")}
                   </span>
                   <span className={`text-sm ${active ? "text-ink" : "text-muted"}`}>
-                    {bookable ? (seats != null ? `${seats} butacas libres` : "Disponible") : "Agotada"}
+                    {availabilityLabel(s)}
                   </span>
                 </button>
               </li>
