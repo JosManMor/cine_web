@@ -7,10 +7,13 @@ const STATUS_LABEL = { occupied: ", ocupado", selected: ", seleccionado", free: 
 
 const ARROWS = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] };
 
-/** Columnas de una fila: etiqueta, primera mitad, pasillo, segunda mitad, etiqueta. */
+/**
+ * Columnas de una fila: etiqueta, primera mitad, pasillo, segunda mitad, etiqueta.
+ * El ancho máximo de la butaca sale de `--seat-max` (ver el contenedor del plano).
+ */
 function rowTemplate(seatsPerRow) {
   const half = Math.floor(seatsPerRow / 2);
-  const seat = "minmax(1.25rem,2.25rem)";
+  const seat = "minmax(1.25rem,var(--seat-max))";
   return `1rem repeat(${half}, ${seat}) 0.75rem repeat(${seatsPerRow - half}, ${seat}) 1rem`;
 }
 
@@ -44,11 +47,18 @@ export default function SeatMap({ rowLabels, seatsPerRow, getStatus, onToggle })
 
   const cell = (seatNum) => (seatNum <= half ? seatNum + 1 : seatNum + 2);
 
+  // En escritorio la butaca se encoge con el alto de la ventana para que el plano entero quepa sin
+  // desplazarse: el alto disponible (ventana menos cabecera, pantalla y leyenda) se reparte entre las
+  // filas, y cada fila mide 0.9 veces el ancho de la butaca más su separación.
   return (
-    <div ref={frame} className="-mx-2 overflow-x-auto px-2 pb-2">
+    <div
+      ref={frame}
+      style={{ "--rows": rowLabels.length }}
+      className="-mx-2 overflow-x-auto px-2 pb-2 [--seat-max:2.25rem] lg:[--seat-max:max(1.25rem,min(2.25rem,calc(((100svh-29.5rem)/var(--rows)-0.5rem)/0.9)))]"
+    >
       <div className="mx-auto w-full max-w-max min-w-min">
         {/* Pantalla: un arco plano sobre la primera fila. */}
-        <div className="mx-auto mb-10 w-4/5 max-w-xl text-center">
+        <div className="mx-auto mb-10 w-4/5 max-w-xl text-center lg:mb-5">
           <div aria-hidden="true" className="h-5 rounded-[50%/100%_100%_0_0] border-t-4 border-ink/70" />
           <p className="-mt-1 text-sm text-muted">Pantalla</p>
         </div>

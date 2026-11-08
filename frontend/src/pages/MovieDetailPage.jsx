@@ -48,28 +48,28 @@ export default function MovieDetailPage() {
   );
 
   return (
-    <main className="min-h-svh overflow-x-clip bg-ground pb-0 font-sans text-ink lg:pb-24">
-      <MovieHeader movie={movie} loadingDetail={loading} />
+    <main className="min-h-svh overflow-x-clip bg-ground pb-0 font-sans text-ink lg:pb-4">
+      <MovieHeader movie={movie} loadingDetail={loading}>
+        <section aria-labelledby="funciones-title" className="mt-10 lg:mt-2">
+          <h2 id="funciones-title" className="m-0 mb-6 animate-rise text-3xl font-extrabold motion-reduce:animate-none tracking-tight text-ink md:text-4xl lg:mb-4 lg:text-2xl">Funciones</h2>
 
-      <section aria-labelledby="funciones-title" className="frame relative mt-16 lg:mt-24">
-        <h2 id="funciones-title" className="m-0 mb-6 animate-rise text-3xl font-extrabold motion-reduce:animate-none tracking-tight text-ink md:text-4xl">Funciones</h2>
+          {loading && <div className="py-10"><Spinner /></div>}
 
-        {loading && <div className="py-10"><Spinner /></div>}
+          {!loading && error && <p className="m-0 pb-16 text-base text-muted">{error}</p>}
 
-        {!loading && error && <p className="m-0 pb-16 text-base text-muted">{error}</p>}
+          {!loading && detail && screenings.length === 0 && (
+            <p className="m-0 pb-16 text-base text-muted">No hay funciones disponibles para esta película.</p>
+          )}
 
-        {!loading && detail && screenings.length === 0 && (
-          <p className="m-0 pb-16 text-base text-muted">No hay funciones disponibles para esta película.</p>
-        )}
-
-        {!loading && screenings.length > 0 && (
-          <ShowtimePicker
-            key={detail.id}
-            screenings={screenings}
-            onContinue={s => navigate(`/asientos/${s.id}`)}
-          />
-        )}
-      </section>
+          {!loading && screenings.length > 0 && (
+            <ShowtimePicker
+              key={detail.id}
+              screenings={screenings}
+              onContinue={s => navigate(`/asientos/${s.id}`)}
+            />
+          )}
+        </section>
+      </MovieHeader>
     </main>
   );
 }
