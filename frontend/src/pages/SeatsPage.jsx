@@ -1,18 +1,35 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { C } from "../constants/theme";
+import { ArrowLeft, X } from "lucide-react";
 import { getScreening } from "../api/purchases";
-import BtnPrimary from "../components/ui/BtnPrimary";
+import PillButton from "../components/ui/PillButton";
 import Spinner from "../components/ui/Spinner";
+import SeatMap from "../components/seats/SeatMap";
+import { SEAT_LOOK } from "../components/seats/seatLook";
 import { useBooking } from "../context/BookingContext";
 import { useAuth } from "../context/AuthContext";
+import { fmtShowtime } from "../utils/images";
 
 const LANG_LABEL = { original: "Original", dubbed: "Doblada", subtitled: "Subtitulada" };
-const SEAT_STATUS_LABEL = { occupied: " ocupado", selected: " seleccionado" };
+const MAX_SEATS = 8;
 
-function fmtTime(dateStr) {
-  if (!dateStr) return "";
-  return new Date(dateStr).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+const money = (n) => `$${n.toFixed(2)}`;
+const seatsWord = (n) => (n === 1 ? "asiento" : "asientos");
+
+function Legend() {
+  const items = [["free", "Libre"], ["selected", "Tu selección"], ["occupied", "Ocupado"]];
+  return (
+    <ul className="m-0 mt-8 flex list-none flex-wrap justify-center gap-x-6 gap-y-2 p-0 text-sm text-muted">
+      {items.map(([status, label]) => (
+        <li key={status} className="flex items-center gap-2">
+          <span aria-hidden="true" className={`flex h-[1.125rem] w-5 items-center justify-center rounded-t-md rounded-b-[3px] ${SEAT_LOOK[status]}`}>
+            {status === "occupied" && <X size={10} strokeWidth={2.5} />}
+          </span>
+          {label}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export default function SeatsPage({ addToast }) {
@@ -21,224 +38,212 @@ export default function SeatsPage({ addToast }) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [screeningData, setScreeningData] = useState(null);
-  const [fetchLoading, setFetchLoading]   = useState(true);
-  const [selected, setSelected]           = useState([]);
-  const [confirming, setConfirming]       = useState(false);
+  // Cada estado guarda la función a la que pertenece: al cambiar de función se descarta sin un reset en el efecto.
+  const [loaded, setLoaded]     = useState({ id: null, data: null, error: false });
+  const [picked, setPicked]     = useState({ id: null, seats: [] });
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (!screeningId) return;
-    setFetchLoading(true);
-    setSelected([]);
+    let alive = true;
     getScreening(screeningId)
       .then(data => {
-        setScreeningData(data);
+        if (!alive) return;
+        setLoaded({ id: screeningId, data, error: false });
         setSelectedMovie(data.movie);
         setSelectedSchedule(data);
       })
-      .catch(() => addToast("Error al cargar los asientos", "error"))
-      .finally(() => setFetchLoading(false));
-  }, [screeningId]);
+      .catch(() => {
+        if (!alive) return;
+        setLoaded({ id: screeningId, data: null, error: true });
+        addToast("Error al cargar los asientos", "error");
+      });
+    return () => { alive = false; };
+  }, [screeningId, addToast, setSelectedMovie, setSelectedSchedule]);
 
-  const movie    = screeningData?.movie;
-  const schedule = screeningData;
+  const current      = loaded.id === screeningId ? loaded : { data: null, error: false };
+  const screening    = current.data;
+  const selected     = picked.id === screeningId ? picked.seats : [];
 
-  const rows        = screeningData?.room?.rows ?? 0;
-  const seatsPerRow = screeningData?.room?.seats_per_row ?? 0;
-  const occupied    = screeningData?.occupied_seats ?? [];
-  const rowLabels   = Array.from({ length: rows }, (_, i) => String.fromCodePoint(65 + i));
-  const halfCol     = Math.floor(seatsPerRow / 2);
-
-  const isOccupied = (r, n) => occupied.some(s => s.row === r && s.seat_number === n);
-  const isSelected = (r, n) => selected.some(s => s.row === r && s.seat_number === n);
-
-  const toggleSeat = (r, n) => {
-    if (isOccupied(r, n)) return;
-    setSelected(prev => {
-      if (prev.some(s => s.row === r && s.seat_number === n))
-        return prev.filter(s => !(s.row === r && s.seat_number === n));
-      if (prev.length >= 8) { addToast("Máximo 8 asientos por compra", "error"); return prev; }
-      return [...prev, { row: r, seat_number: n }];
-    });
-  };
-
-  const getSeatStatus = (r, n) =>
-
-    {
-      if (isOccupied(r, n)) return "occupied";
-      if (isSelected(r, n)) return "selected";
-      return "free";
-    };
-
-  const seatColor = (status) => ({
-    free:     { bg: "transparent", border: C.green },
-    selected: { bg: C.green,       border: C.green },
-    occupied: { bg: "#FF0000",     border: "#FF0000" },
-  }[status]);
-
-  const unitPrice  = Number(screeningData?.base_price ?? 0);
-  const total      = selected.length * unitPrice;
-  const seatLabels = selected.map(s => `${s.row}${s.seat_number}`);
-  const roomName   = screeningData?.room?.name ?? "Sala";
-
-  const handleConfirm = () => {
-    if (!user) { addToast("Inicia sesión para comprar", "error"); navigate("/login"); return; }
-    if (!selected.length) { addToast("Selecciona al menos un asiento", "error"); return; }
-    setConfirming(true);
-    setSelectedSeats(selected);
-    setTimeout(() => { setConfirming(false); navigate("/checkout"); }, 400);
-  };
-
-  if (fetchLoading || !screeningData) {
+  if (current.error) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <main className="frame flex min-h-svh items-center justify-center bg-ground font-sans text-ink">
+        <div className="max-w-md text-center">
+          <h1 className="m-0 text-2xl font-bold tracking-tight">No pudimos cargar la sala</h1>
+          <p className="mt-3 text-base text-muted">Revisa tu conexión e inténtalo otra vez, o vuelve a la cartelera para elegir otra función.</p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <PillButton onClick={() => globalThis.location.reload()}>Reintentar</PillButton>
+            <PillButton variant="ghost" onClick={() => navigate("/")}>Ir a la cartelera</PillButton>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!screening) {
+    return (
+      <div className="flex min-h-svh items-center justify-center bg-ground">
         <Spinner />
       </div>
     );
   }
 
+  const movie       = screening.movie;
+  const rows        = screening.room?.rows ?? 0;
+  const seatsPerRow = screening.room?.seats_per_row ?? 0;
+  const occupied    = screening.occupied_seats ?? [];
+  const rowLabels   = Array.from({ length: rows }, (_, i) => String.fromCodePoint(65 + i));
+  const roomName    = screening.room?.name ?? "Sala";
+  const freeCount   = rows * seatsPerRow - occupied.length;
+
+  const isOccupied = (r, n) => occupied.some(s => s.row === r && s.seat_number === n);
+  const isSelected = (r, n) => selected.some(s => s.row === r && s.seat_number === n);
+  const getStatus  = (r, n) => {
+    if (isOccupied(r, n)) return "occupied";
+    if (isSelected(r, n)) return "selected";
+    return "free";
+  };
+
+  // Actualización funcional: varios toques seguidos parten siempre de la selección más reciente.
+  const updateSeats = (fn) => setPicked(prev => ({ id: screeningId, seats: fn(prev.id === screeningId ? prev.seats : []) }));
+  const sameSeat = (r, n) => s => s.row === r && s.seat_number === n;
+
+  const toggleSeat = (r, n) => {
+    if (isOccupied(r, n)) return;
+    if (!isSelected(r, n) && selected.length >= MAX_SEATS) { addToast(`Máximo ${MAX_SEATS} asientos por compra`, "error"); return; }
+    updateSeats(seats => {
+      if (seats.some(sameSeat(r, n))) return seats.filter(s => !sameSeat(r, n)(s));
+      return seats.length >= MAX_SEATS ? seats : [...seats, { row: r, seat_number: n }];
+    });
+  };
+
+  const sortedSeats = [...selected].sort((a, b) => a.row.localeCompare(b.row) || a.seat_number - b.seat_number);
+  const unitPrice   = Number(screening.base_price ?? 0);
+  const total       = selected.length * unitPrice;
+
+  const meta = [
+    roomName,
+    fmtShowtime(screening.start_time),
+    screening.format,
+    LANG_LABEL[screening.language_type] ?? screening.language_type,
+  ].filter(Boolean).join(" · ");
+
+  const handleConfirm = () => {
+    if (!user) { addToast("Inicia sesión para comprar", "error"); navigate("/login"); return; }
+    if (!selected.length) { addToast("Selecciona al menos un asiento", "error"); return; }
+    setConfirming(true);
+    setSelectedSeats(sortedSeats);
+    setTimeout(() => { setConfirming(false); navigate("/checkout"); }, 400);
+  };
+
+  const confirmLabel = confirming ? "Preparando tu compra…" : "Continuar al pago";
+
   return (
-    <div style={{ minHeight: "100vh", paddingTop: 80 }}>
-      <div className="seats-container" style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px", animation: "fadeUp .5s ease forwards" }}>
-        <button onClick={() => navigate(`/pelicula/${movie.id}`)} style={{ background: "none", border: "none", color: C.gray, fontSize: 13, cursor: "pointer", marginBottom: 20, fontFamily: "'Open Sans', sans-serif" }}>← Volver</button>
-        <div className="seats-layout" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 28 }}>
+    <main className="frame min-h-svh bg-ground pt-24 pb-32 font-sans text-ink lg:pt-28 lg:pb-16">
+      <div className="mx-auto w-full max-w-6xl">
+        <button
+          type="button"
+          onClick={() => navigate(`/pelicula/${movie.id}`)}
+          className="-ml-1 inline-flex h-11 cursor-pointer items-center gap-2 rounded-full px-1 text-base font-semibold text-muted transition hover:text-ink focus-visible:outline-2 focus-visible:outline-white"
+        >
+          <ArrowLeft size={18} />
+          Volver a la película
+        </button>
 
-          <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: "32px 24px" }}>
-            <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 2, marginBottom: 24, textAlign: "center" }}>
-              {roomName.toUpperCase()} — {movie.title.toUpperCase()}
-            </h2>
+        <header className="mt-4 flex animate-rise items-center gap-5 motion-reduce:animate-none">
+          {movie.poster_url && (
+            <img src={movie.poster_url} alt="" width="500" height="750" className="hidden w-16 shrink-0 rounded-tile object-cover sm:block lg:w-20" />
+          )}
+          <div className="min-w-0">
+            <h1 className="m-0 text-[clamp(1.75rem,4vw,3rem)] leading-[1.05] font-extrabold tracking-tight text-balance text-ink">
+              {movie.title}
+            </h1>
+            <p className="mt-2 text-base text-muted sm:text-lg">{meta}</p>
+          </div>
+        </header>
 
-            <div style={{ perspective: "500px", marginBottom: 32 }}>
-              <div style={{ width: "75%", margin: "0 auto", height: 10, background: "linear-gradient(90deg, transparent, #4FC3F7, transparent)", borderRadius: "0 0 40% 40%", transform: "rotateX(-20deg)", boxShadow: "0 0 24px rgba(79,195,247,.4)" }} />
-              <p style={{ textAlign: "center", fontSize: 11, color: "#4FC3F7", marginTop: 8, letterSpacing: 2, textTransform: "uppercase" }}>Pantalla</p>
+        <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8">
+          <section aria-labelledby="seats-title" className="rounded-card bg-surface px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
+            <div className="mb-8 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+              <h2 id="seats-title" className="m-0 text-xl font-bold tracking-tight text-ink sm:text-2xl">Elige tus asientos</h2>
+              <p className="text-base text-muted tabular-nums">
+                {freeCount} libres de {rows * seatsPerRow}
+              </p>
+            </div>
+            <SeatMap rowLabels={rowLabels} seatsPerRow={seatsPerRow} getStatus={getStatus} onToggle={toggleSeat} />
+            <Legend />
+          </section>
+
+          <aside aria-labelledby="summary-title" className="rounded-card bg-surface p-6 sm:p-8 lg:sticky lg:top-28">
+            <div className="flex items-baseline justify-between gap-4">
+              <h2 id="summary-title" className="m-0 text-xl font-bold tracking-tight text-ink">Tu selección</h2>
+              <p className="text-sm text-muted tabular-nums">{selected.length} de {MAX_SEATS}</p>
             </div>
 
-            {fetchLoading && (
-              <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
-                <Spinner />
-              </div>
+            {sortedSeats.length > 0 ? (
+              <ul aria-live="polite" className="m-0 mt-5 flex list-none flex-wrap gap-2 p-0">
+                {sortedSeats.map(s => {
+                  const label = `${s.row}${s.seat_number}`;
+                  return (
+                    <li key={label}>
+                      <button
+                        type="button"
+                        aria-label={`Quitar asiento ${label}`}
+                        onClick={() => toggleSeat(s.row, s.seat_number)}
+                        className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-accent/20 pr-2.5 pl-3.5 text-sm font-bold text-ink transition hover:bg-accent/35 focus-visible:outline-2 focus-visible:outline-white"
+                      >
+                        <span>{label}</span>
+                        <X size={14} className="text-muted" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p aria-live="polite" className="mt-5 text-base text-muted">Toca una butaca libre en el plano para apartarla.</p>
             )}
 
-            {!fetchLoading && screeningData && (
-              <div className="seats-scroll">
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-                {rowLabels.map(rowLabel => (
-                  <div key={rowLabel} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ width: 16, textAlign: "center", fontSize: 11, color: C.grayDark, fontFamily: "'Montserrat', sans-serif" }}>{rowLabel}</span>
-                    {Array.from({ length: seatsPerRow }, (_, i) => i + 1).flatMap(seatNum => {
-                      const status = getSeatStatus(rowLabel, seatNum);
-                      const col    = seatColor(status);
-                      const gap    = seatNum === halfCol + 1
-                        ? [<div key={`${rowLabel}-gap`} style={{ width: 10 }} />]
-                        : [];
-                      const statusLabel = SEAT_STATUS_LABEL[status] ?? "";
-                      return [
-                        ...gap,
-                        <button
-                          type="button"
-                          key={`${rowLabel}-${seatNum}`}
-                          onClick={() => toggleSeat(rowLabel, seatNum)}
-                          aria-label={`Asiento ${rowLabel}${seatNum}${statusLabel}`}
-                          aria-pressed={status === "selected"}
-                          disabled={status === "occupied"}
-                          title={`${rowLabel}${seatNum}`}
-                          style={{
-                            padding: 0, font: "inherit", outline: "none",
-                            width: 26, height: 22, borderRadius: "4px 4px 2px 2px",
-                            background: col.bg, border: `1.5px solid ${col.border}`,
-                            cursor: status === "occupied" ? "not-allowed" : "pointer",
-                            transition: "transform .15s, background .15s",
-                            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9,
-                            transform: status === "selected" ? "scale(1.1)" : "scale(1)",
-                          }}
-                        >
-                          {status === "selected" && <span style={{ color: "#0A2A12" }}>✓</span>}
-                          {status === "occupied"  && <span style={{ color: "#5A0000", fontSize: 8 }}>✕</span>}
-                        </button>,
-                      ];
-                    })}
-                    <span style={{ width: 16, textAlign: "center", fontSize: 11, color: C.grayDark, fontFamily: "'Montserrat', sans-serif" }}>{rowLabel}</span>
-                  </div>
-                ))}
+            <dl className="m-0 mt-8 flex flex-col gap-3 text-base">
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted">Precio por asiento</dt>
+                <dd className="m-0 tabular-nums">{money(unitPrice)}</dd>
               </div>
+              <div className="flex items-baseline justify-between gap-4 rounded-tile bg-raised px-4 py-3">
+                <dt className="font-semibold">Total</dt>
+                <dd className="m-0 text-2xl font-extrabold tracking-tight tabular-nums">{money(total)}</dd>
               </div>
-            )}
+            </dl>
 
-            {!fetchLoading && !screeningData && (
-              <p style={{ textAlign: "center", color: C.grayDark, padding: "40px 0" }}>No se pudo cargar el mapa de asientos</p>
-            )}
-
-            {!fetchLoading && (
-              <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 28 }}>
-                {[["free", "Libre", C.green, "transparent"], ["selected", "Seleccionado", C.green, C.green], ["occupied", "Ocupado", "#FF0000", "#FF0000"]].map(([k, label, border, bg]) => (
-                  <div key={k} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: C.gray }}>
-                    <div style={{ width: 16, height: 14, borderRadius: 2, border: `1.5px solid ${border}`, background: bg }} />
-                    {label}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
-                <div style={{ width: 48, height: 64, background: C.surface, borderRadius: 4, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {movie.poster_url
-                    ? <img src={movie.poster_url} alt={movie.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: C.grayDark }}>{movie.title?.[0]}</span>
-                  }
-                </div>
-                <div>
-                  <p style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 14 }}>{movie.title}</p>
-                  <p style={{ color: C.gray, fontSize: 12, marginTop: 4 }}>
-                    {fmtTime(schedule.start_time)}
-                    {schedule.format ? ` · ${schedule.format}` : ""}
-                    {schedule.language_type ? ` · ${LANG_LABEL[schedule.language_type] ?? schedule.language_type}` : ""}
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: C.gray }}>Asientos</span>
-                  <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600, fontSize: 12, color: selected.length ? C.green : C.grayDark }}>
-                    {selected.length ? seatLabels.join(", ") : "—"}
-                  </span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: C.gray }}>Precio unitario</span>
-                  <span>${unitPrice.toFixed(2)}</span>
-                </div>
-                <div style={{ height: 1, background: C.border, margin: "4px 0" }} />
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Total</span>
-                  <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 20, color: selected.length ? C.white : C.grayDark }}>${total.toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-
-            {confirming && (
-              <div style={{ display: "flex", justifyContent: "center", padding: 24, background: C.card, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                <Spinner />
-              </div>
-            )}
-            {!confirming && (
-              <BtnPrimary onClick={handleConfirm} disabled={!selected.length || fetchLoading} style={{ width: "100%", padding: 14, fontSize: 14 }}>
-                Confirmar {selected.length > 0 ? `(${selected.length})` : ""}
-              </BtnPrimary>
-            )}
-            <p style={{ fontSize: 11, color: C.grayDark, textAlign: "center" }}>Máximo 8 asientos por transacción</p>
-          </div>
+            <PillButton
+              size="lg"
+              onClick={handleConfirm}
+              disabled={!selected.length || confirming}
+              aria-busy={confirming}
+              className="mt-6 w-full disabled:cursor-not-allowed disabled:opacity-50 max-lg:hidden"
+            >
+              {confirmLabel}
+            </PillButton>
+          </aside>
         </div>
       </div>
 
-      <style>{`
-        @media (max-width: 650px) {
-          .seats-container { padding: 20px 12px !important; }
-          .seats-layout    { grid-template-columns: 1fr !important; gap: 20px !important; }
-          .seats-scroll    { overflow-x: auto; padding-bottom: 8px; }
-        }
-      `}</style>
-    </div>
+      {/* Barra de compra del teléfono: el total y la acción siempre a mano mientras se recorre el plano. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 bg-raised px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
+          <p className="min-w-0 text-sm text-muted">
+            <span className="block text-lg font-extrabold text-ink tabular-nums">{money(total)}</span>
+            {selected.length} {seatsWord(selected.length)}
+          </p>
+          <PillButton
+            onClick={handleConfirm}
+            disabled={!selected.length || confirming}
+            aria-busy={confirming}
+            className="h-12 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {confirmLabel}
+          </PillButton>
+        </div>
+      </div>
+    </main>
   );
 }
