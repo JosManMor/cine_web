@@ -9,8 +9,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  release:
+    name: Versionado (semantic-release)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Dos releases simultáneas calcularían la misma versión; se ejecutan en serie.
+    concurrency:
+      group: release-pre
+      cancel-in-progress: false
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # semantic-release necesita todo el historial y los tags anteriores.
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      # Calcula la versión a partir de los commits (Conventional Commits) desde
+      # el último tag, crea el tag vX.Y.Z y el GitHub Release. Si solo hay
+      # commits que no versionan (docs, chore, ci...), no crea nada.
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Instalación explícita con versiones fijas y sin scripts de ciclo de
+        # vida (en vez de `npx`, que instala bajo demanda y los ejecuta).
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund \
+            --prefix "$RUNNER_TEMP/semantic-release" \
+            semantic-release@25.0.9 \
+            conventional-changelog-conventionalcommits@9.3.1
+          "$RUNNER_TEMP/semantic-release/node_modules/.bin/semantic-release"
+
+      - name: Read released version
+        id: version
+        run: echo "version=$(git tag --points-at HEAD --list 'v*' | head -n1)" >> "$GITHUB_OUTPUT"
+
   push-prod:
     name: Build & push prod image
+    needs: release
     runs-on: ubuntu-latest
 
     steps:
@@ -34,6 +78,7 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/cine-sendera:staging
             ${{ secrets.DOCKERHUB_USERNAME }}/cine-sendera:${{ github.sha }}
+            ${{ needs.release.outputs.version && format('{0}/cine-sendera:{1}', secrets.DOCKERHUB_USERNAME, needs.release.outputs.version) || '' }}
 
   deploy:
     name: Deploy to personal server

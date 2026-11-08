@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const baseURL = process.env.BASE_URL ?? "http://localhost";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
@@ -10,7 +12,12 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: process.env.BASE_URL ?? "http://localhost",
+    baseURL,
+    // Los términos ya aceptados: el diálogo de consentimiento bloquearía todos los flujos.
+    storageState: {
+      cookies: [],
+      origins: [{ origin: new URL(baseURL).origin, localStorage: [{ name: "cine-sendera:terms-accepted:v1", value: "e2e" }] }],
+    },
     trace: "on-first-retry",
     video: "retain-on-failure",
     screenshot: "only-on-failure",

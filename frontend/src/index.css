@@ -10,6 +10,7 @@
   --color-muted: #b4b4bd;
   --color-accent: #d6263d;
   --color-accent-strong: #bb1d32;
+  --color-warning: #f5b014;
 
   --font-sans: "Montserrat", "Open Sans", system-ui, sans-serif;
   --font-display: "Montserrat", "Open Sans", system-ui, sans-serif;
@@ -109,3 +110,32 @@
     font-size: 20px;
   }
 }
+
+/* Campos de formulario de las vistas rediseñadas. Van sin capa para imponerse a las reglas
+   globales de input/label que todavía inyecta constants/theme.js en las vistas sin migrar. */
+.field-label {
+  display: block;
+  margin: 0 0 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.field-input {
+  width: 100%;
+  height: 3.25rem;
+  padding: 0 1.125rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius-tile);
+  background: var(--color-raised);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.field-input--action { padding-right: 3.5rem; }
+.field-input::placeholder { color: #7c7c86; }
+.field-input:hover { background: #2a2a31; }
+.field-input:focus-visible { border-color: var(--color-ink); }
+.field-input[aria-invalid="true"] { border-color: var(--color-accent); }
