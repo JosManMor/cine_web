@@ -129,6 +129,14 @@ DB::transaction(function () {
 
 - **Responsive design is mandatory.** Every component and page must work on mobile (≥ 320px), tablet and desktop viewports. Use `flex-wrap`, relative units, media queries or container queries — never fixed widths/heights that break on small screens.
 - Test UI changes at both desktop and mobile (≤ 480px) widths before considering them done.
+- **No emoji in the UI.** Use icons instead.
+
+### Icons
+
+- **New icons come from `lucide-react`** (`import { Mail } from "lucide-react"`). Do not hand-write new inline `<svg>`/`<path>` icons; that is what the library is for.
+- Lucide matches the project's icon style (24×24 grid, 2px stroke, round caps/joins, `currentColor`), so keep its defaults; only set `size` (usually `16`–`20` inline with text) and `className` for colour (`text-accent`, `text-muted`).
+- Decorative icons need no extra props: Lucide adds `aria-hidden="true"` automatically. An icon-only control gets `aria-label` on the button, not on the icon.
+- Existing hand-written icons (`components/ui/icons.jsx`, Navbar, `home/HeroStage.jsx`, AdminPage) stay as they are; do not migrate them unless that view is being redesigned and the change is requested.
 
 ### Frontend redesign workflow
 

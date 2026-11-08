@@ -1,6 +1,9 @@
 /*
  * Iconos de trazo del proyecto (rejilla 24×24, currentColor), con el mismo lenguaje que los
  * SVG en línea del Navbar y la home. Sustituyen a los emojis: heredan color y tamaño del texto.
+ *
+ * No añadas iconos nuevos aquí: los iconos futuros se importan de `lucide-react`, que sigue el
+ * mismo estilo (ver CLAUDE.md, sección Icons).
  */
 function Icon({ size = 20, className = "", children }) {
   return (
