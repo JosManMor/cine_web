@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { C, FONTS } from "./constants/theme";
 import { useAuth } from "./context/AuthContext";
 import { useToast } from "./context/ToastContext";
@@ -7,6 +7,8 @@ import { logout } from "./api/auth";
 import Navbar from "./components/Navbar";
 import Toast from "./components/ui/Toast";
 import DemoBanner from "./components/DemoBanner";
+import { TermsConsentDialog, TermsReviewDialog } from "./components/TermsDialog";
+import { hasAcceptedTerms, saveTermsAcceptance } from "./utils/simulationNotice";
 import HomePage from "./pages/HomePage";
 import MovieDetailPage from "./pages/MovieDetailPage";
 import SeatsPage from "./pages/SeatsPage";
@@ -27,6 +29,8 @@ export default function App() {
   const { user, clearAuth } = useAuth();
   const { toasts, addToast } = useToast();
   const navigate = useNavigate();
+  const [termsAccepted, setTermsAccepted] = useState(hasAcceptedTerms);
+  const [reviewingTerms, setReviewingTerms] = useState(false);
 
   useEffect(() => {
     const handleLogout = () => { clearAuth(); navigate("/login"); };
@@ -48,7 +52,12 @@ export default function App() {
 
   return (
     <>
-      <DemoBanner />
+      {termsAccepted && <DemoBanner onShowTerms={() => setReviewingTerms(true)} />}
+      <TermsConsentDialog
+        open={!termsAccepted}
+        onAccept={() => { saveTermsAcceptance(); setTermsAccepted(true); }}
+      />
+      <TermsReviewDialog open={reviewingTerms} onClose={() => setReviewingTerms(false)} />
       <style>{FONTS}</style>
       <div style={{ background: C.bg, minHeight: "100vh" }}>
         <Toast toasts={toasts} />

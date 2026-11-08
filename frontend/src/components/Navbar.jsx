@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo-cine-sendera.png";
 import PillButton from "./ui/PillButton";
-import { demoBannerActive } from "./DemoBanner";
 
 function useClickOutside(ref, active, setter) {
   useEffect(() => {
@@ -110,21 +109,7 @@ function useScrolled() {
   return scrolled;
 }
 
-function useBannerOffset() {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => {
-    if (!demoBannerActive()) return;
-    const el = document.getElementById('demo-banner');
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setOffset(entry.contentRect.height));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return offset;
-}
-
 export default function Navbar({ user, onLogout }) {
-  const bannerOffset = useBannerOffset();
   const [sideOpen, setSideOpen] = useState(false);
   const navigate  = useNavigate();
   const location  = useLocation();
@@ -158,8 +143,7 @@ export default function Navbar({ user, onLogout }) {
   return (
     <>
       <nav
-        style={{ top: bannerOffset }}
-        className={`frame fixed inset-x-0 z-200 flex h-16 items-center justify-between gap-4 font-sans text-ink transition-colors duration-300 motion-reduce:transition-none ${scrolled ? "bg-ground/85 backdrop-blur-xl" : "bg-ground/40 backdrop-blur-md"}`}
+        className={`frame fixed inset-x-0 top-0 z-200 flex h-16 items-center justify-between gap-4 font-sans text-ink transition-colors duration-300 motion-reduce:transition-none ${scrolled ? "bg-ground/85 backdrop-blur-xl" : "bg-ground/40 backdrop-blur-md"}`}
       >
         <div className="flex items-center gap-4 lg:gap-8">
           <button
