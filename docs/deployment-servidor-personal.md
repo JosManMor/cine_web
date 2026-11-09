@@ -97,7 +97,9 @@ sudo chmod 640 /opt/cine-sendera/.env.prod
 > comprometido.
 
 En `.env.prod` hay que ajustar al menos: contraseñas de MySQL, `APP_KEY` fija (si no, se
-genera una temporal en cada arranque e invalida sesiones) y `APP_URL` / `FRONTEND_URL`.
+genera una temporal en cada arranque e invalida sesiones) y `APP_URL` / `FRONTEND_URL`
+(`FRONTEND_URL` es además el único origen CORS permitido salvo que se defina
+`CORS_ALLOWED_ORIGINS`, lista separada por comas).
 Para obtener una clave:
 
 ```bash
