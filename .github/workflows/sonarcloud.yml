@@ -57,3 +57,4 @@ jobs:
             -Dsonar.organization=josmanmor
             -Dsonar.projectKey=JosManMor_cine_web
             -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
+            -Dsonar.coverage.exclusions=**/__tests__/**,**/*.test.*,backend/tests/**
