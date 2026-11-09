@@ -50,7 +50,9 @@ La primera ejecución analiza todo el historial y publica `v1.0.0`.
 
 - Linux con Docker Engine y el plugin `docker compose` v2.20+ (usa `up --wait`).
 - `curl` instalado.
-- Puerto 80 libre y accesible.
+- Puerto 80 libre en `127.0.0.1`. nginx solo se publica en loopback: el acceso público
+  es por Cloudflare Tunnel, con `cloudflared` en el host y el servicio del *Public Hostname*
+  apuntando a `http://127.0.0.1:80`. No hace falta abrir puertos en el router.
 - Un usuario dedicado (p. ej. `github-runner`) que pertenezca al grupo `docker`.
 
 ## Configuración inicial (una sola vez)
@@ -135,7 +137,7 @@ pueden añadir *required reviewers* para aprobar cada despliegue a mano.
    (mantiene el compose del servidor al día con el de `pre`).
 3. `docker pull` de la imagen `:<sha>`.
 4. `down` + elimina el volumen `cine_sendera_app_www` (contiene el código de la imagen
-   anterior). **`mysql_prod_data` no se elimina**: los datos persisten.
+   anterior). **`mysql_prod_data` no se elimina**: los datos persisten. Tampoco `app_logs` ni `nginx_logs` (ver [Logs](#logs)).
 5. `up -d --no-build --wait`: espera a que todos los servicios estén *healthy* (migraciones
    y seeders corren en el entrypoint de la app).
 6. Comprueba `/nginx-health` y `/up`; si fallan, el job falla.
@@ -183,3 +185,60 @@ CINE_IMAGE=<usuario>/cine-sendera:<sha-anterior> DEPLOY_DIR=/opt/cine-sendera sc
 ```
 
 > Las migraciones no se revierten automáticamente en un rollback.
+
+## Logs
+
+| Qué | Dónde | Persistencia |
+| --- | --- | --- |
+| Laravel (app, queue, scheduler) | Volumen `cine_sendera_app_logs`, montado en `/var/www/storage/logs` | Sobrevive a los despliegues. Con `LOG_STACK=daily` se crea un archivo por día y se conservan `LOG_DAILY_DAYS` (14 por defecto) |
+| Accesos HTTP de nginx (IP del cliente, país, fecha, petición, estado, bytes, tiempo, referer, user agent) | Volumen `cine_sendera_nginx_logs`, montado en `/var/log/nginx/accesos` (`access-AAAA-MM-DD.log`) | Sobrevive a los despliegues. Un archivo por día (fecha UTC); se borran a los 30 días |
+| stdout/stderr de cada contenedor (php-fpm, nginx, mysql, queue, scheduler) | Driver `json-file` de Docker | Rotación a 3 archivos de 10 MB por contenedor. Se pierden al recrear el contenedor, es decir, en cada despliegue |
+
+`deploy.sh` borra el volumen `app_www` en cada despliegue, por eso `storage/logs` vive en un
+volumen propio que el script no toca. Con `LOG_LEVEL=error` Laravel solo registra errores.
+
+```bash
+# Errores de Laravel (archivo del día)
+docker exec cine_app sh -c 'tail -f storage/logs/laravel-$(date +%F).log'
+
+# Archivos de log disponibles
+docker exec cine_app ls -lh storage/logs
+
+# Copiar los logs al host
+docker cp cine_app:/var/www/storage/logs ./logs-cine
+
+# Accesos de hoy (IP de cada cliente)
+docker exec cine_nginx sh -c 'tail -f /var/log/nginx/accesos/access-$(date -u +%F).log'
+
+# IPs con más peticiones de hoy
+docker exec cine_nginx sh -c 'cut -d" " -f1 /var/log/nginx/accesos/access-$(date -u +%F).log | sort | uniq -c | sort -rn | head'
+
+# Salida de los contenedores (peticiones de nginx, errores de php-fpm, mysql…)
+docker logs --since 1h cine_nginx
+docker compose -p cine_sendera -f docker-compose.prod.yml logs -f app queue scheduler
+```
+
+Formato de cada línea del log de accesos:
+
+```
+203.0.113.7 MX [2026-11-09T05:20:21+00:00] "GET /api/movies HTTP/1.1" 200 5120 0.042 "https://…/" "Mozilla/5.0 …"
+```
+
+> El tráfico llega por Cloudflare Tunnel: `cloudflared` (en el host) conecta a
+> `127.0.0.1:80` y Docker entrega esas conexiones desde la puerta de enlace de la red bridge
+> (`172.x.0.1`). nginx toma la IP del usuario de la cabecera `CF-Connecting-IP` cuando la
+> conexión viene de los rangos de Docker (`set_real_ip_from` en `docker/nginx/prod.conf`).
+> Es seguro porque el puerto solo escucha en loopback y nadie de fuera puede conectar y
+> falsificarla. Laravel recibe la misma IP real, así que el `throttle` por IP limita a cada
+> usuario. Las peticiones locales sin la cabecera (el health check de `deploy.sh`, un `curl`
+> desde el servidor) aparecen con `172.x.0.1` y país `-`.
+
+> En el *Public Hostname* del túnel conviene poner `http://127.0.0.1:80` y no
+> `http://localhost:80`: `localhost` puede resolverse a `::1` (IPv6), donde nginx no escucha.
+
+> Las IP son datos personales: se conservan 30 días (bucle `find … -mtime +30 -delete` del
+> servicio `nginx` en `docker-compose.prod.yml`). Para cambiar el plazo, editar ese número.
+
+> Un `.env.prod` creado antes de este cambio tiene `LOG_STACK=single`: los logs ya persisten,
+> pero en un único `laravel.log` sin rotación. Para rotarlos, añadir `LOG_STACK=daily` y
+> `LOG_DAILY_DAYS=14` en `/opt/cine-sendera/.env.prod` y volver a desplegar.
