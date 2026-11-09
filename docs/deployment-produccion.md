@@ -131,8 +131,8 @@ docker compose -f docker-compose.prod.yml logs -f
 # Ver solo logs de la app PHP
 docker logs cine_app -f
 
-# Ver errores de Laravel
-docker exec cine_app tail -f /var/www/storage/logs/laravel.log
+# Ver errores de Laravel (LOG_STACK=daily: un archivo por día en el volumen app_logs)
+docker exec cine_app sh -c 'tail -f storage/logs/laravel-$(date +%F).log'
 
 # Correr un comando artisan puntual
 docker exec cine_app php artisan <comando>

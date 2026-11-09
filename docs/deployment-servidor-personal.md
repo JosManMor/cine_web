@@ -135,7 +135,7 @@ pueden añadir *required reviewers* para aprobar cada despliegue a mano.
    (mantiene el compose del servidor al día con el de `pre`).
 3. `docker pull` de la imagen `:<sha>`.
 4. `down` + elimina el volumen `cine_sendera_app_www` (contiene el código de la imagen
-   anterior). **`mysql_prod_data` no se elimina**: los datos persisten.
+   anterior). **`mysql_prod_data` no se elimina**: los datos persisten. Tampoco `app_logs` (logs de Laravel, ver [Logs](#logs)).
 5. `up -d --no-build --wait`: espera a que todos los servicios estén *healthy* (migraciones
    y seeders corren en el entrypoint de la app).
 6. Comprueba `/nginx-health` y `/up`; si fallan, el job falla.
@@ -183,3 +183,32 @@ CINE_IMAGE=<usuario>/cine-sendera:<sha-anterior> DEPLOY_DIR=/opt/cine-sendera sc
 ```
 
 > Las migraciones no se revierten automáticamente en un rollback.
+
+## Logs
+
+| Qué | Dónde | Persistencia |
+| --- | --- | --- |
+| Laravel (app, queue, scheduler) | Volumen `cine_sendera_app_logs`, montado en `/var/www/storage/logs` | Sobrevive a los despliegues. Con `LOG_STACK=daily` se crea un archivo por día y se conservan `LOG_DAILY_DAYS` (14 por defecto) |
+| stdout/stderr de cada contenedor (php-fpm, nginx, mysql, queue, scheduler) | Driver `json-file` de Docker | Rotación a 3 archivos de 10 MB por contenedor. Se pierden al recrear el contenedor, es decir, en cada despliegue |
+
+`deploy.sh` borra el volumen `app_www` en cada despliegue, por eso `storage/logs` vive en un
+volumen propio que el script no toca. Con `LOG_LEVEL=error` Laravel solo registra errores.
+
+```bash
+# Errores de Laravel (archivo del día)
+docker exec cine_app sh -c 'tail -f storage/logs/laravel-$(date +%F).log'
+
+# Archivos de log disponibles
+docker exec cine_app ls -lh storage/logs
+
+# Copiar los logs al host
+docker cp cine_app:/var/www/storage/logs ./logs-cine
+
+# Salida de los contenedores (peticiones de nginx, errores de php-fpm, mysql…)
+docker logs --since 1h cine_nginx
+docker compose -p cine_sendera -f docker-compose.prod.yml logs -f app queue scheduler
+```
+
+> Un `.env.prod` creado antes de este cambio tiene `LOG_STACK=single`: los logs ya persisten,
+> pero en un único `laravel.log` sin rotación. Para rotarlos, añadir `LOG_STACK=daily` y
+> `LOG_DAILY_DAYS=14` en `/opt/cine-sendera/.env.prod` y volver a desplegar.
