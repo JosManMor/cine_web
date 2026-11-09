@@ -1,355 +1,265 @@
-# Entorno de Desarrollo — Docker Compose, Orquestación y Variables
+# Entorno de desarrollo (Docker Compose)
 
-Este documento detalla la arquitectura de contenedores, la orquestación del orden de arranque con healthchecks (`feat/29-healthchecks-depends-on`) y la gestión centralizada de variables de entorno (`fix/28-docker-env-file`) para el entorno de desarrollo local de Cine Sendera.
+> **Navegación:** [README](../README.md) · **Entorno de desarrollo** · [CI/CD](./ci-cd.md) · [Producción simulada](./deployment-produccion.md) · [Servidor personal (preproducción)](./deployment-servidor-personal.md) · [Arquitectura del backend](./backend-architecture.md) · [Base de datos](./database-design.md)
+
+Este documento es la referencia técnica del entorno local definido en `docker-compose.yml`: inicio rápido, topología de contenedores y redes, orden de arranque con healthchecks, variables de entorno y comandos de desarrollo. El entorno de producción simulada se describe en [deployment-produccion.md](./deployment-produccion.md) y los workflows de GitHub en [ci-cd.md](./ci-cd.md).
 
 ---
 
-## 1. Visión General de la Infraestructura de Desarrollo
+## 1. Inicio rápido
 
-El entorno de desarrollo emula una arquitectura LAMP moderna desacoplada en contenedores Docker bajo el principio de **un solo proceso por contenedor**:
-
-```mermaid
-graph TD
-    Client[Navegador / Cliente HTTP] -->|:80| Apache[cine_apache<br/>httpd:2.4]
-    Client -->|FORWARD_PMA_PORT| PMA[cine_phpmyadmin<br/>phpMyAdmin]
-    Client -->|:8025| Mailpit[cine_mailpit<br/>Web UI Correo]
-    Client -->|:5173| Frontend[cine_frontend<br/>React 18 + Vite]
-    Client -->|FORWARD_DB_PORT| MySQL
-
-    Frontend -->|Proxy /api :80| Apache
-    Apache -->|FastCGI :9000| App[cine_app<br/>PHP-FPM 8.3 + Laravel]
-    App -->|MySQL :3306| MySQL[(cine_mysql<br/>MySQL 8.0)]
-    App -->|Redis :6379| Redis[(cine_redis<br/>Redis 7)]
-    PMA -->|MySQL :3306| MySQL
-    App -->|SMTP :1025| Mailpit
-
-    subgraph frontend_net
-        Frontend
-        Apache
-    end
-
-    subgraph backend_net
-        MySQL
-        Redis
-        PMA
-        Mailpit
-    end
-```
-
-`cine_app` es el único contenedor conectado a **ambas** redes (`frontend_net` y `backend_net`): Apache le reenvía peticiones FastCGI por `frontend_net` y Laravel accede a MySQL, Redis y Mailpit por `backend_net`. Así, ni Apache ni el frontend tienen ruta de red hacia la base de datos.
-
-### Servicios en `docker-compose.yml`
-
-| Servicio | Contenedor | Imagen / Base | Puerto Interno | Puerto Host | Redes | Responsabilidad Principal |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `redis` | `cine_redis` | `redis:7-alpine` | `6379` | No expuesto al host | `backend_net` | Cache en memoria con volumen `redis_data`. |
-| `app` | `cine_app` | `docker/php/Dockerfile` (PHP 8.3-FPM) | `9000` | No expuesto al host | `frontend_net`, `backend_net` | Ejecuta Laravel, procesa peticiones FastCGI, corre migraciones y seeders. |
-| `apache` | `cine_apache` | `httpd:2.4` | `80` | `80:80` | `frontend_net` | Servidor web perimetral. Sirve estáticos y reenvía rutas dinámicas a `cine_app:9000`. |
-| `mysql` | `cine_mysql` | `mysql:8.0` | `3306` | `${FORWARD_DB_PORT:-3306}:3306` | `backend_net` | Base de datos relacional con volumen persistente `mysql_data`. |
-| `phpmyadmin` | `cine_phpmyadmin` | `phpmyadmin/phpmyadmin:5.2.3` | `80` | `${FORWARD_PMA_PORT:-8080}:80` | `backend_net` | Interfaz web de administración de base de datos. |
-| `mailpit` | `cine_mailpit` | `axllent/mailpit:v1.31.4` | `1025` (SMTP), `8025` (UI) | `1025:1025`, `8025:8025` | `backend_net` | Servidor SMTP local para captura e inspección de emails generados por el sistema. |
-| `frontend` | `cine_frontend` | `node:20-alpine` | `5173` | `5173:5173` | `frontend_net` | Servidor de desarrollo Vite con hot-reload (`npm ci && npm run dev`); `node_modules` en el volumen `frontend_node_modules`. |
-
-### Primer arranque
+Requisitos: Docker Engine y Docker Compose v2. No hace falta Node ni PHP en el host: el frontend corre en el contenedor `cine_frontend` y Composer se ejecuta dentro de `app`.
 
 ```bash
-# 1. Variables de entorno: el .env vive en la raíz (no en backend/)
+# 1. Variables de entorno: el .env vive en la RAÍZ del proyecto (no en backend/)
 cp .env.example .env
-#    Ajustar HOST_UID / HOST_GID con `id -u` e `id -g`
+#    Ajustar HOST_UID / HOST_GID con los valores de `id -u` e `id -g`
 
-# 2. Dependencias PHP (backend/vendor no está versionado; sin él el entrypoint aborta)
+# 2. Dependencias PHP (backend/vendor no se versiona; sin él el entrypoint aborta)
 docker compose run --rm --no-deps --entrypoint sh app -c "composer install"
 
-# 3. Generar la APP_KEY y pegarla en .env como APP_KEY=base64:...
+# 3. (Opcional) generar la APP_KEY y pegarla en .env como APP_KEY=base64:...
 docker compose run --rm --no-deps --entrypoint php app artisan key:generate --show
 
-# 4. Levantar el stack
+# 4. Levantar todos los servicios (incluye el frontend Vite con hot-reload)
 docker compose up -d
 ```
 
-### Gestión de la `APP_KEY` en desarrollo
+El entrypoint de `app` ejecuta migraciones, seeders y el reagendado de funciones demo en cada arranque (ver [sección 4](#4-orden-de-arranque-y-healthchecks)). La primera vez, el frontend tarda unos minutos porque ejecuta `npm ci`.
 
-El `.env` de la raíz llega al contenedor `app` solo como variables de entorno (`env_file`); **no está montado como archivo** dentro de `/var/www` (que es `./backend`). Por eso `docker/php/entrypoint.sh` se comporta así:
+### Servicios y puertos expuestos al host
 
-1. Si `APP_KEY` tiene valor en el `.env` de la raíz, se usa tal cual.
-2. Si está vacía y existe `backend/.env` con una `APP_KEY`, se usa esa.
-3. Si está vacía y existe `backend/.env` sin clave, genera una y la escribe en `backend/.env`.
-4. Si está vacía y **no** existe `backend/.env` (el caso normal en Docker), genera una clave **temporal en memoria** y la imprime en los logs:
+| Servicio | URL / puerto en el host |
+| :--- | :--- |
+| App (API y SPA servida por Apache) | `http://localhost` (puerto `80`) |
+| Frontend con hot-reload (Vite) | `http://localhost:5173` |
+| phpMyAdmin | `http://localhost:${FORWARD_PMA_PORT}` (`8081` con `.env.example`; `8080` si no se define) |
+| MySQL (DataGrip, DBeaver...) | `localhost:${FORWARD_DB_PORT}` (`3308` con `.env.example`; `3306` si no se define) |
+| Mailpit (interfaz web) | `http://localhost:8025` (SMTP en `:1025`) |
 
-   ```bash
-   docker compose logs app | grep "APP_KEY="
-   ```
-
-   Esa clave cambia en cada reinicio del contenedor e invalida sesiones, cookies cifradas y cualquier dato cifrado con `encrypt()`. Hay que copiarla al `.env` de la raíz.
-
-Después de editar `.env` hay que **recrear** el contenedor para que lea los nuevos valores; `docker compose restart` no recarga `env_file`:
-
-```bash
-docker compose up -d app
-```
+Redis y PHP-FPM (`:9000`) no se publican en el host.
 
 ---
 
-## 2. Gestión Centralizada de Variables de Entorno (`fix/28-docker-env-file`)
+## 2. Topología de contenedores y redes
 
-### 2.1 Problema Previo y Motivación
-Anteriormente, el servicio `app` en `docker-compose.yml` declaraba explícitamente más de 40 variables de entorno bajo la directiva `environment:` (`APP_NAME: ${APP_NAME}`, `DB_HOST: ${DB_HOST}`, etc.). 
+El entorno sigue el principio de **un proceso por contenedor**. Hay dos redes y `cine_app` es el único contenedor conectado a ambas: Apache le reenvía las peticiones FastCGI por `frontend_net` y Laravel accede a MySQL, Redis y Mailpit por `backend_net`. Así, ni Apache ni el frontend tienen ruta de red hacia la base de datos.
 
-Esto generaba:
-1. **Duplicación masiva y fragilidad:** Cada nueva variable requerida por Laravel obligaba a modificar simultáneamente `.env.example`, `.env` y `docker-compose.yml`.
-2. **Riesgo de omisión y desincronización:** Variables agregadas en `.env` no eran transferidas al contenedor si se olvidaba registrarlas en Compose.
-3. **Mantenimiento pesado:** Dificultad para auditar y depurar configuraciones.
+```mermaid
+graph TD
+    Client[Navegador / cliente HTTP]
+    Client -->|:80| Apache
+    Client -->|:5173| Frontend
+    Client -->|FORWARD_PMA_PORT| PMA
+    Client -->|:8025 UI| Mailpit
+    Client -->|FORWARD_DB_PORT| MySQL
 
-### 2.2 Solución Implementada: Directiva `env_file`
-Se refactorizó el servicio `app` para consumir directamente el archivo de configuración:
+    subgraph frontend_net
+        Frontend[cine_frontend<br/>node:22 + Vite]
+        Apache[cine_apache<br/>httpd:2.4]
+    end
 
-```yaml
-services:
-  app:
-    # ...
-    env_file:
-      - .env
-    # ...
+    App[cine_app<br/>PHP-FPM 8.3 + Laravel<br/>frontend_net + backend_net]
+
+    subgraph backend_net
+        MySQL[(cine_mysql<br/>MySQL 8.0)]
+        Redis[(cine_redis<br/>Redis 7)]
+        PMA[cine_phpmyadmin<br/>5.2.3]
+        Mailpit[cine_mailpit<br/>v1.31.4]
+    end
+
+    Frontend -->|proxy /api| Apache
+    Apache -->|FastCGI :9000| App
+    App -->|:3306| MySQL
+    App -->|:6379| Redis
+    App -->|SMTP :1025| Mailpit
+    PMA -->|:3306| MySQL
 ```
 
-Además, `environment: REDIS_HOST: redis` fuerza el host de Redis dentro del contenedor (los valores de `environment` tienen prioridad sobre `env_file`).
+### Servicios de `docker-compose.yml`
 
-#### Ventajas:
-- **Single Source of Truth:** `.env` es el único lugar donde se definen y ajustan los valores.
-- **Inyección Transparente:** Todas las variables de entorno de Laravel (Sanctum, Cache, Queue, Mail, DB, AWS, etc.) quedan disponibles de forma automática para PHP-FPM y Artisan.
-- **Limpieza del archivo de orquestación:** Reducción drástica de líneas redundantes en `docker-compose.yml`.
+| Servicio | Contenedor | Imagen | Redes | Responsabilidad |
+| :--- | :--- | :--- | :--- | :--- |
+| `redis` | `cine_redis` | `redis:7-alpine` | `backend_net` | Caché en memoria (`CACHE_STORE=redis`); volumen `redis_data`. |
+| `mysql` | `cine_mysql` | `mysql:8.0` | `backend_net` | Base de datos; volumen `mysql_data`. |
+| `app` | `cine_app` | `docker/php/Dockerfile` (PHP 8.3.36-FPM) | `frontend_net`, `backend_net` | Ejecuta Laravel, migraciones y seeders. Código en bind mount `./backend`. |
+| `apache` | `cine_apache` | `httpd:2.4` | `frontend_net` | Servidor web; configuración en `docker/apache/000-default.conf`; reenvía `.php` a `app:9000`. |
+| `phpmyadmin` | `cine_phpmyadmin` | `phpmyadmin/phpmyadmin:5.2.3` | `backend_net` | Administración web de la base de datos. |
+| `mailpit` | `cine_mailpit` | `axllent/mailpit:v1.31.4` | `backend_net` | Captura los correos salientes (SMTP `:1025`, UI `:8025`). |
+| `frontend` | `cine_frontend` | `node:22-alpine` | `frontend_net` | Vite con hot-reload (`npm ci && npm run dev`); `node_modules` en el volumen `frontend_node_modules`; proxy `/api` hacia `http://apache` (`VITE_PROXY_TARGET`). |
 
-### 2.3 Mapeo Flexible de Puertos de Host (`FORWARD_*`)
-Para evitar colisiones cuando un desarrollador ya tiene servicios locales corriendo en su máquina anfitriona (por ejemplo, otro MySQL en el puerto 3306 u otro servicio en el puerto 8080), se implementó parametrización con valores por defecto:
+Diferencias con producción simulada (nginx, queue, scheduler, redes DMZ, código dentro de la imagen): ver la [tabla comparativa](./deployment-produccion.md#diferencias-con-el-entorno-de-desarrollo).
 
-```yaml
-services:
-  mysql:
-    ports:
-      - "${FORWARD_DB_PORT:-3306}:3306"
+### Particularidades del servicio `app`
 
-  phpmyadmin:
-    ports:
-      - "${FORWARD_PMA_PORT:-8080}:80"
-```
-
-Configuración en `.env.example` / `.env`:
-```env
-# Puertos opcionales de host (para evitar colisiones locales)
-FORWARD_DB_PORT=3308
-FORWARD_PMA_PORT=8081
-```
-
-> **Nota arquitectónica:** La comunicación interna entre contenedores dentro de `frontend_net` / `backend_net` siempre usa los puertos estándar (`mysql:3306`, `app:9000`). Con los valores de `.env.example` MySQL queda en el puerto `3308` del host y phpMyAdmin en `8081`; si las variables no se definen se usan `3306` y `8080`. Los parámetros `FORWARD_*` afectan **únicamente** el acceso desde la máquina host (ej. desde DataGrip, DBeaver o el navegador).
-
-### 2.4 Reglas Críticas del Parser de `env_file`
-Docker Compose utiliza un parser estricto para archivos `.env`:
-- **Comentarios:** Deben ir en su propia línea comenzando con `#` (ej. `# Configuración de BD`).
-- **Prohibido comentarios en línea (inline comments):** Escribir `APP_KEY=base64:... # clave de app` provocará que Docker incluya `# clave de app` como parte literal del valor de la variable, rompiendo la aplicación con errores `500`.
+| Aspecto | Detalle |
+| :--- | :--- |
+| Usuario | `www-data`, remapeado al `HOST_UID`/`HOST_GID` del host (argumentos de build) para no crear archivos de `root` en `./backend`. |
+| Volúmenes | `./backend:/var/www`, `./.env:/var/www/.env` (lo monta como archivo) y `docker/php/php-dev.ini` (OPcache desactivado). |
+| Variables | `env_file: .env` más `REDIS_HOST=redis`, que tiene prioridad sobre el archivo. |
+| Cola y scheduler | No hay contenedores `queue` ni `scheduler` en desarrollo (`QUEUE_CONNECTION=database`; el worker solo existe en producción simulada, o con `composer dev` fuera de Docker). |
 
 ---
 
-## 3. Orquestación de Arranque y Healthchecks (`feat/29-healthchecks-depends-on`)
+## 3. Variables de entorno
 
-### 3.1 Problema Previo: Race Conditions al Iniciar el Stack
-Un `depends_on` básico en Docker Compose solo espera a que el contenedor destino esté en estado de ejecución (*running*), no a que el proceso interno esté listo para recibir peticiones (*ready/healthy*).
+### 3.1 Un único `.env` en la raíz
 
-Esto provocaba tres fallos intermitentes graves en arranques limpios (`docker compose up`):
-1. **Fallo en Migraciones / Seeders:** El contenedor `cine_app` iniciaba de inmediato e intentaba ejecutar `php artisan migrate --seed` mientras `cine_mysql` aún estaba inicializando tablas del sistema y permisos, resultando en `SQLSTATE[HY000] [2002] Connection refused`.
-2. **Error 502 Bad Gateway en Apache:** `cine_apache` arrancaba antes de que PHP-FPM abriera el puerto FastCGI `9000`, arrojando errores `Proxy Error: Could not connect to remote machine` o `FastCGI: unable to connect to server`.
-3. **Pantallas de error en phpMyAdmin:** Intentos de conexión fallidos hacia MySQL durante el arranque.
+El servicio `app` consume el `.env` de la raíz con `env_file: .env`, en lugar de declarar variable por variable bajo `environment:`. Así `.env` es la única fuente de verdad y cualquier variable nueva de Laravel llega al contenedor sin tocar `docker-compose.yml`. `mysql` y `phpmyadmin` reciben `DB_*`, `MYSQL_ROOT_PASSWORD` y `DB_HOST` por interpolación de Compose desde el mismo archivo. No existe `backend/.env` en Docker.
 
-### 3.2 Solución Implementada: Healthchecks y `service_healthy`
+### 3.2 Puertos de host (`FORWARD_*`)
 
-Se configuraron healthchecks nativos y dependencias condicionadas a la salud de los servicios:
+Para evitar colisiones con servicios locales del desarrollador, el puerto publicado de MySQL y de phpMyAdmin se parametriza con `FORWARD_DB_PORT` y `FORWARD_PMA_PORT` (valores por defecto `3306` y `8080`; `.env.example` usa `3308` y `8081`). Afectan **solo** al acceso desde el host; entre contenedores se usan siempre los puertos estándar (`mysql:3306`, `app:9000`).
+
+### 3.3 Reglas del parser de `env_file`
+
+| Regla | Motivo |
+| :--- | :--- |
+| Los comentarios van en su propia línea, empezando por `#`. | Compose no admite comentarios en línea. |
+| Nunca `APP_KEY=base64:... # texto`. | El texto del comentario pasa a formar parte del valor y la app responde `500`. |
+| Tras editar `.env`, recrear con `docker compose up -d`. | `docker compose restart` no recarga `env_file`. |
+
+### 3.4 Gestión de la `APP_KEY`
+
+Como `./.env` está montado en `/var/www/.env`, `docker/php/entrypoint.sh` resuelve la clave en este orden:
+
+| Caso | Comportamiento |
+| :--- | :--- |
+| `APP_KEY` tiene valor en el entorno del contenedor | Se usa tal cual. |
+| Está vacía pero `.env` (montado) contiene una `APP_KEY` | Se exporta esa clave. |
+| Está vacía y `.env` no tiene clave | Ejecuta `php artisan key:generate --force`, que la escribe en el `.env` montado; queda persistida en el host. |
+
+Si se deja vacía en el `.env` de la raíz, la clave generada aparece en el archivo tras el primer arranque. Cambiarla invalida sesiones, cookies cifradas y todo lo cifrado con `encrypt()`.
+
+---
+
+## 4. Orden de arranque y healthchecks
+
+Un `depends_on` simple solo espera a que el contenedor esté *running*, no a que el proceso esté listo. Eso causaba migraciones fallidas (`Connection refused` contra un MySQL aún inicializando), `502 Bad Gateway` en Apache (PHP-FPM sin escuchar todavía) y errores de phpMyAdmin. Por eso cada dependencia usa `condition: service_healthy`.
+
+```mermaid
+flowchart LR
+    Redis[redis<br/>redis-cli ping] --> App
+    MySQL[mysql<br/>mysqladmin ping] --> App
+    MySQL --> PMA[phpmyadmin]
+    App[app<br/>socket :9000] --> Apache[apache<br/>GET /up = 200]
+    Apache --> Front[frontend<br/>sin healthcheck]
+    Mailpit[mailpit<br/>sin dependencias]
+```
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Host as Docker Engine
-    participant Redis as cine_redis
-    participant MySQL as cine_mysql
-    participant App as cine_app (PHP-FPM)
-    participant Apache as cine_apache (HTTPD)
-    participant PMA as cine_phpmyadmin
-    participant Front as cine_frontend
+    participant D as Docker Engine
+    participant R as cine_redis
+    participant M as cine_mysql
+    participant A as cine_app
+    participant W as cine_apache
+    participant F as cine_frontend
 
-    Host->>Redis: Iniciar contenedor
-    Host->>MySQL: Iniciar contenedor
-    Redis-->>Host: Healthy (redis-cli ping → PONG)
-    Note over MySQL: Inicializando MySQL daemon...
-    loop Healthcheck (mysqladmin ping)
-        Host->>MySQL: Ping cada 10s
-        MySQL-->>Host: Starting...
+    D->>R: iniciar
+    D->>M: iniciar
+    R-->>D: healthy (PONG)
+    loop mysqladmin ping cada 10 s (start_period 30 s)
+        D->>M: ping
     end
-    MySQL-->>Host: Healthy (MySQL listo en :3306)
-
-    par Inicio de App y phpMyAdmin
-        Host->>PMA: Iniciar cine_phpmyadmin (depends_on: mysql healthy)
-        Host->>App: Iniciar cine_app (depends_on: mysql + redis healthy)
+    M-->>D: healthy
+    D->>A: iniciar (redis y mysql healthy)
+    Note over A: entrypoint.sh: APP_KEY, vendor/, migrate, db:seed,<br/>screenings:refresh-demo, php-fpm
+    loop fsockopen 127.0.0.1:9000 (start_period 30 s)
+        D->>A: comprobar socket FastCGI
     end
-
-    Note over App: entrypoint.sh:<br/>1. Permisos de storage/ y bootstrap/cache<br/>2. APP_KEY (ver sección 1)<br/>3. Comprobar vendor/autoload.php<br/>4. php artisan migrate --force<br/>5. php artisan db:seed --force<br/>6. Iniciar php-fpm (:9000)
-
-    loop Healthcheck (fsockopen 127.0.0.1:9000)
-        Host->>App: Comprobar socket FastCGI
-        App-->>Host: Starting...
+    A-->>D: healthy
+    D->>W: iniciar (app healthy)
+    loop GET /up por /dev/tcp (start_period 10 s)
+        D->>W: esperar HTTP 200
     end
-    App-->>Host: Healthy (PHP-FPM escuchando en :9000)
-
-    Host->>Apache: Iniciar cine_apache (depends_on: app healthy)
-    Note over Apache: Apache inicia sin riesgo de 502 Bad Gateway
-
-    loop Healthcheck (GET /up)
-        Host->>Apache: Validar HTTP 200 en /up
-        Apache-->>Host: 200 OK (Healthy)
-    end
-
-    Host->>Front: Iniciar cine_frontend (depends_on: apache healthy)
-    Note over Front: npm ci && npm run dev -- --host 0.0.0.0
+    W-->>D: healthy
+    D->>F: iniciar (apache healthy)
+    Note over F: npm ci && npm run dev -- --host 0.0.0.0
 ```
 
-### 3.3 Especificación Técnica de Healthchecks
+### Especificación de los healthchecks
 
-#### 1. Base de Datos (`cine_mysql`)
-```yaml
-healthcheck:
-  test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
-  interval: 10s
-  timeout: 5s
-  retries: 5
-  start_period: 30s
-```
-- **Mecanismo:** `mysqladmin ping` verifica que el motor InnoDB y el socket TCP de MySQL respondan a consultas autenticadas.
-- **`start_period: 30s`:** Ventana de gracia para que MySQL realice la inicialización de archivos de datos sin marcar fallos prematuros.
+| Servicio | Comprobación | Intervalo / reintentos | `start_period` | Depende de |
+| :--- | :--- | :--- | :--- | :--- |
+| `mysql` | `mysqladmin ping` con el usuario root | 10 s / 5 | 30 s | - |
+| `redis` | `redis-cli ping` (responde `PONG`) | 10 s / 5 | - | - |
+| `app` | Script PHP que abre un socket a `127.0.0.1:9000` | 10 s / 5 | 30 s (cubre migraciones y seeders del entrypoint) | `redis` y `mysql` healthy |
+| `apache` | `GET /up` con sockets Bash (`/dev/tcp`), exige código `200` | 10 s / 3 | 10 s | `app` healthy |
+| `phpmyadmin` | Sin healthcheck | - | - | `mysql` healthy |
+| `frontend` | Sin healthcheck; el proxy `/api` de Vite solo recibe tráfico con Apache sano | - | - | `apache` healthy |
+| `mailpit` | Sin definición en Compose; el estado `healthy` viene del `HEALTHCHECK` de la imagen | - | - | - |
 
-#### 2. Servidor de Cache (`cine_redis`)
-```yaml
-healthcheck:
-  test: ["CMD", "redis-cli", "ping"]
-  interval: 10s
-  timeout: 3s
-  retries: 5
-```
-- **Mecanismo:** `redis-cli ping` comprueba que la instancia en memoria responda con `PONG`.
+### Pasos del entrypoint de `app`
 
-#### 3. Backend PHP-FPM (`cine_app`)
-```yaml
-healthcheck:
-  test: ["CMD", "php", "-r", "$$fp = @fsockopen('127.0.0.1', 9000); exit($$fp ? 0 : 1);"]
-  interval: 10s
-  timeout: 5s
-  retries: 5
-  start_period: 30s
-```
-- **Mecanismo:** Script PHP inline que abre un socket TCP contra el puerto `9000` de PHP-FPM. Si la conexión es exitosa retorna `0` (Healthy); si falla retorna `1` (Unhealthy).
-- **`start_period: 30s`:** Permite que `entrypoint.sh` ejecute las migraciones y seeders de la base de datos antes de que el healthcheck comience a evaluar el estado del servicio.
-- **Dependencia de arranque:**
-  ```yaml
-  depends_on:
-    redis:
-      condition: service_healthy
-    mysql:
-      condition: service_healthy
-  ```
+| Orden | Acción |
+| :--- | :--- |
+| 1 | Resolver `APP_KEY` ([sección 3.4](#34-gestión-de-la-app_key)). |
+| 2 | Abortar si falta `vendor/autoload.php` (hay que ejecutar `composer install`). |
+| 3 | `php artisan migrate --force`. |
+| 4 | `php artisan db:seed --force` (el administrador sale de `ADMIN_EMAIL`/`ADMIN_PASSWORD`; vacíos en desarrollo = `test@example.com` / `password`). |
+| 5 | `php artisan screenings:refresh-demo`, que reagenda las funciones demo ya pasadas. |
+| 6 | `exec php-fpm`. |
 
-#### 4. Servidor Web Apache (`cine_apache`)
-```yaml
-healthcheck:
-  test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/80 && printf \"GET /up HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && read -r line <&3 && [[ \"$$line\" =~ 200 ]]'"]
-  interval: 10s
-  timeout: 5s
-  retries: 3
-  start_period: 10s
-```
-- **Mecanismo:** Petición HTTP nativa usando descriptores de archivo y sockets Bash (`/dev/tcp`) solicitando el endpoint `/up` de Laravel (healthcheck endpoint) y verificando que la respuesta contenga el código de estado `200`.
-- **Dependencia de arranque:**
-  ```yaml
-  depends_on:
-    app:
-      condition: service_healthy
-  ```
-
-#### 5. Interfaz phpMyAdmin (`cine_phpmyadmin`)
-```yaml
-depends_on:
-  mysql:
-    condition: service_healthy
-```
-- Garantiza que la interfaz web no intente levantar sesiones contra un motor MySQL no inicializado.
-
-#### 6. Frontend Vite (`cine_frontend`)
-```yaml
-depends_on:
-  apache:
-    condition: service_healthy
-```
-- El proxy `/api` de Vite (`VITE_PROXY_TARGET=http://apache`) solo empieza a recibir tráfico cuando Apache ya responde `200` en `/up`.
-- No define healthcheck propio.
-
-#### 7. Correo (`cine_mailpit`)
-- No define healthcheck en `docker-compose.yml`; el estado `healthy` que muestra `docker compose ps` proviene del `HEALTHCHECK` incluido en la imagen `axllent/mailpit`. Ningún servicio depende de él.
+El entrypoint se copia dentro de la imagen: tras editar `docker/php/entrypoint.sh` hay que reconstruir con `--build`.
 
 ---
 
-## 4. Guía de Operación y Comandos Útiles
+## 5. Comandos de desarrollo
 
-### Iniciar el entorno completo
+### Operación del stack
+
 ```bash
-# Arrancar en segundo plano con control de dependencias
+# Levantar en segundo plano / ver estado y salud
 docker compose up -d
-
-# Ver el estado detallado de salud de los contenedores
 docker compose ps
-```
 
-Ejemplo de salida esperada:
-```
-NAME              IMAGE                         SERVICE      STATUS                   PORTS
-cine_apache       httpd:2.4                     apache       Up 1 minute (healthy)    0.0.0.0:80->80/tcp
-cine_app          cine_sendera-app              app          Up 1 minute (healthy)    9000/tcp
-cine_frontend     node:20-alpine                frontend     Up 1 minute              0.0.0.0:5173->5173/tcp
-cine_mailpit      axllent/mailpit:v1.31.4       mailpit      Up 1 minute (healthy)    0.0.0.0:1025->1025/tcp, 0.0.0.0:8025->8025/tcp
-cine_mysql        mysql:8.0                     mysql        Up 1 minute (healthy)    0.0.0.0:3308->3306/tcp
-cine_phpmyadmin   phpmyadmin/phpmyadmin:5.2.3   phpmyadmin   Up 1 minute              0.0.0.0:8081->80/tcp
-cine_redis        redis:7-alpine                redis        Up 1 minute (healthy)    6379/tcp
-```
-(Puertos `3308` y `8081` con los valores de `.env.example`.)
-
-### Inspección de Healthchecks
-```bash
-# Ver el último resultado del healthcheck de app
-docker inspect --format='{{json .State.Health}}' cine_app
-
-# Ver logs del entrypoint y de Laravel
+# Logs de la app (entrypoint y PHP-FPM) o de cualquier servicio
 docker compose logs -f app
-```
 
-### Reinicio y reconstrucción limpia
-```bash
-# Detener contenedores manteniendo volúmenes de datos
-docker compose down
-
-# Reconstruir imágenes tras cambios en Dockerfile o en docker/php/entrypoint.sh
-# (el entrypoint se copia dentro de la imagen, no está montado)
-docker compose up -d --build
+# Último resultado del healthcheck de app
+docker inspect --format='{{json .State.Health}}' cine_app
 
 # Aplicar cambios en .env (restart NO recarga env_file)
 docker compose up -d
+
+# Reconstruir tras cambios en el Dockerfile o en docker/php/entrypoint.sh
+docker compose up -d --build
+
+# Detener conservando volúmenes / detener y borrar datos (MySQL y Redis)
+docker compose down
+docker compose down -v
 ```
 
----
+### Backend (dentro del contenedor `app`)
 
-## 5. Resumen Técnico para Diapositivas / Presentaciones
+```bash
+docker compose exec app php artisan test                 # suite completa (SQLite en memoria)
+docker compose exec app php artisan test --filter X      # filtrar por nombre
+docker compose exec app ./vendor/bin/pint                # linting (Laravel Pint)
+docker compose exec app php artisan migrate:fresh --seed # reiniciar la base de datos
+docker compose exec app php artisan tinker
+```
 
-Para la presentación del proyecto o diapositivas del equipo, los puntos clave a destacar son:
+### Frontend
 
-1. **Arquitectura desacoplada LAMP:** Separación estricta de Apache (servidor perimetral/estáticos) y PHP-FPM (procesamiento de lógica Laravel en worker pool).
-2. **Centralización y Configuración Limpia (PR #28):**
-   - Implementación de `env_file: .env` para eliminar redundancia de más de 40 variables en Compose.
-   - Aislamiento de puertos de host mediante `FORWARD_DB_PORT` y `FORWARD_PMA_PORT` para prevenir colisiones en estaciones de trabajo de los desarrolladores.
-3. **Orquestación Resiliente y Cero Race Conditions (PR #29):**
-   - Implementación de healthchecks a nivel de base de datos (`mysqladmin ping`), aplicación (`fsockopen :9000`) y servidor web (`HTTP GET /up`).
-   - Arranque determinista y ordenado con `depends_on: condition: service_healthy` (MySQL + Redis $\rightarrow$ App $\rightarrow$ Apache $\rightarrow$ Frontend), eliminando por completo los errores `502 Bad Gateway` y fallos en migraciones automáticas.
-4. **Segmentación de red:**
-   - `frontend_net` (frontend, Apache, app) y `backend_net` (app, MySQL, Redis, phpMyAdmin, Mailpit); `app` es el único puente entre ambas, así que la base de datos no es alcanzable desde Apache ni desde el frontend.
+```bash
+# Dentro del contenedor (Vite ya corre con `docker compose up -d`)
+docker compose exec frontend npm run lint
+docker compose exec frontend npm run test      # Vitest
+docker compose exec frontend npm run build     # build de producción
+
+# Alternativa local, con Node en el host
+cd frontend && npm install && npm run dev
+```
+
+Los tests de extremo a extremo (`npm run test:e2e`, Playwright) se ejecutan en CI contra el stack de producción simulada; ver [ci-cd.md](./ci-cd.md#job-prod-e2e).
+
+### Logs de Laravel
+
+Con `LOG_CHANNEL=stack` y `LOG_STACK=single`, Laravel escribe en `backend/storage/logs/laravel.log`, visible en el host por el bind mount. Si `backend/storage` quedó con propietario `root`, corregirlo con `sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache backend/vendor`.
+
+### Salida esperada de `docker compose ps`
+
+Con los valores de `.env.example`, todos los servicios con healthcheck deben pasar a `healthy` (`redis`, `mysql`, `app`, `apache` y `mailpit`); `phpmyadmin` y `frontend` muestran `Up`. MySQL aparece publicado como `3308->3306` y phpMyAdmin como `8081->80`.
