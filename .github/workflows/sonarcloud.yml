@@ -1,0 +1,35 @@
+name: SonarCloud
+
+# Análisis de SonarQube Cloud solo en las PR hacia dev. Las PR a pre/main y los
+# merges (push) a dev/pre no se analizan. Requiere desactivar el análisis
+# automático en SonarCloud (Administration → Analysis Method) y el secreto SONAR_TOKEN.
+on:
+  pull_request:
+    branches: [dev]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: sonarcloud-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Code Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0 # Historial completo para el blame y la detección de código nuevo
+
+      - name: SonarQube Cloud scan
+        uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=josmanmor
+            -Dsonar.projectKey=JosManMor_cine_web
