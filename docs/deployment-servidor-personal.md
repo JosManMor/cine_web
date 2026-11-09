@@ -97,7 +97,9 @@ sudo chmod 640 /opt/cine-sendera/.env.prod
 > comprometido.
 
 En `.env.prod` hay que ajustar al menos: contraseñas de MySQL, `APP_KEY` fija (si no, se
-genera una temporal en cada arranque e invalida sesiones) y `APP_URL` / `FRONTEND_URL`.
+genera una temporal en cada arranque e invalida sesiones) y `APP_URL` / `FRONTEND_URL`
+(`FRONTEND_URL` es además el único origen CORS permitido salvo que se defina
+`CORS_ALLOWED_ORIGINS`, lista separada por comas).
 Para obtener una clave:
 
 ```bash
@@ -138,6 +140,29 @@ pueden añadir *required reviewers* para aprobar cada despliegue a mano.
    y seeders corren en el entrypoint de la app).
 6. Comprueba `/nginx-health` y `/up`; si fallan, el job falla.
 7. Elimina imágenes huérfanas.
+
+## Reinicio diario de la demo
+
+Pre es una simulación: cada día a las 00:05 (hora de `DEMO_TIMEZONE`, por defecto
+`America/Mexico_City`) el contenedor `scheduler` ejecuta `php artisan demo:reset`, que:
+
+1. Vacía `purchase_seats` y `purchases` (compras y boletos).
+2. Devuelve a `open` las funciones `sold_out`.
+3. Mueve cada función ya pasada a un día aleatorio entre mañana y dentro de 7 días,
+   conservando la hora y evitando, si es posible, solapes en la misma sala.
+
+Los usuarios registrados (con sus sesiones y tokens), las películas, las salas y las
+funciones se conservan. El administrador lo crean los seeders en cada arranque del
+contenedor `app` con `ADMIN_EMAIL` / `ADMIN_PASSWORD` de `.env.prod`. El comando solo actúa con `DEMO_MODE=true`
+en `.env.prod`; sin esa variable el scheduler no lo programa y una ejecución manual
+termina con error sin borrar nada.
+
+Ejecución manual:
+
+```bash
+docker exec cine_scheduler php artisan demo:reset
+docker exec cine_scheduler php artisan schedule:list
+```
 
 ## Operación manual
 

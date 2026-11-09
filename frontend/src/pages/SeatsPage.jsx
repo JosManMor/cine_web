@@ -19,7 +19,7 @@ const seatsWord = (n) => (n === 1 ? "asiento" : "asientos");
 function Legend() {
   const items = [["free", "Libre"], ["selected", "Tu selección"], ["occupied", "Ocupado"]];
   return (
-    <ul className="m-0 mt-8 flex list-none flex-wrap justify-center gap-x-6 gap-y-2 p-0 text-sm text-muted">
+    <ul className="m-0 mt-8 flex list-none lg:mt-5 flex-wrap justify-center gap-x-6 gap-y-2 p-0 text-sm text-muted">
       {items.map(([status, label]) => (
         <li key={status} className="flex items-center gap-2">
           <span aria-hidden="true" className={`flex h-[1.125rem] w-5 items-center justify-center rounded-t-md rounded-b-[3px] ${SEAT_LOOK[status]}`}>
@@ -139,7 +139,7 @@ export default function SeatsPage({ addToast }) {
   const confirmLabel = confirming ? "Preparando tu compra…" : "Continuar al pago";
 
   return (
-    <main className="frame min-h-svh bg-ground pt-24 pb-32 font-sans text-ink lg:pt-28 lg:pb-16">
+    <main className="frame min-h-svh bg-ground pt-24 pb-32 font-sans text-ink lg:pt-20 lg:pb-6">
       <div className="mx-auto w-full max-w-6xl">
         <button
           type="button"
@@ -150,21 +150,21 @@ export default function SeatsPage({ addToast }) {
           Volver a la película
         </button>
 
-        <header className="mt-4 flex animate-rise items-center gap-5 motion-reduce:animate-none">
+        <header className="mt-4 flex lg:mt-1 animate-rise items-center gap-5 motion-reduce:animate-none">
           {movie.poster_url && (
-            <img src={movie.poster_url} alt="" width="500" height="750" className="hidden w-16 shrink-0 rounded-tile object-cover sm:block lg:w-20" />
+            <img src={movie.poster_url} alt="" width="500" height="750" className="hidden w-16 shrink-0 rounded-tile object-cover sm:block lg:w-12" />
           )}
           <div className="min-w-0">
-            <h1 className="m-0 text-[clamp(1.75rem,4vw,3rem)] leading-[1.05] font-extrabold tracking-tight text-balance text-ink">
+            <h1 className="m-0 text-[clamp(1.75rem,4vw,3rem)] lg:text-[clamp(1.75rem,3vw,2.5rem)] leading-[1.05] font-extrabold tracking-tight text-balance text-ink">
               {movie.title}
             </h1>
-            <p className="mt-2 text-base text-muted sm:text-lg">{meta}</p>
+            <p className="mt-2 text-base text-muted sm:text-lg lg:mt-1 lg:text-base">{meta}</p>
           </div>
         </header>
 
-        <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8">
-          <section aria-labelledby="seats-title" className="rounded-card bg-surface px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
-            <div className="mb-8 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8">
+          <section aria-labelledby="seats-title" className="rounded-card bg-surface px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-6">
+            <div className="mb-8 flex flex-wrap items-baseline lg:mb-4 justify-between gap-x-6 gap-y-1">
               <h2 id="seats-title" className="m-0 text-xl font-bold tracking-tight text-ink sm:text-2xl">Elige tus asientos</h2>
               <p className="text-base text-muted tabular-nums">
                 {freeCount} libres de {rows * seatsPerRow}
@@ -174,7 +174,7 @@ export default function SeatsPage({ addToast }) {
             <Legend />
           </section>
 
-          <aside aria-labelledby="summary-title" className="rounded-card bg-surface p-6 sm:p-8 lg:sticky lg:top-28">
+          <aside aria-labelledby="summary-title" className="rounded-card bg-surface p-6 sm:p-8 lg:sticky lg:top-24 lg:p-6">
             <div className="flex items-baseline justify-between gap-4">
               <h2 id="summary-title" className="m-0 text-xl font-bold tracking-tight text-ink">Tu selección</h2>
               <p className="text-sm text-muted tabular-nums">{selected.length} de {MAX_SEATS}</p>

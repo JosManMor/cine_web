@@ -94,7 +94,7 @@ El proyecto sigue el principio de **un proceso por contenedor**, con arranque or
 
 > **Control del orden de arranque:** `app` espera a que `mysql` y `redis` estén en estado `healthy`. `apache` espera a que `app` esté `healthy` (evita errores `502` durante el arranque). `frontend` espera a que `apache` esté `healthy`.
 
-El entorno de producción (`docker-compose.prod.yml`) agrega contenedores de queue worker, scheduler y cron de backup, y elimina los servicios de desarrollo.
+El entorno de producción (`docker-compose.prod.yml`) agrega contenedores de queue worker y scheduler, y elimina los servicios de desarrollo.
 
 ---
 

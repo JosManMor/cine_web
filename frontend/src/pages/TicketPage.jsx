@@ -1,24 +1,18 @@
-import { useNavigate } from "react-router-dom";
-import { C } from "../constants/theme";
-import BtnPrimary from "../components/ui/BtnPrimary";
+import { Link } from "react-router-dom";
+import { CircleCheck, Clock } from "lucide-react";
+import PillButton from "../components/ui/PillButton";
+import Poster from "../components/tickets/Poster";
 import { useBooking } from "../context/BookingContext";
 import { useAuth } from "../context/AuthContext";
+import {
+  PAYMENT_LABEL, bySeat, fmtDay, fmtTime, formatLine, money, seatLabel, seatsWord,
+} from "../components/tickets/tickets";
 
-const PAYMENT_LABEL = { cash: "Efectivo", card: "Tarjeta", online: "En línea" };
-const LANG_LABEL    = { original: "Original", dubbed: "Doblada", subtitled: "Subtitulada" };
-
-function fmtDateTime(dateStr) {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleString("es-MX", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
-}
-
-function Row({ label, value, highlight }) {
+function Detail({ label, children, className = "" }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
-      <span style={{ fontSize: 13, color: C.gray }}>{label}</span>
-      <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: highlight ? 700 : 500, fontSize: highlight ? 16 : 14, color: highlight ? C.white : C.gray }}>
-        {value}
-      </span>
+    <div className={className}>
+      <dt className="text-sm text-muted">{label}</dt>
+      <dd className="m-0 mt-1 text-base text-ink">{children}</dd>
     </div>
   );
 }
@@ -26,64 +20,113 @@ function Row({ label, value, highlight }) {
 export default function TicketPage() {
   const { selectedMovie: movie, selectedSchedule: schedule, purchaseResult } = useBooking();
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   if (!purchaseResult) {
-    return <div style={{ padding: 80, textAlign: "center", color: C.gray }}>No hay comprobante disponible</div>;
+    return (
+      <main className="frame flex min-h-svh items-center justify-center bg-ground font-sans text-ink">
+        <div className="max-w-md text-center">
+          <h1 className="m-0 text-2xl font-bold tracking-tight">No hay una compra reciente</h1>
+          <p className="mt-3 text-base text-muted">El comprobante se muestra justo después de pagar. Tus boletos y sus códigos QR siempre están en Mis tickets.</p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <PillButton as={Link} to="/mis-entradas" variant="light">Ver mis tickets</PillButton>
+            <PillButton as={Link} to="/" variant="ghost">Ir a la cartelera</PillButton>
+          </div>
+        </div>
+      </main>
+    );
   }
 
-  const { purchase_id, seats, total, payment_method } = purchaseResult;
-  const seatLabels  = seats.map(s => `${s.row}${s.seat_number}`).join(", ");
-  const isSingle    = seats.length === 1;
-  const format      = [schedule?.format, LANG_LABEL[schedule?.language_type] ?? schedule?.language_type].filter(Boolean).join(" · ") || "—";
+  const { purchase_id, payment_status, seats = [], total, payment_method } = purchaseResult;
+  const sorted    = [...seats].sort(bySeat);
+  const count     = sorted.length;
+  const unitPrice = count ? Number(total) / count : 0;
+  const paid      = payment_status ? payment_status === "completed" : true;
+  const method    = PAYMENT_LABEL[payment_method] ?? payment_method ?? "—";
+  const format    = formatLine(schedule?.format, schedule?.language_type) || "—";
+  const title     = movie?.title ?? "Película";
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "100px 24px 40px" }}>
-      <div style={{ width: "100%", maxWidth: 460, animation: "ticketSlide .5s cubic-bezier(.22,.68,0,1.2) forwards" }}>
+    <main className="frame min-h-svh bg-ground pt-24 pb-16 font-sans text-ink lg:pt-28">
+      <div className="mx-auto w-full max-w-6xl">
+        <header className="max-w-3xl">
+          <h1 className="m-0 text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.05] font-extrabold tracking-tight text-ink">Compra registrada</h1>
+          <p className="mt-3 flex items-start gap-2 text-base font-semibold text-ink sm:text-lg">
+            {paid
+              ? <CircleCheck size={20} className="mt-0.5 shrink-0 text-ink sm:mt-1" />
+              : <Clock size={20} className="mt-0.5 shrink-0 text-warning sm:mt-1" />}
+            <span>
+              {paid ? `Pago confirmado de ${money(total)}` : `Pago pendiente de ${money(total)}`} <span className="whitespace-nowrap">· Pedido <span className="tabular-nums">#{purchase_id}</span></span>
+            </span>
+          </p>
+          <p className="mt-2 text-base text-muted">
+            {paid
+              ? `Tus ${count} ${seatsWord(count)} ya están en Mis tickets, cada uno con su código QR para entrar a la sala.`
+              : "Los códigos QR aparecerán en Mis tickets en cuanto se confirme el pago."}
+          </p>
+        </header>
 
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ width: 64, height: 64, borderRadius: "50%", background: C.greenDim, border: `2px solid ${C.green}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 14px" }}>✓</div>
-          <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 20, marginBottom: 6 }}>¡Compra registrada!</h2>
-          <p style={{ color: C.gray, fontSize: 14 }}>Resumen de tu pedido · #{purchase_id}</p>
-        </div>
-
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ display: "flex", gap: 14, alignItems: "center", padding: "18px 20px", borderBottom: `1px solid ${C.border}` }}>
-            <div style={{ width: 44, height: 60, background: C.surface, borderRadius: 4, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {movie?.poster_url
-                ? <img src={movie.poster_url} alt={movie.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: C.grayDark }}>{movie?.title?.[0]}</span>
-              }
+        <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8">
+          <section aria-labelledby="movie-title" className="rounded-card bg-surface p-5 sm:p-8">
+            <div className="flex items-start gap-5 sm:gap-6">
+              <Poster src={movie?.poster_url} title={title} className="w-20 sm:w-28" />
+              <div className="min-w-0">
+                <h2 id="movie-title" className="m-0 text-2xl leading-tight font-extrabold tracking-tight text-balance text-ink sm:text-3xl">{title}</h2>
+                {movie?.genre && <p className="mt-1.5 text-base text-muted">{movie.genre}</p>}
+                <p className="mt-3 text-base text-ink first-letter:uppercase">
+                  {fmtDay(schedule?.start_time)}
+                  {schedule?.start_time && <> <span className="whitespace-nowrap tabular-nums">· {fmtTime(schedule.start_time)}</span></>}
+                </p>
+              </div>
             </div>
-            <div>
-              <p style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 16 }}>{movie?.title ?? "Película"}</p>
-              {movie?.genre && <p style={{ color: C.grayDark, fontSize: 12, marginTop: 3 }}>{movie.genre}</p>}
+
+            <dl className="m-0 mt-8 grid grid-cols-2 gap-x-8 gap-y-5 rounded-[1.25rem] bg-raised p-5 sm:grid-cols-2 sm:p-6">
+              <Detail label="Sala">{schedule?.room?.name ?? "—"}</Detail>
+              <Detail label="Formato">{format}</Detail>
+              <Detail label={count === 1 ? "Asiento" : `Asientos (${count})`} className="col-span-2">
+                <ul className="m-0 mt-1 flex list-none flex-wrap gap-2 p-0">
+                  {sorted.map(s => (
+                    <li key={seatLabel(s)} className="inline-flex h-9 items-center rounded-full bg-white/10 px-3.5 text-sm font-bold tabular-nums">
+                      {seatLabel(s)}
+                    </li>
+                  ))}
+                </ul>
+              </Detail>
+              <Detail label="A nombre de" className="max-sm:col-span-2">{user?.name ?? "—"}</Detail>
+              <Detail label="Correo" className="max-sm:col-span-2 break-words">{user?.email ?? "—"}</Detail>
+            </dl>
+          </section>
+
+          <aside aria-labelledby="payment-title" className="rounded-card bg-surface p-6 sm:p-8 lg:sticky lg:top-28">
+            <h2 id="payment-title" className="m-0 text-xl font-bold tracking-tight text-ink">Resumen del pago</h2>
+
+            <dl className="m-0 mt-6 flex flex-col gap-3 text-base">
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted">{count} {seatsWord(count)} × {money(unitPrice)}</dt>
+                <dd className="m-0 tabular-nums">{money(total)}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted">Método de pago</dt>
+                <dd className="m-0">{method}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted">Estado</dt>
+                <dd className="m-0">{paid ? "Confirmado" : "Pendiente"}</dd>
+              </div>
+              <div className="mt-2 flex items-baseline justify-between gap-4 rounded-tile bg-raised px-4 py-3">
+                <dt className="font-semibold">{paid ? "Total pagado" : "Total"}</dt>
+                <dd className="m-0 text-2xl font-extrabold tracking-tight tabular-nums">{money(total)}</dd>
+              </div>
+            </dl>
+
+            <div className="mt-6 flex flex-col gap-3">
+              <PillButton as={Link} to="/mis-entradas" variant="light" size="lg" className="w-full">
+                {count === 1 ? "Ver mi ticket" : "Ver mis tickets"}
+              </PillButton>
+              <PillButton as={Link} to="/" variant="ghost" size="lg" className="w-full">Volver a la cartelera</PillButton>
             </div>
-          </div>
-
-          <div style={{ padding: "4px 20px 12px" }}>
-            <Row label="Sala"           value={schedule?.room?.name ?? "—"} />
-            <Row label="Fecha y hora"   value={fmtDateTime(schedule?.start_time)} />
-            <Row label="Formato"        value={format} />
-            <Row label={`Asiento${seats.length > 1 ? "s" : ""}`} value={seatLabels} />
-            <Row label="Comprador"      value={user?.name ?? "—"} />
-            <Row label="Método de pago" value={PAYMENT_LABEL[payment_method] ?? payment_method} />
-            <Row label="Total"          value={`$${Number(total).toFixed(2)}`} highlight />
-          </div>
-        </div>
-
-        <div style={{ marginTop: 24 }}>
-          <BtnPrimary onClick={() => navigate("/mis-entradas")} style={{ width: "100%", padding: 14, fontSize: 14 }}>
-            {isSingle ? "Ver mi ticket" : "Ver mis tickets"}
-          </BtnPrimary>
-          <button
-            onClick={() => navigate("/")}
-            style={{ width: "100%", marginTop: 10, background: "none", border: "none", color: C.grayDark, fontSize: 13, cursor: "pointer", fontFamily: "'Open Sans', sans-serif", padding: "8px 0" }}
-          >
-            Volver a la cartelera
-          </button>
+          </aside>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

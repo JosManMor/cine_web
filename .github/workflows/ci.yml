@@ -80,6 +80,10 @@ jobs:
     name: Prod E2E
     runs-on: ubuntu-24.04
     needs: [test-backend, test-frontend]
+    # Admin que crea el seeder y con el que inician sesión los tests de Playwright.
+    env:
+      ADMIN_EMAIL: admin@ci.test
+      ADMIN_PASSWORD: ci_admin_password
 
     steps:
       - name: Checkout repository
@@ -94,26 +98,78 @@ jobs:
           sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=ci_test_password|" .env.prod
           sed -i "s|^MYSQL_PASSWORD=.*|MYSQL_PASSWORD=ci_test_password|" .env.prod
           sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=ci_root_password|" .env.prod
+          sed -i "s|^ADMIN_EMAIL=.*|ADMIN_EMAIL=${ADMIN_EMAIL}|" .env.prod
+          sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" .env.prod
 
-      - name: Build and start Docker Compose
-        run: docker compose -f docker-compose.prod.yml up -d --build --wait --wait-timeout 180
+      # Build con caché de capas en GitHub Actions. Solo lee: la caché la
+      # escribe e2e-image-cache.yml en cada push a dev. Exportarla desde cada
+      # PR (mode=max) añadía ~1 min y llenaba la cuota con cachés por PR que
+      # podían expulsar la de dev.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build prod image
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6
+        with:
+          context: .
+          file: docker/php/Dockerfile.prod
+          load: true
+          build-args: |
+            VITE_DEMO_MODE=true
+          tags: cine-sendera:prod
+          cache-from: type=gha,scope=e2e-prod
+
+      # `up -d` bloquea hasta que se cumplen los depends_on service_healthy,
+      # así que aquí solo se arrancan los servicios sin dependencias. MySQL
+      # (el healthcheck más lento) se inicializa mientras se instala Playwright.
+      - name: Start database services
+        run: docker compose -f docker-compose.prod.yml up -d --no-build mysql mailpit
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Playwright
+      - name: Install dependencies
         working-directory: frontend
-        run: |
-          npm ci --ignore-scripts
-          npx --no-install playwright install --with-deps chromium
+        run: npm ci --ignore-scripts
+
+      - name: Get Playwright version
+        id: playwright
+        working-directory: frontend
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+
+      - name: Install Playwright browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: frontend
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: frontend
+        run: npx --no-install playwright install-deps chromium
+
+      - name: Wait for Docker Compose
+        run: docker compose -f docker-compose.prod.yml up -d --no-build --wait --wait-timeout 180
 
       - name: Run E2E tests
         working-directory: frontend
         run: npx --no-install playwright test
         env:
           BASE_URL: http://localhost
+
+      - name: Show Docker Compose logs
+        if: failure()
+        run: docker compose -f docker-compose.prod.yml logs --no-color --tail 200
 
       - name: Upload Playwright report
         if: failure()
@@ -122,7 +178,3 @@ jobs:
           name: playwright-report-prod
           path: frontend/playwright-report/
           retention-days: 14
-
-      - name: Stop Docker Compose
-        if: always()
-        run: docker compose -f docker-compose.prod.yml down -v

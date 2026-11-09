@@ -162,6 +162,31 @@ services:
           memory: 256M
           cpus: "0.50"
 
+  # ── Scheduler (tareas programadas de Artisan) ─────────────────────────────
+  # Ejecuta `demo:reset` cada noche (requiere DEMO_MODE=true en .env.prod).
+  # Corre como www-data para no dejar archivos de storage/ propiedad de root.
+  scheduler:
+    image: ${CINE_IMAGE:-cine-sendera:prod}
+    container_name: cine_scheduler
+    restart: unless-stopped
+    user: www-data
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - app_www:/var/www
+    env_file: .env.prod
+    depends_on:
+      app:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - db_net
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+
 
 # ── Volúmenes ────────────────────────────────────────────────────────────────
 volumes:

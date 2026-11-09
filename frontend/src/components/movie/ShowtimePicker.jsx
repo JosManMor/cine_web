@@ -26,10 +26,10 @@ export default function ShowtimePicker({ screenings, onContinue }) {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-12 xl:grid-cols-[1fr_24rem]">
-      <div className="min-w-0">
+    <div className="grid gap-8 lg:grid-cols-[1fr_20rem] lg:items-start lg:gap-6 xl:grid-cols-[1fr_22rem] xl:gap-10">
+      <div className="@container min-w-0">
         {days.length > 1 && (
-          <fieldset aria-label="Elegir día" className="no-scrollbar -mx-5 m-0 mb-6 flex animate-rise [animation-delay:60ms] motion-reduce:animate-none gap-2 overflow-x-auto border-0 p-0 px-5 md:mx-0 md:flex-wrap md:px-0">
+          <fieldset aria-label="Elegir día" className="no-scrollbar -mx-5 m-0 mb-6 flex animate-rise [animation-delay:60ms] lg:mb-4 motion-reduce:animate-none gap-2 overflow-x-auto border-0 p-0 px-5 md:mx-0 md:flex-wrap md:px-0">
             {days.map(d => {
               const active = d.key === day.key;
               return (
@@ -47,7 +47,7 @@ export default function ShowtimePicker({ screenings, onContinue }) {
           </fieldset>
         )}
 
-        <ul key={day.key} aria-label={`Horarios de ${day.label}`} className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 xl:grid-cols-4">
+        <ul key={day.key} aria-label={`Horarios de ${day.label}`} className="m-0 grid list-none grid-cols-2 gap-3 p-0 @md:grid-cols-3 @2xl:grid-cols-4">
           {day.screenings.map((s, i) => {
             const bookable = isBookable(s);
             const active = s.id === selectedId;
@@ -76,10 +76,10 @@ export default function ShowtimePicker({ screenings, onContinue }) {
 
       <aside
         aria-label="Función elegida"
-        className="sticky bottom-0 z-10 animate-rise [animation-delay:120ms] motion-reduce:animate-none -mx-5 rounded-t-card bg-surface px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:-mx-6 md:px-6 lg:top-28 lg:bottom-auto lg:mx-0 lg:rounded-card lg:p-7"
+        className="sticky bottom-0 z-10 animate-rise [animation-delay:120ms] motion-reduce:animate-none -mx-5 rounded-t-card bg-surface px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:-mx-6 md:px-6 lg:top-28 lg:bottom-auto lg:mx-0 lg:rounded-card lg:p-6"
       >
         {selected ? (
-          <div className="flex flex-col gap-4 lg:gap-5">
+          <div className="flex flex-col gap-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="m-0 text-base font-semibold text-ink first-letter:uppercase">{longDate(selected.start_time)}</p>

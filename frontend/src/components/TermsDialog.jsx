@@ -32,8 +32,22 @@ function TermsDialogShell({ title, onEscape, onForcedClose, onSubmit, footer }) 
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
     const previousFocus = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // iOS Safari ignora `overflow: hidden` en <body> al arrastrar el dedo: se fija el body en su
+    // posición actual y se restaura el scroll al cerrar.
+    const { body, documentElement: html } = document;
+    const scrollY = window.scrollY;
+    const previousStyles = {
+      htmlOverflow: html.style.overflow,
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+    };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
     if (!dialog.open) {
       if (typeof dialog.showModal === "function") dialog.showModal();
       else dialog.setAttribute("open", "");
@@ -42,7 +56,12 @@ function TermsDialogShell({ title, onEscape, onForcedClose, onSubmit, footer }) 
     dialog.focus();
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      html.style.overflow = previousStyles.htmlOverflow;
+      body.style.overflow = previousStyles.overflow;
+      body.style.position = previousStyles.position;
+      body.style.top = previousStyles.top;
+      body.style.width = previousStyles.width;
+      if (scrollY) window.scrollTo(0, scrollY);
       previousFocus?.focus?.();
     };
   }, []);
@@ -60,10 +79,11 @@ function TermsDialogShell({ title, onEscape, onForcedClose, onSubmit, footer }) 
       aria-describedby={descId}
       onCancel={handleCancel}
       onClose={() => onForcedClose(dialogRef.current)}
-      /* taste-skill-ignore: diálogo modal, overlay real */ className="m-auto mb-0 max-h-[92svh] w-full max-w-2xl animate-rise flex-col overflow-hidden rounded-t-card bg-surface p-0 font-sans text-ink shadow-2xl outline-none backdrop:bg-ground/80 open:flex motion-reduce:animate-none sm:mb-auto sm:max-h-[min(88svh,52rem)] sm:rounded-card"
+      /* taste-skill-ignore: diálogo modal, overlay real */ className="m-auto mb-0 max-h-[92svh] w-full max-w-2xl animate-rise flex-col overflow-hidden overscroll-contain rounded-t-card bg-surface p-0 font-sans text-ink shadow-2xl outline-none backdrop:bg-ground/80 open:flex motion-reduce:animate-none sm:mb-auto sm:max-h-[min(88svh,52rem)] sm:rounded-card"
     >
-      <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-        <header className="px-5 pt-6 pb-4 sm:px-8 sm:pt-8">
+      {/* `flex-auto` y no `flex-1`: con base 0% Safari mide el diálogo sin el texto y lo deja a 0 px. */}
+      <form onSubmit={onSubmit} className="flex min-h-0 flex-auto flex-col">
+        <header className="shrink-0 px-5 pt-6 pb-4 sm:px-8 sm:pt-8">
           <h2 id={titleId} className="m-0 text-2xl leading-tight font-extrabold text-ink sm:text-3xl">
             {title}
           </h2>
@@ -72,7 +92,7 @@ function TermsDialogShell({ title, onEscape, onForcedClose, onSubmit, footer }) 
           </p>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 pb-6 text-sm leading-relaxed text-muted sm:px-8">
+        <div className="min-h-0 flex-auto space-y-6 overflow-y-auto overscroll-contain px-5 pb-6 text-sm leading-relaxed text-muted sm:px-8">
           <div className="rounded-tile bg-warning/15 p-4 text-ink sm:p-5">
             <h3 className="text-base font-bold text-warning">Esto es un entorno de simulación</h3>
             <p className="mt-2">
@@ -103,7 +123,7 @@ function TermsDialogShell({ title, onEscape, onForcedClose, onSubmit, footer }) 
           </Section>
         </div>
 
-        <footer className="space-y-4 bg-raised px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-8 sm:pb-6">
+        <footer className="shrink-0 space-y-4 bg-raised px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-8 sm:pb-6">
           {footer}
         </footer>
       </form>

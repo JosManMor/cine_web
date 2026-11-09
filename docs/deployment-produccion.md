@@ -19,8 +19,7 @@ Este documento describe cómo levantar y mantener el entorno de producción simu
 | Servidor web         | Apache (httpd:2.4)                              | Nginx (nginx:1.27-alpine)                            |
 | Redes                | 2 (frontend_net/backend_net)                    | 3 DMZ (public_net/app_net/db_net)                    |
 | Queue worker         | No incluido                                     | Contenedor `queue` dedicado                          |
-| Scheduler            | No incluido                                     | Contenedor `scheduler` dedicado                      |
-| Backups (cron)       | No incluido                                     | Contenedor `cron` (`backup.sh` a las 02:00)          |
+| Scheduler            | No incluido                                     | Contenedor `scheduler` (`demo:reset` a las 00:05)    |
 | OPcache              | Desactivado (`docker/php/php-dev.ini`)          | Activado y optimizado                                |
 | Usuario app          | `www-data` con UID/GID del host                 | `root` (sin `USER`); los workers de PHP-FPM usan `www-data` |
 | Variables UID/GID    | Requeridas (`HOST_UID`/`HOST_GID` en `.env`)    | No aplican                                           |
@@ -54,6 +53,8 @@ Editar `.env.prod` y ajustar obligatoriamente:
 | `MYSQL_ROOT_PASSWORD` | Contraseña root de MySQL                                             |
 | `MAIL_*`              | Preconfigurado para Mailpit (no editar)                              |
 | `VITE_DEMO_MODE=true` | Banner de demo en el frontend                                        |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Cuenta admin que crean los seeders; sin ellas no hay administrador |
+| `DEMO_MODE=true`      | Reinicio diario de compras y boletos (`demo:reset`, ver deployment-servidor-personal.md) |
 
 > **Importante:** `env_file` en Docker Compose **no soporta comentarios en línea**.  
 > Todos los comentarios deben ir en su propia línea (`# comentario`), nunca al final de una línea con valor.
@@ -82,7 +83,7 @@ Al arrancar, el contenedor `app` ejecuta automáticamente:
 docker compose -f docker-compose.prod.yml ps
 ```
 
-`app` y `nginx` deben mostrar `healthy`; `mysql` también. `queue`, `scheduler` y `cron` no tienen healthcheck y deben mostrar `Up`.
+`app` y `nginx` deben mostrar `healthy`; `mysql` también. `queue` y `scheduler` no tienen healthcheck y deben mostrar `Up`.
 
 ### 4. Fijar `APP_KEY` de forma permanente
 
@@ -167,12 +168,12 @@ docker compose -f docker-compose.prod.yml down -v
               │ (db_net)
      ┌────────┼────────────┐
      ▼        ▼            ▼
- [mysql]   [mailpit]   [queue/cron/scheduler]
+ [mysql]   [mailpit]   [queue/scheduler]
  :3306     :1025 SMTP
            :8025 UI (expuesto al host)
 ```
 
-Los servicios `queue`, `scheduler` y `cron` reutilizan la imagen `cine-sendera:prod`. `queue` y `scheduler` comparten el volumen `app_www` con `app`; `cron` no lo monta y guarda los dumps en el volumen `cine_backups`. Solo `nginx` está en `public_net` (además de `app_net`); el resto vive únicamente en `db_net` o en `app_net` + `db_net`.
+Los servicios `queue` y `scheduler` reutilizan la imagen `cine-sendera:prod` y comparten el volumen `app_www` con `app`. Solo `nginx` está en `public_net` (además de `app_net`); el resto vive únicamente en `db_net` o en `app_net` + `db_net`.
 
 ---
 
