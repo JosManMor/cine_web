@@ -1,206 +1,120 @@
-# Módulo 03 — Compras y Tickets
+# Módulo 03 — Compras y ticket
 
-Selección de asientos, creación de la compra y visualización del ticket digital. Es el flujo de mayor criticidad porque involucra la reserva atómica de asientos.
+[Índice de módulos](README.md) · Anterior: [02 Cartelera](02-cartelera.md) · Siguiente: [04 Admin](04-admin.md)
 
----
+Cubre la selección de asientos, el checkout, la pantalla del ticket y la cancelación. Límites de asientos, precios, estados y cuándo se genera el `ticket_code` están en [reglas-de-negocio.md](../reglas-de-negocio.md); las restricciones únicas que evitan la doble reserva, en [database-design.md](../database-design.md).
 
-## Frontend
+## Pantallas y estado
 
-### Páginas
-
-| Ruta                    | Descripción                            |
-| ----------------------- | -------------------------------------- |
-| `/screenings/:id/seats` | Selección de asientos para una función |
-| `/checkout`             | Resumen y confirmación de pago         |
-| `/tickets/:ticket_code` | Ticket digital con QR                  |
-
-### Componentes
-
-- `SeatPicker` — mapa interactivo de la sala generado desde `room.rows` y `room.seats_per_row`. Estados visuales:
-  - **Libre:** borde verde, fondo transparente
-  - **Seleccionado:** fondo verde, icono check
-  - **Ocupado:** fondo rojo `#FF0000`, icono X
-- `OrderSummary` — panel lateral con asientos seleccionados y precio total calculado como `seats.length × screening.base_price`.
-- `CheckoutForm` — método de pago (`cash`, `card`, `online`) y botón "Confirmar Compra".
-- `TicketCard` — muestra `ticket_code`, película, sala, fila, asiento, hora. Renderiza el QR en cliente a partir de `ticket_code` (ningún dato QR viene del servidor).
-
-### Generación del mapa de asientos
-
-El frontend construye la grilla localmente con los datos de la sala:
-
-```js
-// rows = número de filas (ej. 8 → A..H)
-// seats_per_row = asientos por fila (ej. 15 → 1..15)
-// occupiedSeats = lista de {row, seat_number} del screening
+```mermaid
+flowchart LR
+    S["/asientos/:screeningId<br/>SeatsPage"] -->|continuar| C["/checkout<br/>CheckoutPage"]
+    C -->|409 asiento tomado| S
+    C -->|compra registrada| T["/ticket<br/>TicketPage"]
+    T --> MT["/mis-entradas (módulo 05)"]
 ```
 
-Un asiento está ocupado si aparece en `purchase_seats` activos para esa función (el backend los devuelve junto al detalle de la función o en un endpoint dedicado).
+| Ruta | Página | Guardia |
+| --- | --- | --- |
+| `/asientos/:screeningId` | `SeatsPage` | `RequireVerified` |
+| `/checkout` | `CheckoutPage` | `RequireVerified` |
+| `/ticket` | `TicketPage` | `RequireAuth` |
 
-### Estado global
+`BookingContext` conserva entre pantallas `selectedMovie`, `selectedSchedule`, `selectedSeats` y `purchaseResult`. `TicketPage` lee `purchaseResult` de ese contexto; sin él muestra un estado vacío con enlaces a la cartelera y a Mis entradas.
 
-El `screening_id` y los asientos seleccionados se mantienen en Context/Redux entre las páginas de selección y checkout.
+| Componente | Uso |
+| --- | --- |
+| `seats/SeatMap`, `seatLook.js` | Cuadrícula de asientos y su apariencia por estado |
+| `QRCode` | Código QR del ticket |
+| `tickets/Poster`, `tickets.js` | Cartel y utilidades de formato de boletos |
+| `ui/BtnPrimary`, `PillButton` | Acciones |
 
----
+El checkout ofrece los métodos `cash` y `card`; la API además acepta `online`.
 
-## Backend
+## Flujo de compra
 
-### Archivos involucrados
-
-| Capa       | Archivo                                            |
-| ---------- | -------------------------------------------------- |
-| Controller | `Http/Controllers/Purchase/PurchaseController.php` |
-| Requests   | `Http/Requests/Purchase/PurchaseRequest.php`       |
-| Service    | `Services/PurchaseService.php`                     |
-| Models     | `Models/Purchase.php`, `Models/PurchaseSeat.php`   |
-| Resource   | `Http/Resources/PurchaseResource.php`              |
-
-### Lógica crítica de reserva
-
-La operación completa va dentro de una transacción. El UNIQUE `(screening_id, row, seat_number)` en `purchase_seats` es la **única** garantía real contra doble reserva. No se usa `exists()` previo porque en concurrencia dos transacciones pueden pasar el check simultáneamente y aun así colisionar en el INSERT. El patrón correcto es intentar el INSERT directamente y capturar la excepción de clave duplicada que MySQL lanza cuando viola el UNIQUE:
-
-```php
-use Illuminate\Database\UniqueConstraintViolationException;
-
-DB::transaction(function () use ($screeningId, $seats, $purchaseData) {
-
-    $purchase = $this->purchaseRepository->create($purchaseData);
-
-    foreach ($seats as $seat) {
-        try {
-            PurchaseSeat::create([
-                'purchase_id'  => $purchase->id,
-                'screening_id' => $screeningId,
-                'row'          => $seat['row'],
-                'seat_number'  => $seat['seat_number'],
-                'price_paid'   => $seat['price'],
-            ]);
-        } catch (UniqueConstraintViolationException) {
-            throw new SeatAlreadyTakenException($seat['row'], $seat['seat_number']);
-        }
-    }
-
-});
+```mermaid
+sequenceDiagram
+    actor U as Usuario
+    participant F as CheckoutPage
+    participant API as PurchaseController
+    participant S as PurchaseService
+    participant DB as MySQL
+    participant O as PurchaseObserver
+    U->>F: Confirma asientos y método de pago
+    F->>API: POST /api/purchases
+    API->>API: PurchaseRequest valida el cuerpo
+    API->>S: createPurchase(PurchaseDTO, userId)
+    S->>DB: SELECT función con sala
+    S->>S: valida función y asientos
+    S->>DB: BEGIN, INSERT purchases pendiente
+    loop por asiento
+        S->>DB: INSERT purchase_seats
+        alt clave única duplicada
+            S--xAPI: SeatAlreadyTakenException
+            API-->>F: 409
+        end
+    end
+    S->>DB: UPDATE payment_status completado
+    DB-->>O: evento updated
+    O->>DB: UPDATE purchase_seats.ticket_code
+    S->>DB: COMMIT
+    API-->>F: 201 purchase_id, payment_status
+    F->>F: setPurchaseResult y navega a /ticket
 ```
 
-`UniqueConstraintViolationException` está disponible desde Laravel 10. La transacción garantiza que si cualquier asiento falla, ninguno de los insertados anteriormente persiste (rollback automático).
+Si el INSERT lanza el error de clave duplicada, se revierte toda la transacción y el frontend regresa a `SeatsPage` con un aviso.
 
-### Asignación del ticket_code
+## Consulta de un ticket y cancelación
 
-Se asigna **únicamente** cuando `purchases.payment_status` cambia a `completed`, mediante un Observer o Queue Job — nunca inline en el request de compra.
-
-```php
-// PurchaseObserver.php
-public function updated(Purchase $purchase): void
-{
-    if ($purchase->wasChanged('payment_status') && $purchase->payment_status === 'completed') {
-        foreach ($purchase->purchaseSeats as $seat) {
-            $seat->update(['ticket_code' => Str::uuid()]);
-        }
-    }
-}
+```mermaid
+sequenceDiagram
+    participant F as Cliente
+    participant API as PurchaseController
+    participant S as PurchaseService
+    F->>API: GET /api/tickets/{ticket_code}
+    alt el ticket es de otro usuario
+        API-->>F: 403
+    else es del usuario
+        API-->>F: 200 TicketResource
+    end
+    F->>API: DELETE /api/purchases/{purchaseId}
+    API->>S: cancelPurchase(id, userId)
+    alt no existe
+        S--xAPI: PurchaseNotFoundException (404)
+    else ajena
+        S--xAPI: UnauthorizedPurchaseException (403)
+    else ya cancelada
+        S--xAPI: PurchaseAlreadyCancelledException (409)
+    else válida
+        S-->>API: purchase_status cancelado
+        API-->>F: 200
+    end
 ```
 
-### Validaciones previas al insert
+El frontend actual no ofrece un botón de cancelación: el endpoint existe pero ninguna pantalla lo invoca.
 
-- `row` debe estar en `[A .. chr(ord('A') + room.rows - 1)]`
-- `seat_number` debe estar en `[1 .. room.seats_per_row]`
-- `price_paid` se toma de `screenings.base_price` en el momento de la compra (no se recalcula después)
+## Endpoints
 
-### Índices relevantes
+Todos exigen `auth:sanctum` y `verified`.
 
-```sql
-CREATE UNIQUE INDEX idx_purchase_seats_unique ON purchase_seats (screening_id, row, seat_number);
-CREATE INDEX idx_purchase_seats_screening ON purchase_seats (screening_id, status);
-CREATE UNIQUE INDEX idx_purchase_seats_ticket ON purchase_seats (ticket_code);
-```
+| Método y ruta | Controlador | Respuestas |
+| --- | --- | --- |
+| `POST /purchases` | `Purchase/PurchaseController@store` | 201, 404 (función), 409 (asiento tomado o función no disponible), 422 |
+| `DELETE /purchases/{purchaseId}` | `@cancel` | 200, 403, 404, 409 |
+| `GET /tickets/{ticket_code}` | `@showTicket` | 200, 403, 404 |
 
----
+Esquemas: [api-endpoints.md](../api-endpoints.md).
 
-## API
+## Piezas del backend
 
-### POST `/purchases`
-
-**Seguridad:** Bearer Token requerido.
-
-**Body:**
-
-```json
-{
-  "screening_id": 12,
-  "seats": [
-    { "row": "A", "seat_number": 3 },
-    { "row": "A", "seat_number": 4 }
-  ],
-  "payment_method": "card",
-  "total_amount": 180.0
-}
-```
-
-**Respuesta 201:**
-
-```json
-{
-  "message": "Compra registrada y pago confirmado.",
-  "purchase_id": 501,
-  "payment_status": "completed"
-}
-```
-
-> El servicio confirma el pago al final de la transacción llamando `$purchase->update(['payment_status' => 'completed'])`. Esto dispara el `PurchaseObserver` que asigna un UUID como `ticket_code` a cada `purchase_seat`. Los tickets quedan disponibles de inmediato en `GET /my-tickets`.
-
----
-
-### GET `/my-tickets`
-
-**Seguridad:** Bearer Token requerido.
-
-**Respuesta 200:**
-
-```json
-[
-  {
-    "ticket_code": "3f4a8b2c-...",
-    "status": "active",
-    "movie_title": "Inferno Nexus",
-    "start_time": "2025-07-25 17:30:00",
-    "format": "2D",
-    "language_type": "subtitled",
-    "room": "Sala 1",
-    "row": "A",
-    "seat_number": 3,
-    "price_paid": 90.0,
-    "user_name": "Juan Pérez",
-    "purchased_at": "2025-07-25 10:30:00"
-  }
-]
-```
-
-> Solo devuelve asientos con `status = 'active'` y `ticket_code IS NOT NULL`. Las compras pendientes de pago no aparecen. Cada asiento es un objeto independiente, incluso si pertenecen a la misma compra.
-
----
-
-### GET `/tickets/{ticket_code}`
-
-**Seguridad:** Bearer Token requerido.
-
-**Respuesta 200:**
-
-```json
-{
-  "ticket_code": "SNDR-2025-7A3F",
-  "status": "active",
-  "movie_title": "Inferno Nexus",
-  "start_time": "2025-07-25 17:30:00",
-  "format": "2D",
-  "language_type": "subtitled",
-  "room": "Sala 1",
-  "row": "A",
-  "seat_number": 3,
-  "price_paid": 90.0,
-  "user_name": "Juan Pérez",
-  "purchased_at": "2025-07-25 10:30:00"
-}
-```
-
-> `status` refleja el valor de `purchase_seats.status`: `active` (válido), `used`, `cancelled`.  
-> El QR se genera en el cliente a partir de `ticket_code`; el servidor no devuelve datos QR.
+| Capa | Archivo |
+| --- | --- |
+| Controlador | `Purchase/PurchaseController` |
+| Validación y DTO | `Requests/Purchase/PurchaseRequest`, `DTOs/Purchase/PurchaseDTO` |
+| Servicio | `Services/PurchaseService` |
+| Repositorio | `PurchaseRepositoryInterface` y su implementación Eloquent |
+| Observer | `Observers/PurchaseObserver` (asigna `ticket_code`) |
+| Modelos | `Purchase`, `PurchaseSeat` |
+| Resources | `PurchaseResource`, `TicketResource` |
+| Excepciones | `ScreeningNotAvailableException`, `InvalidSeatException`, `SeatAlreadyTakenException`, `PurchaseNotFoundException`, `UnauthorizedPurchaseException`, `PurchaseAlreadyCancelledException` |
