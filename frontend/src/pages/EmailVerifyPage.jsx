@@ -4,6 +4,7 @@ import PillButton from "../components/ui/PillButton";
 import { AlertIcon, CheckIcon, RefreshIcon, SpinnerIcon } from "../components/ui/icons";
 import { verifyEmail } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
+import { takeReturnTo } from "../utils/returnTo";
 
 const TITLE = "m-0 mt-8 text-[clamp(2rem,5vw,3.5rem)] leading-[1.05] font-extrabold tracking-tight text-balance text-ink";
 const TEXT = "mx-auto mt-4 max-w-md text-lg leading-relaxed text-ink";
@@ -30,7 +31,7 @@ export default function EmailVerifyPage({ addToast }) {
         updateUser({ verified: true });
         setStatus("success");
         addToast("Correo verificado", "success");
-        timer = setTimeout(() => navigate("/", { replace: true }), 2000);
+        timer = setTimeout(() => navigate(takeReturnTo(), { replace: true }), 1500);
       })
       .catch(err => {
         setStatus("error");
@@ -58,9 +59,9 @@ export default function EmailVerifyPage({ addToast }) {
               <CheckIcon size={36} />
             </span>
             <h1 className={TITLE}>Correo verificado</h1>
-            <p className={TEXT}>Tu cuenta ya está activa. Te llevamos a la cartelera en un momento.</p>
-            <PillButton size="lg" className="mt-10" onClick={() => navigate("/", { replace: true })}>
-              Ir a la cartelera
+            <p className={TEXT}>Tu cuenta ya está activa. Te llevamos de vuelta a tu compra en un momento.</p>
+            <PillButton size="lg" className="mt-10" onClick={() => navigate(takeReturnTo(), { replace: true })}>
+              Continuar con mi compra
             </PillButton>
           </>
         )}

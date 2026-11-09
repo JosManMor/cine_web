@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout";
 import AuthField from "../components/auth/AuthField";
 import FormAlert from "../components/auth/FormAlert";
@@ -12,6 +12,7 @@ import { fieldErrors } from "../schemas/fieldErrors";
 export default function LoginPage({ addToast }) {
   const { saveAuth } = useAuth();
   const navigate = useNavigate();
+  const from = useLocation().state?.from;
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,7 +30,7 @@ export default function LoginPage({ addToast }) {
       const { data } = await login({ email, password: pass });
       saveAuth(data.user, data.token);
       addToast("Sesión iniciada", "success");
-      navigate("/");
+      navigate(from ? from.pathname + (from.search ?? "") : "/", { replace: true });
     } catch (err) {
       setErrors({ _general: [err.response?.data?.message ?? "Error al iniciar sesión"] });
     } finally {

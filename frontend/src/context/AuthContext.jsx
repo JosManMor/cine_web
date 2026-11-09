@@ -16,6 +16,16 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
+  // Mantiene la sesión sincronizada entre pestañas (p. ej. al verificar el correo en otra).
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key !== "auth_user") return;
+      try { setUser(e.newValue ? JSON.parse(e.newValue) : null); } catch { /* valor corrupto */ }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   const saveAuth = useCallback((userData, token) => {
     localStorage.setItem("auth_token", token);
     localStorage.setItem("auth_user", JSON.stringify(userData));
