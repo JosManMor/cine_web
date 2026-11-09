@@ -28,6 +28,26 @@ jobs:
         with:
           fetch-depth: 0 # Historial completo para el blame y la detección de código nuevo
 
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci --ignore-scripts
+        working-directory: frontend
+
+      # Sin este informe Sonar ve 0 % de cobertura en el código nuevo.
+      - name: Generate frontend coverage
+        run: npm run test:coverage
+        working-directory: frontend
+
+      # Sonar resuelve las rutas del lcov desde la raíz del repo, no desde frontend/.
+      - name: Prefix lcov paths
+        run: sed -i 's|^SF:|SF:frontend/|' frontend/coverage/lcov.info
+
       - name: SonarQube Cloud scan
         uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
         env:
@@ -36,3 +56,4 @@ jobs:
           args: >
             -Dsonar.organization=josmanmor
             -Dsonar.projectKey=JosManMor_cine_web
+            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
