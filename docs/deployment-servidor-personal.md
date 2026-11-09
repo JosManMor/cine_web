@@ -144,15 +144,14 @@ pueden añadir *required reviewers* para aprobar cada despliegue a mano.
 Pre es una simulación: cada día a las 00:05 (hora de `DEMO_TIMEZONE`, por defecto
 `America/Mexico_City`) el contenedor `scheduler` ejecuta `php artisan demo:reset`, que:
 
-1. Vacía `purchase_seats`, `purchases` y `users`, junto con `personal_access_tokens`,
-   `sessions` y `password_reset_tokens`.
+1. Vacía `purchase_seats` y `purchases` (compras y boletos).
 2. Devuelve a `open` las funciones `sold_out`.
-3. Ejecuta los seeders, que recrean el administrador con `ADMIN_EMAIL` / `ADMIN_PASSWORD`
-   de `.env.prod` (sin ellas la demo se queda sin admin).
-4. Mueve cada función ya pasada a un día aleatorio entre mañana y dentro de 7 días,
+3. Mueve cada función ya pasada a un día aleatorio entre mañana y dentro de 7 días,
    conservando la hora y evitando, si es posible, solapes en la misma sala.
 
-Películas, salas y funciones se conservan. El comando solo actúa con `DEMO_MODE=true`
+Los usuarios registrados (con sus sesiones y tokens), las películas, las salas y las
+funciones se conservan. El administrador lo crean los seeders en cada arranque del
+contenedor `app` con `ADMIN_EMAIL` / `ADMIN_PASSWORD` de `.env.prod`. El comando solo actúa con `DEMO_MODE=true`
 en `.env.prod`; sin esa variable el scheduler no lo programa y una ejecución manual
 termina con error sin borrar nada.
 

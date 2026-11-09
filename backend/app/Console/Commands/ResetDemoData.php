@@ -11,19 +11,15 @@ class ResetDemoData extends Command
 {
     protected $signature = 'demo:reset {--force : Ejecutar aunque DEMO_MODE no esté activo}';
 
-    protected $description = 'Vacía compras, boletos y usuarios, y reagenda las funciones (entorno demo)';
+    protected $description = 'Vacía compras y boletos y reagenda las funciones (entorno demo)';
 
     /**
-     * Tablas que se vacían en cada reinicio. Las sesiones, tokens y enlaces de
-     * recuperación se incluyen porque pertenecen a usuarios que dejan de existir.
+     * Tablas que se vacían en cada reinicio. Los usuarios registrados (y sus
+     * sesiones y tokens) se conservan.
      */
     private const TABLES = [
         'purchase_seats',
         'purchases',
-        'personal_access_tokens',
-        'sessions',
-        'password_reset_tokens',
-        'users',
     ];
 
     public function handle(): int
@@ -42,9 +38,6 @@ class ResetDemoData extends Command
 
         // Sin compras no queda ninguna función agotada.
         Screening::where('status', 'sold_out')->update(['status' => 'open']);
-
-        // Recrea el usuario administrador de la demo.
-        $this->call('db:seed', ['--force' => true]);
 
         $this->call('screenings:refresh-demo');
 

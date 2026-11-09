@@ -167,4 +167,4 @@ Tests use in-memory SQLite regardless of the `.env` DB setting (configured in `p
 
 `scripts/deploy.sh` — deploys the published image to the personal server (run by `.github/workflows/preprod.yml`). There are no database backups.
 
-**Demo reset (pre):** the prod `scheduler` container runs `php artisan schedule:work`; when `DEMO_MODE=true`, `demo:reset` runs daily at 00:05 (`DEMO_TIMEZONE`). It truncates `purchase_seats`, `purchases`, `users` (plus tokens/sessions), re-seeds the admin (`ADMIN_EMAIL`/`ADMIN_PASSWORD`; dev falls back to `test@example.com`/`password`, production creates no admin without them) and moves past screenings to a random day within the next 7 days.
+**Demo reset (pre):** the prod `scheduler` container runs `php artisan schedule:work`; when `DEMO_MODE=true`, `demo:reset` runs daily at 00:05 (`DEMO_TIMEZONE`). It truncates `purchase_seats` and `purchases` only (registered users persist) and moves past screenings to a random day within the next 7 days. The admin account comes from `ADMIN_EMAIL`/`ADMIN_PASSWORD` via `DatabaseSeeder` (dev falls back to `test@example.com`/`password`; production creates no admin without them).
