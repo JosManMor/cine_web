@@ -20,7 +20,6 @@ Este documento describe cómo levantar y mantener el entorno de producción simu
 | Redes                | 2 (frontend_net/backend_net)                    | 3 DMZ (public_net/app_net/db_net)                    |
 | Queue worker         | No incluido                                     | Contenedor `queue` dedicado                          |
 | Scheduler            | No incluido                                     | Contenedor `scheduler` (`demo:reset` a las 00:05)    |
-| Backups (cron)       | No incluido                                     | No incluido (`backup.sh` existe pero sin contenedor) |
 | OPcache              | Desactivado (`docker/php/php-dev.ini`)          | Activado y optimizado                                |
 | Usuario app          | `www-data` con UID/GID del host                 | `root` (sin `USER`); los workers de PHP-FPM usan `www-data` |
 | Variables UID/GID    | Requeridas (`HOST_UID`/`HOST_GID` en `.env`)    | No aplican                                           |
