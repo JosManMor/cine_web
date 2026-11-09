@@ -1,119 +1,155 @@
-# Frontend Design System — Cine Sendera
+# Sistema de diseño del frontend — Cine Sendera
 
----
+Fuente de verdad: el bloque `@theme` de `frontend/src/index.css`. Este documento describe los tokens y componentes que existen hoy; la estructura de carpetas, rutas y estado está en [frontend-architecture.md](frontend-architecture.md).
 
-## 0. Estándares del Proyecto
+## 1. Estándares
 
-### Idioma Oficial
+| Ámbito | Idioma |
+|---|---|
+| Código (variables, funciones, componentes, archivos) | Inglés |
+| Contenido visible para el usuario | Español |
+| Documentación | Español |
 
-Para mantener la consistencia y profesionalismo en el desarrollo, se establecen los siguientes estándares de idioma:
+Reglas de interfaz obligatorias (detalle en `CLAUDE.md`):
 
-- **Código (Frontend):** Inglés (nombres de variables, funciones, componentes de React/Angular, archivos `.css`, `.ts`, `.js`).
-- **Nombres de Componentes:** Inglés (ej. `MovieCard`, `SeatPicker`, `Navbar`).
-- **Frontend (UI/UX):** Inglés para la estructura técnica, pero el **contenido visible** para el usuario final será en **Español**.
-- **Documentación:** Español (explicaciones, guías de estilo, manuales).
+- Responsive desde 320 px, sin anchos ni alturas fijas que rompan en pantallas pequeñas; se prueba en escritorio y en 480 px o menos.
+- Sin emoji. Los iconos nuevos se importan de `lucide-react` con sus valores por defecto (solo `size` y color por clase). Los iconos dibujados a mano de `components/ui/icons.jsx`, `Navbar`, `HeroStage` y `AdminPage` se conservan hasta que esa vista se rediseñe.
 
----
+## 2. Estado de migración
 
-## 1. Identidad Visual
+El sistema convive con estilos heredados. Los tokens de `@theme` son la referencia; `constants/theme.js` (paleta anterior, roja `#E50914` sobre carbón `#221F1F`) solo sigue vigente donde la vista no se ha migrado.
 
-### Paleta de Colores
+| Estilo | Vistas y componentes |
+|---|---|
+| Tailwind con tokens de `@theme` | `HomePage` y `components/home`, `LoginPage`, `RegisterPage` y `components/auth`, `MovieDetailPage` y `components/movie`, `SeatsPage` y `components/seats`, `CheckoutPage`, `TicketPage`, `MyTicketsPage`, `EmailPendingPage`, `EmailVerifyPage`, `Navbar`, `DemoBanner`, `PillButton` |
+| Heredado (`constants/theme.js`) | `AdminPage`, `TermsDialog`, `ui/BtnPrimary`, `ui/BtnSecondary`, `ui/Spinner`, `ui/Toast`, y el bloque de fuentes que inyecta `App.jsx` |
 
-Se busca una estética moderna y cinematográfica (Dark Mode por defecto).
+Los componentes heredados no deben copiarse en vistas nuevas.
 
-- **Primary (Action):** `#E50914` (Rojo Cine/Netflix) - Para botones principales y llamadas a la acción.
-- **Secondary:** `#221F1F` (Negro Carbón) - Fondo principal de la aplicación.
-- **Surface:** `#2F2F2F` (Gris Oscuro) - Para tarjetas, modals y contenedores secundarios.
-- **Text Primary:** `#FFFFFF` (Blanco) - Texto principal y títulos.
-- **Text Secondary:** `#B3B3B3` (Gris Claro) - Para descripciones y metadatos.
-- **Success:** `#46D369` (Verde) - Para confirmaciones de compra y asientos disponibles.
-- **Error:** `#FF0000` (Rojo) - Para errores de validación y asientos ocupados.
+## 3. Tokens de color
 
-### Tipografía
+Tema oscuro único. Cada token genera utilidades de Tailwind (`bg-ground`, `text-muted`, `border-accent`, etc.).
 
-- **Títulos:** `Montserrat` o `Bebas Neue` (Sans-serif con peso fuerte).
-- **Cuerpo:** `Roboto` o `Open Sans` (Para legibilidad).
+| Token | Valor | Uso |
+|---|---|---|
+| `ground` | `#0b0b0d` | Fondo de página |
+| `surface` | `#16161a` | Tarjetas y paneles |
+| `raised` | `#212127` | Elementos elevados y fondo de campos de formulario |
+| `ink` | `#ffffff` | Texto principal |
+| `muted` | `#b4b4bd` | Texto secundario y metadatos |
+| `accent` | `#d6263d` | Acción principal, butaca seleccionada, error de campo |
+| `accent-strong` | `#bb1d32` | Estado hover del acento |
+| `warning` | `#f5b014` | Avisos y estados pendientes |
 
----
+Transparencias del blanco (`white/10`, `white/25`) se usan para botones fantasma y butacas; no son tokens propios.
 
-## 2. Componentes de UI (Atomics)
+## 4. Tipografía
 
-### Botones (`Button`)
+| Token | Pila | Uso |
+|---|---|---|
+| `font-sans` | Montserrat, Open Sans, `system-ui`, sans-serif | Texto general |
+| `font-display` | Montserrat, Open Sans, `system-ui`, sans-serif | Títulos |
 
-- **Primary:** Fondo rojo, texto blanco, bordes redondeados (4px).
-- **Secondary:** Fondo gris oscuro, borde rojo, texto blanco.
-- **Disabled:** Fondo gris claro, texto gris oscuro.
+Las fuentes se cargan desde Google Fonts mediante el bloque `FONTS` de `constants/theme.js`, inyectado por `App.jsx`. Reglas de la guía de arte vigentes: sin monoespaciada, sin numeración decorativa, sin sobretítulos y sin degradados decorativos (un velo sobre una fotografía sí se admite).
 
-### Tarjetas de Película (`MovieCard`)
+## 5. Radios, espaciado y animaciones
 
-- **Imagen:** Aspect ratio 2:3.
-- **Efecto:** Zoom suave al hacer hover.
-- **Información:** Título, género y botón de "Comprar".
+| Token o clase | Valor | Uso |
+|---|---|---|
+| `rounded-card` | `1.75rem` | Tarjetas y paneles grandes |
+| `rounded-tile` | `1rem` | Campos, fichas y mosaicos |
+| `animate-rise` | `rise` 0,55 s | Entrada con desplazamiento vertical |
+| `animate-fill` | `fill` 0,8 s | Barra de avance hacia el comprobante; debe durar lo mismo que `REDIRECT_DELAY_MS` de `CheckoutPage` |
+| `.frame` | Margen lateral 1,25 rem; 1,5 rem desde 768 px; 2,5 rem desde 1024 px | Marco lateral único de las vistas |
+| `.no-scrollbar` | Oculta la barra de desplazamiento | Carriles horizontales de películas |
 
-### Selector de Asientos (`SeatPicker`)
+Puntos de corte: los estándar de Tailwind; el diseño parte de móvil y amplía con `md` y `lg`.
 
-- **Asiento Libre:** Borde verde, fondo transparente.
-- **Asiento Seleccionado:** Fondo verde, icono de check.
-- **Asiento Ocupado:** Fondo rojo (#FF0000), icono de X.
+## 6. Componentes de UI
 
----
+### Botones
 
-## 3. Estructura de Páginas
+| Componente | Variantes y tamaños | Notas |
+|---|---|---|
+| `ui/PillButton` | `primary` (acento), `ghost` (blanco translúcido), `light` (blanco); tamaños `md` y `lg` | Forma de píldora; con la prop `as` se renderiza como enlace; foco visible y deshabilitado atenuado. Es el botón de las vistas rediseñadas |
+| `auth/SubmitButton` | Botón de envío con estado de carga | Formularios de login y registro |
+| `ui/BtnPrimary`, `ui/BtnSecondary` | Heredados | Solo `AdminPage` y diálogos antiguos |
 
-### 3.1 Cartelera (Home)
+### Campos de formulario
 
-- **Hero Section:** Película destacada con trailer o imagen grande.
-- **Grid:** Listado de películas con filtros por género.
+| Clase | Función |
+|---|---|
+| `.field-label` | Etiqueta encima del campo |
+| `.field-input` | Campo de 3,25 rem de alto sobre `raised`; foco con borde blanco; `aria-invalid="true"` pinta el borde en `accent` |
+| `.field-input--action` | Reserva espacio a la derecha para un botón dentro del campo |
 
-### 3.2 Detalle de Película
+`auth/AuthField` encapsula etiqueta, campo y mensaje de error; `auth/FormAlert` muestra el error general del formulario y `auth/AuthLayout` da el marco de las pantallas de acceso.
 
-- Sinopsis extendida.
-- Horarios disponibles (Schedule).
-- Información de reparto y duración.
+### Cartelera y detalle
 
-### 3.3 Selección de Asientos
+| Componente | Rol |
+|---|---|
+| `home/HeroStage` y `HeroBackdrop` | Película destacada con fondo apaisado y velo |
+| `home/MovieRail`, `RailCard`, `GenreFilter` | Carril horizontal de películas con filtro por género |
+| `home/ShowtimeChip`, `MovieMeta` | Chip de horario y metadatos (duración, género) |
+| `movie/MovieHeader`, `ShowtimePicker` | Cabecera del detalle y selector de funciones agrupadas |
 
-- Mapa interactivo de la sala.
-- Leyenda de estados de asientos.
-- Resumen lateral de precio total.
+### Selector de asientos
 
-### 3.4 Checkout / Pago
+`seats/SeatMap` dibuja el plano y `seats/seatLook.js` define el aspecto por estado; plano y leyenda comparten esas clases para que cada muestra de la leyenda sea la butaca misma.
 
-- Formulario de datos del usuario (si no está autenticado).
-- Resumen de la orden.
-- Botón de "Confirmar Compra".
+| Estado | Aspecto |
+|---|---|
+| `free` | Blanco translúcido al 25 %, más claro al pasar el cursor |
+| `selected` | Fondo `accent`, texto `ink`, `accent-strong` en hover |
+| `occupied` | Blanco al 7 %, texto atenuado y cursor de no permitido |
 
-### 3.5 Ticket Digital
+### Avisos, diálogos y comprobantes
 
-- Código QR generado por el backend.
-- Resumen de la compra (Película, Asientos, Sala, Hora).
-- Botón para "Descargar PDF".
+| Componente | Rol |
+|---|---|
+| `ui/Toast` | Avisos temporales (`success`, `error`, `info`) alimentados por `ToastContext` |
+| `ui/Spinner` | Indicador de carga |
+| `TermsDialog` | Consentimiento inicial de términos y revisión posterior |
+| `DemoBanner` | Aviso de modo demostración con enlace al buzón de pruebas |
+| `tickets/Poster` | Cartel en miniatura de checkout, ticket y mis entradas |
+| `QRCode` | Código QR del `ticket_code` con `qrcode.react` |
 
----
+## 7. Jerarquía visual de una vista
 
-## 4. Integración con Backend
+```mermaid
+flowchart TD
+    page["Página<br/>bg-ground, font-sans"] --> frame[".frame<br/>margen lateral"]
+    frame --> card["Contenedor<br/>bg-surface, rounded-card"]
+    card --> tile["Campos y fichas<br/>bg-raised, rounded-tile"]
+    tile --> action["Acción principal<br/>PillButton primary, bg-accent"]
+    tile --> text["Texto<br/>text-ink, secundario text-muted"]
+```
 
-El frontend se comunicará con el backend a través de la API REST definida en:
-[Documentación de la API (api-endpoints.md)](api-endpoints.md)
+## 8. Flujo de rediseño de una vista
 
-### Manejo de Estados
+Se rediseña una vista por vez, cada una en su worktree y rama `feat/redesign-<vista>` (flujo Git en `CLAUDE.md`). Los pasos de calidad:
 
-- Uso de Context API o Redux para gestionar el carrito de boletos y la sesión del usuario.
-- Notificaciones Toast para feedback de acciones (ej. "Asiento seleccionado", "Compra exitosa").
+```mermaid
+flowchart LR
+    A["Worktree y rama<br/>por vista"] --> B["Implementar con Tailwind<br/>y tokens de index.css"]
+    B --> C["Capturas con Playwright<br/>1440, 768 y 390 px"]
+    C --> D["Corregir FAIL de<br/>inspect.mjs y lint.mjs"]
+    D --> E["lint, test y build<br/>en verde"]
+    E --> F["PR a dev"]
+```
 
----
+- Los componentes compartidos nuevos van en su propia PR antes de la vista que los use.
+- La guía de arte es el skill `design-taste-frontend` (`.agents/skills/design-taste-frontend/SKILL.md`); si el usuario aporta una imagen de referencia, esa imagen manda.
+- Los colores, fuentes y radios se declaran una sola vez en `@theme`; no se usan objetos `style` en línea ni bloques `<style>` por componente.
 
-## 5. Responsividad (Mobile First)
+## 9. Tecnologías de interfaz
 
-- **Mobile:** Layout de una columna para la cartelera.
-- **Tablet:** Layout de dos o tres columnas.
-- **Desktop:** Layout de grid completo (4+ columnas) y experiencias inmersivas.
+| Necesidad | Solución |
+|---|---|
+| Framework | React 19, JavaScript (sin TypeScript en `src/`; los tests sí usan TS) |
+| Estilos | Tailwind CSS v4 con `@tailwindcss/vite` |
+| Iconos | `lucide-react` |
+| QR | `qrcode.react` |
 
----
-
-## 6. Tecnologías Seleccionadas
-
-- **Framework:** React 18+ (Vanilla JavaScript). Se ha seleccionado Vanilla JS para simplificar el desarrollo y mantener la flexibilidad sin la sobrecarga de tipos estáticos de TypeScript.
-- **Estilos:** Tailwind prioritariamente y css.
-- **Iconos:** Lucide React o FontAwesome.
-- **QR:** Librería cliente para renderizar el `ticket_code` como QR.
+Datos, rutas y flujo de compra del cliente: [frontend-architecture.md](frontend-architecture.md). Contratos de la API: [api-endpoints.md](api-endpoints.md).
