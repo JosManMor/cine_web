@@ -86,12 +86,12 @@ export default function CheckoutPage({ addToast }) {
   if (done) {
     return (
       <main className="frame flex min-h-svh items-center justify-center bg-ground font-sans text-ink">
-        <div role="status" className="flex animate-rise flex-col items-center gap-4 text-center motion-reduce:animate-none">
+        <div className="flex animate-rise flex-col items-center gap-4 text-center motion-reduce:animate-none">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent">
             <Check size={32} />
           </span>
           <h1 className="m-0 text-2xl! font-bold tracking-tight">¡Compra registrada!</h1>
-          <p className="text-base text-muted">Generando comprobante...</p>
+          <output className="text-base text-muted">Generando comprobante...</output>
           <Spinner />
         </div>
       </main>
@@ -187,12 +187,12 @@ export default function CheckoutPage({ addToast }) {
                   {count} {count === 1 ? "asiento" : "asientos"}
                 </p>
                 {loading ? (
-                  <div role="status" className="flex items-center gap-3 lg:rounded-tile lg:bg-raised lg:p-4">
+                  <div className="flex items-center gap-3 lg:rounded-tile lg:bg-raised lg:p-4">
                     <Spinner />
-                    <div className="text-right lg:text-left">
-                      <p className="text-base font-semibold">Procesando compra...</p>
-                      <p className="text-sm text-muted">No cierres esta ventana</p>
-                    </div>
+                    <output className="text-right lg:text-left">
+                      <span className="block text-base font-semibold">Procesando compra...</span>
+                      <span className="block text-sm text-muted">No cierres esta ventana</span>
+                    </output>
                   </div>
                 ) : (
                   <PillButton size="lg" onClick={handlePurchase} className="max-lg:h-12 max-lg:px-6 lg:w-full">
