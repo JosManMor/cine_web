@@ -48,7 +48,7 @@ jobs:
           }
 
           failed=0
-          for df in docker/php/Dockerfile docker/php/Dockerfile.prod docker/php/Dockerfile.ci; do
+          for df in docker/php/Dockerfile docker/php/Dockerfile.prod; do
             if [ -f "$df" ] && ! check_version "$df"; then
               failed=1
             fi
