@@ -1,7 +1,7 @@
 export const ADMIN_USER = {
   email: "test@example.com",
   password: "password",
-  name: "Test User",
+  name: "Administrador",
   role: "admin" as const,
 };
 

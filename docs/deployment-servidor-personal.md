@@ -147,7 +147,8 @@ Pre es una simulación: cada día a las 00:05 (hora de `DEMO_TIMEZONE`, por defe
 1. Vacía `purchase_seats`, `purchases` y `users`, junto con `personal_access_tokens`,
    `sessions` y `password_reset_tokens`.
 2. Devuelve a `open` las funciones `sold_out`.
-3. Ejecuta los seeders, que recrean el administrador de la demo.
+3. Ejecuta los seeders, que recrean el administrador con `ADMIN_EMAIL` / `ADMIN_PASSWORD`
+   de `.env.prod` (sin ellas la demo se queda sin admin).
 4. Mueve cada función ya pasada a un día aleatorio entre mañana y dentro de 7 días,
    conservando la hora y evitando, si es posible, solapes en la misma sala.
 

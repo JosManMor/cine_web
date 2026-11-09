@@ -53,6 +53,7 @@ Editar `.env.prod` y ajustar obligatoriamente:
 | `MYSQL_ROOT_PASSWORD` | Contraseña root de MySQL                                             |
 | `MAIL_*`              | Preconfigurado para Mailpit (no editar)                              |
 | `VITE_DEMO_MODE=true` | Banner de demo en el frontend                                        |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Cuenta admin que crean los seeders; sin ellas no hay administrador |
 | `DEMO_MODE=true`      | Reinicio diario de compras y usuarios (`demo:reset`, ver deployment-servidor-personal.md) |
 
 > **Importante:** `env_file` en Docker Compose **no soporta comentarios en línea**.  

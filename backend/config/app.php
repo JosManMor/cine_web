@@ -83,6 +83,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Administrador inicial
+    |--------------------------------------------------------------------------
+    |
+    | Cuenta admin que crea DatabaseSeeder. Fuera de producción, si faltan,
+    | se usan test@example.com / password; en producción sin email o
+    | contraseña no se crea ningún administrador.
+    |
+    */
+
+    'admin' => [
+        'name' => env('ADMIN_NAME', 'Administrador'),
+        'email' => env('ADMIN_EMAIL'),
+        'password' => env('ADMIN_PASSWORD'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |
