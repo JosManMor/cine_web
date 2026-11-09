@@ -50,7 +50,9 @@ La primera ejecución analiza todo el historial y publica `v1.0.0`.
 
 - Linux con Docker Engine y el plugin `docker compose` v2.20+ (usa `up --wait`).
 - `curl` instalado.
-- Puerto 80 libre y accesible.
+- Puerto 80 libre en `127.0.0.1`. nginx solo se publica en loopback: el acceso público
+  es por Cloudflare Tunnel, con `cloudflared` en el host y el servicio del *Public Hostname*
+  apuntando a `http://127.0.0.1:80`. No hace falta abrir puertos en el router.
 - Un usuario dedicado (p. ej. `github-runner`) que pertenezca al grupo `docker`.
 
 ## Configuración inicial (una sola vez)
@@ -222,14 +224,17 @@ Formato de cada línea del log de accesos:
 203.0.113.7 MX [2026-11-09T05:20:21+00:00] "GET /api/movies HTTP/1.1" 200 5120 0.042 "https://…/" "Mozilla/5.0 …"
 ```
 
-> El servidor está detrás del proxy de Cloudflare (nube naranja). nginx toma la IP del
-> usuario de la cabecera `CF-Connecting-IP`, pero **solo** si la conexión viene de los
-> rangos de Cloudflare (`set_real_ip_from` en `docker/nginx/prod.conf`); en un acceso
-> directo al servidor la cabecera se ignora y se registra la IP de la conexión. Laravel
-> recibe la misma IP real, así que el `throttle` por IP limita a cada usuario y no a todo
-> un nodo de Cloudflare. Cloudflare publica sus rangos en <https://www.cloudflare.com/ips/>:
-> si cambian, actualizar la lista. El país (`CF-IPCountry`) solo es fiable en peticiones
-> que pasaron por Cloudflare.
+> El tráfico llega por Cloudflare Tunnel: `cloudflared` (en el host) conecta a
+> `127.0.0.1:80` y Docker entrega esas conexiones desde la puerta de enlace de la red bridge
+> (`172.x.0.1`). nginx toma la IP del usuario de la cabecera `CF-Connecting-IP` cuando la
+> conexión viene de los rangos de Docker (`set_real_ip_from` en `docker/nginx/prod.conf`).
+> Es seguro porque el puerto solo escucha en loopback y nadie de fuera puede conectar y
+> falsificarla. Laravel recibe la misma IP real, así que el `throttle` por IP limita a cada
+> usuario. Las peticiones locales sin la cabecera (el health check de `deploy.sh`, un `curl`
+> desde el servidor) aparecen con `172.x.0.1` y país `-`.
+
+> En el *Public Hostname* del túnel conviene poner `http://127.0.0.1:80` y no
+> `http://localhost:80`: `localhost` puede resolverse a `::1` (IPv6), donde nginx no escucha.
 
 > Las IP son datos personales: se conservan 30 días (bucle `find … -mtime +30 -delete` del
 > servicio `nginx` en `docker-compose.prod.yml`). Para cambiar el plazo, editar ese número.

@@ -153,7 +153,7 @@ docker compose -f docker-compose.prod.yml down -v
 
 ```
   Browser
-     │ :80 (public_net)
+     │ :80 solo en 127.0.0.1 (public_net)
      ▼
  ┌─────────────────────────┐
  │  nginx (nginx:1.27)     │  public_net + app_net
