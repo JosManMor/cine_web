@@ -80,6 +80,10 @@ jobs:
     name: Prod E2E
     runs-on: ubuntu-24.04
     needs: [test-backend, test-frontend]
+    # Admin que crea el seeder y con el que inician sesión los tests de Playwright.
+    env:
+      ADMIN_EMAIL: admin@ci.test
+      ADMIN_PASSWORD: ci_admin_password
 
     steps:
       - name: Checkout repository
@@ -94,9 +98,8 @@ jobs:
           sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=ci_test_password|" .env.prod
           sed -i "s|^MYSQL_PASSWORD=.*|MYSQL_PASSWORD=ci_test_password|" .env.prod
           sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=ci_root_password|" .env.prod
-          # Debe coincidir con ADMIN_USER de frontend/tests/fixtures/users
-          sed -i "s|^ADMIN_EMAIL=.*|ADMIN_EMAIL=test@example.com|" .env.prod
-          sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=password|" .env.prod
+          sed -i "s|^ADMIN_EMAIL=.*|ADMIN_EMAIL=${ADMIN_EMAIL}|" .env.prod
+          sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" .env.prod
 
       - name: Build and start Docker Compose
         run: docker compose -f docker-compose.prod.yml up -d --build --wait --wait-timeout 180
