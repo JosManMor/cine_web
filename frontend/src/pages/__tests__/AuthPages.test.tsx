@@ -16,7 +16,7 @@ const saveAuth = vi.fn();
 const addToast = vi.fn();
 
 function Path() { return <div data-testid="path">{useLocation().pathname}</div>; }
-function renderPage(page: React.ReactNode, path: string) {
+function renderPage(page: React.ReactNode, path: string | { pathname: string; state?: unknown }) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <AuthContext.Provider value={{ saveAuth } as never}>{page}<Path /></AuthContext.Provider>
@@ -56,6 +56,19 @@ describe('LoginPage', () => {
     await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent(/^\/$/));
     expect(login).toHaveBeenCalledWith({ email: 'ana@correo.com', password: 'secreto123' });
     expect(saveAuth).toHaveBeenCalledWith({ id: 1 }, 't');
+  });
+
+  it('vuelve a la ruta de origen tras iniciar sesión', async () => {
+    vi.mocked(login).mockResolvedValue({ data: { user: { id: 1 }, token: 't' } } as never);
+    renderPage(
+      <LoginPage addToast={addToast} />,
+      { pathname: '/login', state: { from: { pathname: '/asientos/7', search: '?x=1' } } },
+    );
+
+    await userEvent.type(screen.getByLabelText('Correo electrónico'), 'ana@correo.com');
+    await userEvent.type(screen.getByLabelText('Contraseña'), 'secreto123{Enter}');
+
+    await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent('/asientos/7'));
   });
 
   it('muestra el error del servidor como alerta', async () => {

@@ -19,8 +19,9 @@ vi.mock('react-router-dom', async () => {
 
 const updateUser = vi.fn();
 const clearAuth = vi.fn();
+let mockUser: { email: string; verified?: boolean } = { email: 'ana@cine.test' };
 vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({ user: { email: 'ana@cine.test' }, updateUser, clearAuth }),
+  useAuth: () => ({ user: mockUser, updateUser, clearAuth }),
 }));
 
 import { resendVerification, verifyEmail } from '../../api/auth';
@@ -31,7 +32,11 @@ const addToast = vi.fn();
 
 const EMOJI = /\p{Extended_Pictographic}/u;
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockUser = { email: 'ana@cine.test' };
+  localStorage.clear();
+});
 
 describe('EmailPendingPage', () => {
   it('pone la bandeja de demostración como título principal', () => {
@@ -53,6 +58,13 @@ describe('EmailPendingPage', () => {
   it('enlaza a la bandeja de la demostración', () => {
     render(<MemoryRouter><EmailPendingPage addToast={addToast} /></MemoryRouter>);
     expect(screen.getByRole('link', { name: /Abrir bandeja de correo/ })).toHaveAttribute('href', '/mailpit/');
+  });
+
+  it('retoma la compra si el correo ya quedó verificado en otra pestaña', () => {
+    mockUser = { email: 'ana@cine.test', verified: true };
+    localStorage.setItem('post_verify_return', '/asientos/7');
+    render(<MemoryRouter><EmailPendingPage addToast={addToast} /></MemoryRouter>);
+    expect(mockNavigate).toHaveBeenCalledWith('/asientos/7', { replace: true });
   });
 
   it('abre la bandeja en la misma pestaña', () => {
