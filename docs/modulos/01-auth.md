@@ -1,278 +1,121 @@
-# Módulo 01 — Autenticación
+# Módulo 01 — Autenticación y verificación de correo
 
-Registro, inicio de sesión, cierre de sesión y verificación de correo. Todos los demás módulos dependen de saber si el usuario está autenticado, si tiene el correo verificado, y qué rol tiene (`admin`, `cashier`, `client`).
+[Índice de módulos](README.md) · Siguiente: [02 Cartelera](02-cartelera.md)
 
----
+Cubre el registro, el inicio y cierre de sesión con Sanctum y la verificación del correo. Quién puede comprar y por qué se exige correo verificado está en [reglas-de-negocio.md](../reglas-de-negocio.md); las tablas en [database-design.md](../database-design.md).
 
-## Flujo general
+## Pantallas y navegación
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        REGISTRO                                  │
-│  POST /register → token + email de verificación enviado         │
-│  Token válido para rutas públicas y de verificación             │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                    ┌────────▼────────┐
-                    │ ¿Email          │
-                    │  verificado?    │
-                    └────────┬────────┘
-               NO            │              SÍ
-    ┌──────────┴──────┐      │      ┌───────┴───────────┐
-    │ Acceso limitado │      │      │  Acceso completo  │
-    │ (solo lectura,  │      │      │  (compras,        │
-    │  cartelera)     │      │      │   tickets, etc.)  │
-    └──────────┬──────┘      │      └───────────────────┘
-               │     Verificar correo
-    ┌──────────▼──────────────────────────────────────────┐
-    │  1. Email llega con link → FRONTEND_URL/email/verify │
-    │  2. Frontend extrae params del query string          │
-    │  3. GET /api/email/verify/{id}/{hash}?...            │
-    │     Authorization: Bearer <token>                    │
-    │  4. Backend valida firma → email_verified_at = now() │
-    └──────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    R["/registro"] -->|registro correcto| P["/email/pendiente"]
+    L["/login"] -->|credenciales válidas| H["/"]
+    P -->|reenviar enlace| P
+    M[Correo con enlace firmado] --> V["/email/verificar"]
+    V -->|enlace válido| H
+    V -->|enlace inválido o expirado| P
+    G{{Usuario con sesión}} -.->|RedirectIfAuth| H
 ```
 
----
+| Ruta | Página | Guardia |
+| --- | --- | --- |
+| `/login` | `LoginPage` | `RedirectIfAuth` |
+| `/registro` | `RegisterPage` | `RedirectIfAuth` |
+| `/email/pendiente` | `EmailPendingPage` | `RequireAuth` |
+| `/email/verificar` | `EmailVerifyPage` | ninguna (lee `id`, `hash`, `expires` y `signature` de la URL) |
 
-## Niveles de acceso por middleware
+Componentes de formulario compartidos en `components/auth/`: `AuthLayout`, `AuthField`, `FormAlert` y `SubmitButton`. Las guardias están en `components/guards/` (`RequireAuth`, `RequireVerified`, `RequireAdmin`, `RedirectIfAuth`); su uso en el árbol de rutas se describe en [frontend-architecture.md](../frontend-architecture.md).
 
-| Middleware                                   | Requiere                  | Rutas ejemplo                                           |
-| -------------------------------------------- | ------------------------- | ------------------------------------------------------- |
-| _(ninguno)_                                  | —                         | `GET /movies`, `GET /movies/{id}`                       |
-| `auth:sanctum`                               | Bearer Token válido       | `POST /logout`, `POST /email/verification-notification` |
-| `auth:sanctum` + `verified`                  | Token + email verificado  | `POST /purchases`, `GET /tickets/{code}`                |
-| `auth:sanctum` + `verified` + policy `admin` | Token + email + rol admin | `GET /admin/metrics`, etc.                              |
+## Estado de sesión
 
----
+`AuthContext` guarda `user` y `loading`, y expone `saveAuth`, `clearAuth` y `updateUser`. El token vive en `localStorage` (`auth_token`) junto con el usuario (`auth_user`). El cliente Axios (`api/axios.js`) añade el encabezado `Authorization: Bearer` y reacciona a dos respuestas:
 
-## Frontend
+| Respuesta de la API | Efecto en el frontend |
+| --- | --- |
+| 401 | Borra token y usuario y emite el evento `auth:logout`; `App` limpia el contexto y navega a `/login` |
+| 403 (salvo en `/email/verify`) | Emite `auth:unverified`; `App` navega a `/email/pendiente` |
 
-### Páginas
+## Flujo de registro y verificación
 
-| Ruta frontend    | Descripción                                                   |
-| ---------------- | ------------------------------------------------------------- |
-| `/register`      | Formulario de registro                                        |
-| `/login`         | Formulario de inicio de sesión                                |
-| `/email/verify`  | Recibe los query params del enlace de correo y llama a la API |
-| `/email/pending` | Pantalla de "revisa tu bandeja de entrada" post-registro      |
-
-### Componentes
-
-- `RegisterForm` — campos: nombre, email, contraseña, confirmación.
-- `LoginForm` — campos: email, contraseña.
-- `AuthGuard` — redirige a `/login` si no hay token.
-- `VerifiedGuard` — redirige a `/email/pending` si el token existe pero `email_verified_at` es null.
-
-### Estado global
-
-El token y los datos del usuario se guardan en `localStorage` / Context API / Redux al recibir la respuesta:
-
-```json
-{
-  "id": 1,
-  "name": "Juan Pérez",
-  "email": "juan@example.com",
-  "role": "client"
-}
+```mermaid
+sequenceDiagram
+    actor U as Usuario
+    participant F as RegisterPage
+    participant API as AuthController
+    participant S as AuthService
+    participant DB as MySQL
+    participant M as Mailpit / SMTP
+    U->>F: Envía nombre, correo y contraseña
+    F->>API: POST /api/register
+    API->>S: register(RegisterDTO)
+    S->>DB: INSERT users
+    S->>M: VerifyEmailNotification (enlace firmado)
+    S-->>API: usuario + token Sanctum
+    API-->>F: 201 user, token
+    F->>F: saveAuth y navega a /email/pendiente
+    U->>M: Abre el correo y pulsa el enlace
+    M->>F: /email/verificar?id, hash, expires, signature
+    F->>API: GET /api/email/verify/{id}/{hash}
+    API->>DB: UPDATE users.email_verified_at
+    API-->>F: 200 mensaje
+    F->>F: updateUser(verified=true) y vuelve a /
 ```
 
-Al hacer logout se limpian token y estado. El campo `email_verified_at` **no** se expone en el `UserResource` — el frontend lo infiere según si puede acceder o no a rutas protegidas con `verified`.
+`VerifyEmailNotification` reemplaza la URL del enlace para que apunte a la ruta del SPA `/email/verificar` en lugar de a la API.
 
-### Lógica de la página `/email/verify`
+## Flujo de login y logout
 
-```js
-// Al montar la página, extraer params del query string y llamar a la API
-const { id, hash, expires, signature } = useSearchParams();
-
-await fetch(
-  `/api/email/verify/${id}/${hash}?expires=${expires}&signature=${signature}`,
-  {
-    method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
-  },
-);
-// → redirigir a la cartelera tras éxito
+```mermaid
+sequenceDiagram
+    participant F as LoginPage
+    participant API as AuthController
+    participant S as AuthService
+    F->>API: POST /api/login (throttle 5/min)
+    API->>S: login(LoginDTO)
+    alt credenciales válidas
+        S-->>API: usuario + token
+        API-->>F: 200
+    else inválidas
+        S--xAPI: InvalidCredentialsException
+        API-->>F: 401
+    end
+    F->>API: POST /api/logout (Bearer)
+    API->>S: logout(user)
+    S->>S: elimina el token actual
+    API-->>F: 200
 ```
 
----
+## Endpoints
 
-## Backend
+| Método y ruta | Acceso | Límite | Respuestas |
+| --- | --- | --- | --- |
+| `POST /register` | público | — | 201, 422 |
+| `POST /login` | público | 5 por minuto | 200, 401, 422, 429 |
+| `POST /logout` | `auth:sanctum` | — | 200, 401 |
+| `POST /email/verification-notification` | `auth:sanctum` | 6 por minuto | 200 (enviado), 204 (ya verificado) |
+| `GET /email/verify/{id}/{hash}` | `auth:sanctum` + `signed` | 6 por minuto | 200, 403 (firma inválida o expirada) |
 
-### Archivos involucrados
+Esquemas de petición y respuesta: [api-endpoints.md](../api-endpoints.md).
 
-| Capa         | Archivo                                                 | Responsabilidad                                      |
-| ------------ | ------------------------------------------------------- | ---------------------------------------------------- |
-| Controller   | `Http/Controllers/Auth/AuthController.php`              | register, login, logout                              |
-| Controller   | `Http/Controllers/Auth/EmailVerificationController.php` | send, verify                                         |
-| Request      | `Http/Requests/Auth/RegisterRequest.php`                | Validación de registro                               |
-| Request      | `Http/Requests/Auth/LoginRequest.php`                   | Validación de login                                  |
-| DTO          | `DTOs/Auth/RegisterDTO.php`                             | Datos de registro entre capas                        |
-| DTO          | `DTOs/Auth/LoginDTO.php`                                | Datos de login entre capas                           |
-| Service      | `Services/AuthService.php`                              | Lógica de negocio de auth                            |
-| Model        | `Models/User.php`                                       | Entidad usuario + `MustVerifyEmail` + `HasApiTokens` |
-| Notification | `Notifications/VerifyEmailNotification.php`             | Override del enlace de verificación                  |
-| Exception    | `Exceptions/InvalidCredentialsException.php`            | Error 401 auto-renderizable                          |
-| Resource     | `Http/Resources/UserResource.php`                       | Forma la respuesta JSON del usuario                  |
+## Piezas del backend
 
-### Por qué existe `VerifyEmailNotification`
+| Capa | Archivo |
+| --- | --- |
+| Controladores | `Auth/AuthController`, `Auth/EmailVerificationController` |
+| Validación | `Requests/Auth/RegisterRequest`, `LoginRequest` |
+| DTO | `DTOs/Auth/RegisterDTO`, `LoginDTO` |
+| Servicio | `Services/AuthService` |
+| Modelo | `Models/User` (`MustVerifyEmail`, `HasApiTokens`) |
+| Notificación | `Notifications/VerifyEmailNotification` |
+| Excepción | `Exceptions/InvalidCredentialsException` |
+| Resource | `Resources/UserResource` (`id`, `name`, `email`, `role`) |
+| Middleware | alias `role` (`EnsureIsAdmin`) registrado en `bootstrap/app.php` y `verified` de Laravel |
 
-La notificación de Laravel por defecto genera un enlace firmado hacia `/api/email/verify/{id}/{hash}`. Ese enlace **no puede ser visitado directamente** desde un email con Bearer Token — el clic no tiene forma de adjuntar el token.
+## Niveles de acceso
 
-La clase custom redirige el enlace al frontend (`FRONTEND_URL/email/verify?id=...&hash=...&expires=...&signature=...`). El frontend recibe los parámetros, y los reenvía a la API junto con el Bearer Token ya almacenado en el cliente.
-
-```
-FRONTEND_URL=http://localhost:5173   ← configurable por entorno en .env
-```
-
-### Seguridad
-
-- Contraseñas hasheadas con bcrypt (Laravel `Hash::make()`).
-- Autenticación stateless vía Sanctum Bearer Token.
-- Token revocado individualmente en logout (`currentAccessToken()->delete()`).
-- Rate limiting: `throttle:5,1` en login, `throttle:6,1` en reenvío de verificación.
-- Enlace de verificación es URL firmada (HMAC-SHA256); expira en 60 minutos y no puede reutilizarse.
-- El hash del email es SHA-1 y se valida en `EmailVerificationRequest` antes de marcar como verificado.
-
----
-
-## API
-
-### POST `/api/register`
-
-Crea la cuenta, emite el token y envía el correo de verificación.
-
-**Body:**
-
-```json
-{
-  "name": "Juan Pérez",
-  "email": "juan@example.com",
-  "password": "password123",
-  "password_confirmation": "password123"
-}
-```
-
-**201 Created:**
-
-```json
-{
-  "user": {
-    "id": 1,
-    "name": "Juan Pérez",
-    "email": "juan@example.com",
-    "role": "client"
-  },
-  "token": "1|abc123..."
-}
-```
-
-**422 Unprocessable** (validación):
-
-```json
-{
-  "message": "The email has already been taken.",
-  "errors": { "email": ["The email has already been taken."] }
-}
-```
-
----
-
-### POST `/api/login`
-
-**Seguridad:** Pública. `throttle:5,1`.
-
-**Body:**
-
-```json
-{ "email": "juan@example.com", "password": "password123" }
-```
-
-**200 OK:**
-
-```json
-{
-  "user": {
-    "id": 1,
-    "name": "Juan Pérez",
-    "email": "juan@example.com",
-    "role": "client"
-  },
-  "token": "2|xyz789..."
-}
-```
-
-**401 Unauthorized:**
-
-```json
-{ "message": "Credenciales incorrectas." }
-```
-
----
-
-### POST `/api/logout`
-
-**Seguridad:** `auth:sanctum`.
-
-Revoca solo el token usado en la request. Otros tokens del mismo usuario (otras sesiones) no se ven afectados.
-
-**200 OK:**
-
-```json
-{ "message": "Sesión cerrada correctamente." }
-```
-
-**401 Unauthorized** (token ausente o inválido):
-
-```json
-{ "message": "Unauthenticated." }
-```
-
----
-
-### POST `/api/email/verification-notification`
-
-**Seguridad:** `auth:sanctum`. `throttle:6,1`.
-
-Reenvía el correo de verificación. El enlace en el correo apunta a `FRONTEND_URL/email/verify?...`.
-
-**200 OK** (correo enviado):
-
-```json
-{ "message": "Correo de verificación enviado." }
-```
-
-**204 No Content** (ya estaba verificado — sin cuerpo).
-
----
-
-### GET `/api/email/verify/{id}/{hash}`
-
-**Seguridad:** `auth:sanctum` + `signed` + `throttle:6,1`.
-
-El frontend llama a este endpoint con el Bearer Token almacenado tras extraer los params del enlace de correo.
-
-| Parámetro   | Origen | Descripción                     |
-| ----------- | ------ | ------------------------------- |
-| `id`        | path   | ID del usuario                  |
-| `hash`      | path   | `sha1($user->email)`            |
-| `expires`   | query  | Timestamp UNIX de expiración    |
-| `signature` | query  | Firma HMAC generada por Laravel |
-
-**200 OK:**
-
-```json
-{ "message": "Correo verificado correctamente." }
-```
-
-**403 Forbidden** (firma inválida, expirada, o hash no coincide):
-
-```json
-{ "message": "Invalid signature." }
-```
-
-**401 Unauthorized** (sin token):
-
-```json
-{ "message": "Unauthenticated." }
-```
+| Grupo de rutas | Requiere | Ejemplos |
+| --- | --- | --- |
+| Públicas | nada | `GET /movies`, `GET /screenings/{id}` |
+| `auth:sanctum` | token válido | `POST /logout`, verificación de correo |
+| `auth:sanctum` + `verified` | token y correo verificado | `POST /purchases`, `GET /my-tickets` |
+| `auth:sanctum` + `role:admin` | token y rol admin | `GET /admin/metrics` |
