@@ -23,6 +23,13 @@
     from { opacity: 0; transform: translateY(18px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  /* Barra de avance hacia el comprobante; dura lo mismo que REDIRECT_DELAY_MS en CheckoutPage. */
+  --animate-fill: fill 0.8s ease-in-out both;
+  @keyframes fill {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
 }
 
 /* Margen lateral único del marco de la home. */
