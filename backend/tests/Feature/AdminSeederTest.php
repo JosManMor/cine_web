@@ -12,6 +12,8 @@ class AdminSeederTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const ADMIN_EMAIL = 'admin@cine.test';
+
     private function setAdmin(?string $email, ?string $password): void
     {
         config(['app.admin' => ['name' => 'Admin Pre', 'email' => $email, 'password' => $password]]);
@@ -19,20 +21,20 @@ class AdminSeederTest extends TestCase
 
     public function test_admin_is_created_from_environment(): void
     {
-        $this->setAdmin('admin@cine.test', 'secreto-largo');
+        $this->setAdmin(self::ADMIN_EMAIL, 'secreto-largo');
 
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertDatabaseHas('users', ['email' => 'admin@cine.test', 'name' => 'Admin Pre', 'role' => 'admin']);
+        $this->assertDatabaseHas('users', ['email' => self::ADMIN_EMAIL, 'name' => 'Admin Pre', 'role' => 'admin']);
         $this->assertDatabaseMissing('users', ['email' => 'test@example.com']);
     }
 
     public function test_changing_the_password_is_applied_on_next_seed(): void
     {
-        $this->setAdmin('admin@cine.test', 'primera');
+        $this->setAdmin(self::ADMIN_EMAIL, 'primera');
         $this->seed(DatabaseSeeder::class);
 
-        $this->setAdmin('admin@cine.test', 'segunda');
+        $this->setAdmin(self::ADMIN_EMAIL, 'segunda');
         $this->seed(DatabaseSeeder::class);
 
         $this->assertDatabaseCount('users', 1);
