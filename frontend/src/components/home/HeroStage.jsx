@@ -21,16 +21,18 @@ export default function HeroStage({ carousel, featuredIndex, setFeaturedIndex, t
   const navigate = useNavigate();
   const featured = carousel[featuredIndex];
   const [details, setDetails] = useState({});
-  const requested = useRef(new Set());
+  const fetched = useRef(false);
 
-  // Sinopsis y funciones solo existen en el detalle: se piden bajo demanda y se guardan.
   useEffect(() => {
-    if (!featured || requested.current.has(featured.id)) return;
-    requested.current.add(featured.id);
-    getMovie(featured.id)
-      .then(data => setDetails(d => ({ ...d, [featured.id]: data })))
-      .catch(() => setDetails(d => ({ ...d, [featured.id]: {} })));
-  }, [featured]);
+    if (fetched.current || carousel.length === 0) return;
+    fetched.current = true;
+    Promise.all(carousel.map(m => getMovie(m.id).catch(() => ({}))))
+      .then(results => {
+        const map = {};
+        carousel.forEach((m, i) => { map[m.id] = results[i]; });
+        setDetails(map);
+      });
+  }, [carousel]);
 
   if (!featured) return null;
 
