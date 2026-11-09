@@ -1,471 +1,178 @@
-# System Design Document — Backend Cine Web (Laravel + LAMP)
+# Arquitectura del Backend — Cine Sendera
 
----
+Laravel 13 / PHP 8.3 expuesto como API REST bajo `/api`, con patrón **Service + Repository + DTO**. Índice general en [backend/README.md](../backend/README.md). Rutas en [api-endpoints.md](api-endpoints.md); esquema en [database-design.md](database-design.md); reglas de negocio en [reglas-de-negocio.md](reglas-de-negocio.md); entorno Docker en [docker-entorno-desarrollo.md](docker-entorno-desarrollo.md).
 
-# 0. Estándares del Proyecto
+## 1. Estándares
 
-## Idioma Oficial
+| Ámbito                         | Idioma                       |
+| ------------------------------ | ---------------------------- |
+| Código y base de datos         | Inglés                       |
+| Textos visibles al usuario     | Español                      |
+| Documentación                  | Español                      |
 
-Para mantener la consistencia y profesionalismo en el desarrollo, se establecen los siguientes estándares de idioma:
+## 2. Tecnologías
 
-- **Código (Backend & Frontend):** Inglés (nombres de variables, funciones, clases, comentarios técnicos).
-- **Base de Datos:** Inglés (nombres de tablas, columnas, índices).
-- **Frontend (UI/UX):** Inglés (nombres de componentes, props, archivos). _Nota: El contenido visible para el usuario final será en Español._
-- **Documentación:** Español (explicaciones, manuales, guías de arquitectura).
-
----
-
-# 1. Objetivo del Sistema
-
-Desarrollar un sistema web para gestión y compra de boletos de cine utilizando arquitectura LAMP:
-
-- Linux
-- Apache
-- MySQL
-- PHP (Laravel)
-
-El sistema debe permitir:
-
-- Registro y autenticación segura
-- Consulta de cartelera
-- Compra de boletos
-- Generación de ticket digital
-- Automatización y recuperación de servicios mediante Bash
-- Hardening básico del servidor
-
----
-
-# 2. Arquitectura General
-
-## Arquitectura propuesta
-
-Se recomienda utilizar:
-
-- Laravel 13
-- Arquitectura modular tipo Clean Architecture / Layered Architecture
-- Patrón Service + Repository
-- API REST interna
-- MySQL como persistencia
-- Redis opcional para cache
-- Docker para desarrollo (ver sección 2.1)
-
-## 2.1 Entorno de desarrollo con Docker
-
-`docker compose up -d` levanta: `frontend` (Vite, :5173), `apache` (:80), `app` (PHP-FPM), `redis`, `mysql` (host: `FORWARD_DB_PORT`, `3308` con `.env.example`), `phpmyadmin` (host: `FORWARD_PMA_PORT`, `8081` con `.env.example`) y `mailpit` (:8025 UI, :1025 SMTP).
-
-- Redes: `frontend_net` (frontend, apache, app) y `backend_net` (app, mysql, redis, phpmyadmin, mailpit). Solo `app` está en ambas.
-- Primer arranque: `composer install` dentro del contenedor y `APP_KEY` en el `.env` de la raíz (ver [docker-entorno-desarrollo.md](./docker-entorno-desarrollo.md#primer-arranque)).
-
-- El frontend corre en Docker; no hace falta instalar Node en el host.
-- El proxy `/api` de Vite apunta a `http://apache` (variable `VITE_PROXY_TARGET`).
-- El contenedor `app` corre como `www-data` con el UID/GID del host (`HOST_UID` y `HOST_GID` en `.env`, obtenidos con `id -u` e `id -g`), para que los archivos de `./backend` no queden como root.
-- Si `backend/storage` ya fue creado por root: `sudo chown -R $USER:$USER backend/storage backend/bootstrap/cache backend/vendor`.
-
----
-
-# 3. Principios de Diseño
-
-## Buenas prácticas aplicadas
-
-- SOLID
-- Separation of Concerns
-- Dependency Injection
-- Repository Pattern
-- DTOs para transferencia de datos
-- Validación mediante Form Requests
-- Services para lógica de negocio
-- Policies/Gates para autorización
-- Transacciones para operaciones críticas
-- Hashing de contraseñas con bcrypt/argon2
-- Logs centralizados
-
----
-
-# 4. Arquitectura de Carpetas
-
-```txt
-app/
-├── Console/
-├── Exceptions/
-├── Http/
-│   ├── Controllers/
-│   │   ├── Auth/
-│   │   ├── Movie/
-│   │   ├── Purchase/
-│   │   └── Admin/
-│   │
-│   ├── Middleware/
-│   ├── Requests/
-│   │   ├── Auth/
-│   │   ├── Movie/
-│   │   └── Purchase/
-│   │
-│   └── Resources/
-│
-├── Models/
-│   ├── User.php
-│   ├── Movie.php
-│   ├── Room.php
-│   ├── Screening.php
-│   ├── Purchase.php
-│   └── PurchaseSeat.php
-│
-├── Services/
-│   ├── Auth/
-│   ├── Movie/
-│   └── Purchase/
-│
-├── Repositories/
-│   ├── Contracts/
-│   └── Eloquent/
-│
-├── DTOs/
-├── Policies/
-├── Traits/
-├── Helpers/
-└── Providers/
-
-database/
-├── migrations/
-├── seeders/
-└── factories/
-
-routes/
-├── web.php
-├── auth.php
-├── api.php
-└── admin.php
-
-storage/
-└── logs/
-
-scripts/
-└── deploy.sh
+```mermaid
+flowchart TD
+    L[Laravel 13 / PHP 8.3] --> S[Sanctum: tokens Bearer]
+    L --> E[Eloquent + MySQL 8]
+    L --> R[Redis: caché]
+    L --> Q[Cola en database]
+    L --> M[Correo SMTP: Mailpit en dev]
+    L --> O[l5-swagger: OpenAPI en /api/documentation]
+    L --> T[PHPUnit + SQLite en memoria]
 ```
 
----
+## 3. Arquitectura por capas
 
-# 5. Módulos del Sistema
+La lógica de negocio vive solo en los Services; los controladores son delgados.
 
-El sistema se divide en cuatro módulos funcionales. La descripción de cada módulo (propósito, endpoints, contratos de request/response y niveles de acceso) se encuentra en **[docs/api-endpoints.md](api-endpoints.md)**.
-
-| Módulo            | Descripción breve                                                   |
-| ----------------- | ------------------------------------------------------------------- |
-| Autenticación     | Registro, login, logout y verificación de correo vía Sanctum        |
-| Cartelera         | Catálogo de películas y funciones con disponibilidad en tiempo real |
-| Compras y Tickets | Reserva atómica de asientos y generación de ticket digital          |
-| Administración    | Dashboard de métricas, actividad y estado de salas para `admin`     |
-
----
-
-# 6. Diseño de Base de Datos
-
-El esquema completo, con todas las tablas, columnas, restricciones, índices y decisiones de diseño, se encuentra en:
-
-**[docs/database-design.md](database-design.md)** ← fuente de verdad del esquema
-
-Resumen: 6 tablas — `users`, `movies`, `rooms`, `screenings`, `purchases`, `purchase_seats`. No existe tabla `tickets`; el campo `ticket_code` vive en `purchase_seats`. No hay soft delete; se usa `status` para desactivar registros.
-
----
-
-# 7. Lógica Crítica de Compra
-
-## Requerimiento
-
-La operación debe ser atómica. La garantía de no doble reserva es el constraint UNIQUE `(screening_id, row, seat_number)` en `purchase_seats`.
-
-## Solución
-
-No usar `exists()` como pre-chequeo: en concurrencia, dos transacciones pueden pasar el check simultáneamente y colisionar igual en el INSERT. El UNIQUE es la garantía real; se captura su excepción y se convierte en un error de dominio:
-
-```php
-use Illuminate\Database\UniqueConstraintViolationException;
-
-DB::transaction(function () use ($screeningId, $seats, $purchaseData) {
-
-    $purchase = $this->purchaseRepository->create($purchaseData);
-
-    foreach ($seats as $seat) {
-        try {
-            PurchaseSeat::create([
-                'purchase_id'  => $purchase->id,
-                'screening_id' => $screeningId,
-                'row'          => $seat['row'],
-                'seat_number'  => $seat['seat_number'],
-                'price_paid'   => $seat['price'],
-            ]);
-        } catch (UniqueConstraintViolationException) {
-            throw new SeatAlreadyTakenException($seat['row'], $seat['seat_number']);
-        }
-    }
-
-});
-// El ticket_code se asigna en un Observer/Job al confirmar el pago,
-// nunca inline en este request.
+```mermaid
+flowchart LR
+    Req[Request HTTP] --> MW[Middleware]
+    MW --> FR[FormRequest: validación]
+    FR --> C[Controller]
+    C -->|DTO| SV[Service]
+    SV --> RI[Repository Interface]
+    RI --> RE[Repository Eloquent]
+    RE --> MD[(Models / MySQL)]
+    SV --> OB[Observer]
+    C --> RS[Resource: JSON]
 ```
 
-## Beneficios
+| Capa           | Ubicación (`backend/app/`)       | Responsabilidad                                                                 |
+| -------------- | -------------------------------- | ------------------------------------------------------------------------------- |
+| Controllers    | `Http/Controllers/{Admin,Auth,Movie,Purchase,Screening}` | Recibir la petición, delegar al Service, devolver Resource o JSON; llevan las anotaciones OpenAPI |
+| Form Requests  | `Http/Requests/{Auth,Purchase}`  | `LoginRequest`, `RegisterRequest`, `PurchaseRequest`                            |
+| DTOs           | `DTOs/{Auth,Purchase}`           | `LoginDTO`, `RegisterDTO`, `PurchaseDTO`, creados con `fromArray`               |
+| Services       | `Services/`                      | `AuthService`, `MovieService`, `ScreeningService`, `PurchaseService`, `AdminService` |
+| Repositories   | `Repositories/{Contracts,Eloquent}` | Interfaces y su implementación para `Movie`, `Screening` y `Purchase`        |
+| Models         | `Models/`                        | `User`, `Movie`, `Room`, `Screening`, `Purchase`, `PurchaseSeat`                |
+| Resources      | `Http/Resources/`                | `MovieResource`, `ScreeningResource`, `PurchaseResource`, `TicketResource`, `UserResource` |
+| Observers      | `Observers/`                     | `PurchaseObserver`: asigna `ticket_code` al completarse el pago                 |
+| Exceptions     | `Exceptions/`                    | Excepciones de dominio que se renderizan solas como JSON                        |
+| Console        | `Console/Commands/`              | `demo:reset` y `screenings:refresh-demo`                                        |
+| Notifications  | `Notifications/`                 | `VerifyEmailNotification`                                                       |
 
-- Evita doble reserva (constraint UNIQUE como garantía final, no un `exists()` previo)
-- El rollback de la transacción deshace todos los inserts si falla alguno
-- Garantiza consistencia del precio histórico
+Las interfaces de repositorio se enlazan a su implementación en `AppServiceProvider`, que además registra el observer y desactiva el envoltorio `data` de los Resources.
 
----
+Notas de alcance: `AdminService` consulta modelos directamente (sin repositorio), igual que `PurchaseService` en parte de su lógica, y `PurchaseController::showTicket` carga el modelo `PurchaseSeat` sin pasar por un Service. No existe la carpeta `Policies/`: la autorización se resuelve con middleware y comprobaciones de propietario en los Services.
 
-# 8. Patrón Repository
+## 4. Enrutamiento y middleware
 
-## Objetivo
+Las rutas se registran en `bootstrap/app.php`: `routes/web.php` (captura todo lo que no sea `/api/*` y sirve el `index.html` de React), `routes/api.php` (API), `routes/console.php` (scheduler) y el health check `/up`. El alias `role` apunta a `EnsureIsAdmin`.
 
-Separar acceso a datos de la lógica de negocio.
-
-## Ejemplo
-
-- MovieRepositoryInterface
-- MovieRepository
-- PurchaseRepositoryInterface
-- PurchaseRepository
-
----
-
-# 9. Patrón Service Layer
-
-## Objetivo
-
-Centralizar lógica empresarial.
-
-## Ejemplo
-
-- PurchaseService — reserva de asientos, confirmación de pago
-- MovieService — cartelera, detalle, disponibilidad calculada
-- AuthService — registro, login, logout
-
----
-
-# 10. API Interna
-
-Para una referencia completa de los endpoints, parámetros y respuestas, consulte el documento:
-[Documentación de la API (api-endpoints.md)](api-endpoints.md)
-
-## Documentación OpenAPI
-
-Todos los módulos del sistema están documentados con **OpenAPI 3.0** mediante el paquete [`darkaonline/l5-swagger`](https://github.com/DarkaOnLine/L5-Swagger). Las anotaciones viven directamente en los controladores y Form Requests usando atributos PHP (`#[OA\...]`).
-
-La interfaz interactiva (Swagger UI) está disponible en:
-
-```
-http://localhost/api/documentation
+```mermaid
+flowchart TD
+    R[Ruta] --> P{Grupo}
+    P -->|Público| X[Sin middleware]
+    P -->|Autenticado| A[auth:sanctum]
+    P -->|Verificado| AV[auth:sanctum + verified]
+    P -->|Admin| AA[auth:sanctum + role:admin]
+    A --> TH[throttle y signed según ruta]
 ```
 
-Para regenerar la especificación tras modificar anotaciones:
+| Middleware       | Función                                                                  |
+| ---------------- | ------------------------------------------------------------------------ |
+| `auth:sanctum`   | Exige token Bearer válido (401 si falta)                                 |
+| `verified`       | Exige correo verificado (403 si no)                                      |
+| `role:admin`     | `EnsureIsAdmin`: responde 403 si `users.role` no es `admin`              |
+| `signed`         | Valida la firma del enlace de verificación de correo                     |
+| `throttle:5,1`   | Limita `/login` a 5 intentos por minuto                                  |
+| `throttle:6,1`   | Limita el reenvío y la verificación de correo a 6 por minuto             |
 
-```bash
-php artisan l5-swagger:generate
+Los roles (`admin`, `cashier`, `client`) se guardan como ENUM en `users.role`; hoy solo `admin` tiene tratamiento distinto en la API. La tabla completa de rutas y su nivel de protección está en [api-endpoints.md](api-endpoints.md).
+
+## 5. Flujo de autenticación (Sanctum)
+
+```mermaid
+sequenceDiagram
+    participant U as Cliente SPA
+    participant API as AuthController
+    participant S as AuthService
+    participant M as Correo
+    U->>API: POST /register
+    API->>S: RegisterDTO
+    S->>S: crea User (rol client)
+    S->>M: VerifyEmailNotification
+    S-->>U: user + token (201)
+    U->>API: GET /email/verify/{id}/{hash} (firmado)
+    API-->>U: correo verificado
+    U->>API: POST /login
+    S->>S: Auth::attempt y createToken
+    S-->>U: user + token
+    U->>API: POST /logout (Bearer)
+    S->>S: borra el token actual
 ```
 
----
+Los tokens no caducan (`sanctum.expiration` es nulo): se invalidan solo al hacer logout. Las credenciales inválidas lanzan `InvalidCredentialsException` (401).
 
-# 11. Seguridad Backend
+## 6. Flujo de compra
 
-## Validaciones
-
-Laravel Form Requests:
-
-- PurchaseRequest
-- RegisterRequest
-- LoginRequest
-
-## Protección CSRF
-
-Laravel incluye:
-
-```blade
-@csrf
+```mermaid
+flowchart TD
+    A[POST /purchases] --> B[auth:sanctum + verified]
+    B --> C[PurchaseRequest: validar entrada]
+    C --> D[PurchaseService]
+    D --> E{Función abierta y futura?}
+    E -->|No| E1[422 ScreeningNotAvailable]
+    E -->|Si| F{Asientos dentro de la sala?}
+    F -->|No| F1[422 InvalidSeat]
+    F -->|Si| G[Transacción]
+    G --> H[Crea Purchase pendiente]
+    H --> I[INSERT de cada PurchaseSeat]
+    I -->|clave única duplicada| J[409 SeatAlreadyTaken y rollback]
+    I -->|ok| K[payment_status = completed]
+    K --> L[PurchaseObserver asigna ticket_code por asiento]
+    L --> M[201 purchase_id]
 ```
 
-## Protección XSS
+Decisiones de diseño que se mantienen:
 
-Blade escapa automáticamente:
+- No hay pre-chequeo con `exists()`: se intenta el INSERT y se captura `UniqueConstraintViolationException`, porque la restricción UNIQUE de `purchase_seats` es la garantía real contra la doble reserva (ver [database-design.md](database-design.md)).
+- El rollback de la transacción deshace la compra y todos sus asientos si alguno falla.
+- El `ticket_code` lo asigna el `PurchaseObserver` al pasar `payment_status` a `completed`, nunca de forma directa en la petición.
+- El precio de cada asiento se guarda en `price_paid` (histórico).
 
-```blade
-{{ $variable }}
-```
+La cancelación (`DELETE /purchases/{purchaseId}`) pasa por `PurchaseService::cancelPurchase`, que comprueba existencia (404), propietario (403) y que no esté ya cancelada (409). Las reglas detalladas están en [reglas-de-negocio.md](reglas-de-negocio.md).
 
-## Protección SQL Injection
+## 7. Manejo de errores
 
-Uso exclusivo de:
+Las excepciones de dominio implementan `toResponse` y devuelven JSON con `message` directamente, sin pasar por el handler global (que está vacío en `bootstrap/app.php`).
 
-- Eloquent
-- Query Builder
+| Excepción                          | Código |
+| ---------------------------------- | ------ |
+| `InvalidCredentialsException`      | 401    |
+| `UnauthorizedPurchaseException`    | 403    |
+| `PurchaseNotFoundException`        | 404    |
+| `SeatAlreadyTakenException`        | 409 (incluye `row` y `seat_number`) |
+| `PurchaseAlreadyCancelledException`| 409    |
+| `InvalidSeatException`             | 422    |
+| `ScreeningNotAvailableException`   | 422    |
 
-## Rate Limiting
+## 8. Seguridad
 
-```php
-Route::middleware('throttle:5,1');
-```
+| Medida               | Implementación                                                               |
+| -------------------- | ---------------------------------------------------------------------------- |
+| Autenticación        | Sanctum con tokens Bearer; contraseñas con hash (cast `hashed` en `User`)    |
+| Autorización         | Middleware `role:admin`, `verified` y comprobación de propietario en compras y tickets |
+| Validación           | Form Requests en registro, login y compra (contraseña de 8 a 72 caracteres, correo único) |
+| Fuerza bruta         | `throttle` en login y verificación de correo                                 |
+| Inyección SQL        | Solo Eloquent y Query Builder                                                |
+| CORS                 | `config/cors.php` limita `api/*` a los orígenes de la configuración, sin credenciales |
+| Integridad de datos  | Restricción UNIQUE de asientos y transacciones en la compra                  |
 
----
+## 9. Tareas programadas y comandos
 
-# 12. Manejo de Logs
+| Comando                      | Cuándo corre                                              | Qué hace                                                             |
+| ---------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------- |
+| `demo:reset`                 | Diario 00:05 (`DEMO_TIMEZONE`) si `DEMO_MODE=true`         | Vacía `purchase_seats` y `purchases`, reabre funciones agotadas y reagenda las pasadas |
+| `screenings:refresh-demo`    | Lo invoca `demo:reset`; opción `--days` (7 por defecto)   | Mueve las funciones pasadas a un día aleatorio posterior, evitando solapes en la sala |
 
-## Canal principal
+El scheduler se registra en `routes/console.php`; en producción lo ejecuta el contenedor `scheduler` con `schedule:work`. `demo:reset --force` permite ejecutarlo sin `DEMO_MODE`. Despliegue y CI: [ci-cd.md](ci-cd.md) y [deployment-servidor-personal.md](deployment-servidor-personal.md).
 
-```txt
-storage/logs/laravel.log
-```
+## 10. Documentación OpenAPI y pruebas
 
-## Logs personalizados
-
-```php
-Log::error();
-Log::warning();
-Log::info();
-```
-
----
-
-# 13. Automatización Bash
-
-# 13.1 Script de despliegue
-
-**Script:** [`scripts/deploy.sh`](../scripts/deploy.sh)
-
-Lo ejecuta el job `deploy` de `.github/workflows/preprod.yml` en el servidor personal: descarga la imagen publicada, recrea el volumen de la app y levanta `docker-compose.prod.yml`. Ver [deployment-servidor-personal.md](deployment-servidor-personal.md).
-
-No hay respaldos de base de datos: pre es una simulación y sus datos se reinician cada día.
-
----
-
-# 14. Escalabilidad
-
-## Escalabilidad horizontal futura
-
-La arquitectura propuesta permite:
-
-- Separar frontend/backend
-- Convertir Laravel en API
-- Añadir Redis
-- Añadir colas
-- Balanceadores
-- Microservicios futuros
-
----
-
-# 15. Estrategia de Deployment
-
-## Producción
-
-Servidor Linux Ubuntu Server:
-
-- Apache2
-- PHP 8.3+
-- MySQL 8
-- Composer
-- Git
-
-## Flujo de despliegue
-
-```bash
-git pull
-composer install
-php artisan migrate
-php artisan optimize
-```
-
----
-
-# 16. Variables de Entorno
-
-Archivo:
-
-```txt
-.env
-```
-
-## Variables críticas
-
-```env
-APP_ENV=production
-APP_DEBUG=false
-
-DB_DATABASE=cine_db
-DB_USERNAME=cine_user
-DB_PASSWORD=strong_password
-```
-
----
-
-# 17. Tareas programadas
-
-Las tareas se registran con el scheduler de Laravel en [`routes/console.php`](../backend/routes/console.php). En `docker-compose.prod.yml` el contenedor `scheduler` ejecuta `php artisan schedule:work`.
-
-| Comando      | Frecuencia                       | Condición        |
-| ------------ | -------------------------------- | ---------------- |
-| `demo:reset` | Diario 00:05 (`DEMO_TIMEZONE`)   | `DEMO_MODE=true` |
-
----
-
-# 18. Pruebas Recomendadas
-
-## Backend
-
-- Unit Testing
-- Feature Testing
-- Purchase flow testing
-
-## Herramientas
-
-- PHPUnit
-- Pest
-
----
-
-# 20. Escenarios de Riesgo
-
-| Riesgo        | Mitigación     |
-| ------------- | -------------- |
-| Sobreventa    | Transacciones  |
-| SQL Injection | ORM            |
-| Fuerza bruta  | UFW limit      |
-| Caída Apache  | Watchdog       |
-| XSS           | Blade escaping |
-
----
-
-# 21. Manual de Red
-
-## Tabla de Puertos
-
-| Servicio          | Puerto |
-| ----------------- | ------ |
-| HTTP              | 80     |
-| SSH personalizado | 2222   |
-| MySQL Interno     | 3306   |
-
----
-
-# 22. Recomendaciones Finales
-
-## Recomendaciones técnicas
-
-- No usar lógica de negocio en controllers
-- No acceder directamente a modelos desde controllers
-- Mantener Services pequeños
-- Usar interfaces
-- Implementar DTOs
-- Validar todo input
-- Usar transacciones en compras
-- Mantener logs rotativos
-
----
-
-# 23. Tecnologías Recomendadas
-
-| Componente    | Tecnología    |
-| ------------- | ------------- |
-| Backend       | Laravel       |
-| Web Server    | Apache        |
-| Base de Datos | MySQL         |
-| SO            | Ubuntu Server |
-| Scripts       | Bash          |
-| Seguridad     | UFW           |
-| Testing       | PHPUnit/Pest  |
+- Las anotaciones OpenAPI (atributos `#[OA\...]`) viven en los controladores y Form Requests. La interfaz se sirve en `/api/documentation` y la especificación se regenera con el comando `php artisan l5-swagger:generate`.
+- Los tests (`composer test`) usan SQLite en memoria: `tests/Unit/Services` (`AuthServiceTest`, `PurchaseServiceTest`) y `tests/Feature` (controladores HTTP, CORS, seeder del admin y comandos de demo).
+- Estilo de código con Laravel Pint.
