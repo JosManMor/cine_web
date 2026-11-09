@@ -35,12 +35,26 @@ class DatabaseSeeder extends Seeder
 
     private function seedUsers(): void
     {
-        User::firstOrCreate(
-            ['email' => 'test@example.com'],
+        $admin = config('app.admin');
+
+        if (! app()->isProduction()) {
+            $admin['email'] = $admin['email'] ?: 'test@example.com';
+            $admin['password'] = $admin['password'] ?: 'password';
+        }
+
+        if (empty($admin['email']) || empty($admin['password'])) {
+            $this->command?->warn('ADMIN_EMAIL o ADMIN_PASSWORD sin definir: no se crea el administrador.');
+
+            return;
+        }
+
+        // updateOrCreate: cambiar ADMIN_PASSWORD en el servidor surte efecto en el siguiente seed.
+        User::updateOrCreate(
+            ['email' => $admin['email']],
             [
                 'role'               => 'admin',
-                'name'               => 'Test User',
-                'password'           => Hash::make('password'),
+                'name'               => $admin['name'],
+                'password'           => Hash::make($admin['password']),
                 'email_verified_at'  => now(),
             ],
         );

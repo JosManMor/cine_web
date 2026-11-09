@@ -140,8 +140,7 @@ storage/
 └── logs/
 
 scripts/
-├── backup.sh
-└── cine.cron
+└── deploy.sh
 ```
 
 ---
@@ -326,47 +325,13 @@ Log::info();
 
 # 13. Automatización Bash
 
-# 13.1 Backup Script
+# 13.1 Script de despliegue
 
-**Script:** [`scripts/backup.sh`](../scripts/backup.sh)
+**Script:** [`scripts/deploy.sh`](../scripts/deploy.sh)
 
-## Objetivo
+Lo ejecuta el job `deploy` de `.github/workflows/preprod.yml` en el servidor personal: descarga la imagen publicada, recrea el volumen de la app y levanta `docker-compose.prod.yml`. Ver [deployment-servidor-personal.md](deployment-servidor-personal.md).
 
-Respaldar base de datos.
-
-## Condición
-
-Solo ejecutar si hay más de 15% libre.
-
-## Flujo
-
-```txt
-Verificar espacio
-↓
-¿Libre > 15%?
-↓
-SI
-↓
-mysqldump
-↓
-Guardar respaldo
-```
-
-## Ejemplo
-
-```bash
-#!/bin/bash
-
-FREE=$(df / | awk 'NR==2 {print 100-$5}' | sed 's/%//')
-
-if [ "$FREE" -gt 15 ]; then
-
-    mysqldump -u root -p cine_db > backup_$(date +%F).sql
-
-else
-    echo "Insufficient space"
-fi
-```
+No hay respaldos de base de datos: pre es una simulación y sus datos se reinician cada día.
 
 ---
 
@@ -429,38 +394,13 @@ DB_PASSWORD=strong_password
 
 ---
 
-# 17. Cron Jobs
+# 17. Tareas programadas
 
-## Despliegue con Docker (producción)
+Las tareas se registran con el scheduler de Laravel en [`routes/console.php`](../backend/routes/console.php). En `docker-compose.prod.yml` el contenedor `scheduler` ejecuta `php artisan schedule:work`.
 
-El scheduling se configura automáticamente al levantar `docker-compose.prod.yml`. El servicio `cron` arranca con [`docker/php/cron-entrypoint.sh`](../docker/php/cron-entrypoint.sh), que registra el job y ejecuta `crond`.
-
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-## Despliegue nativo Linux (sin Docker)
-
-El archivo [`scripts/cine.cron`](../scripts/cine.cron) contiene las entradas listas para instalar.
-
-**Opción A — `/etc/cron.d/` (recomendado):**
-
-```bash
-sudo cp scripts/cine.cron /etc/cron.d/cine
-sudo chmod 644 /etc/cron.d/cine
-```
-
-**Opción B — crontab de root:**
-
-```bash
-sudo crontab scripts/cine.cron
-```
-
-## Resumen de entradas
-
-| Script       | Frecuencia  | Docker                       | Nativo |
-| ------------ | ----------- | ---------------------------- | ------ |
-| `backup.sh`  | `0 2 * * *` | Servicio `cron` (automático) | Sí     |
+| Comando      | Frecuencia                       | Condición        |
+| ------------ | -------------------------------- | ---------------- |
+| `demo:reset` | Diario 00:05 (`DEMO_TIMEZONE`)   | `DEMO_MODE=true` |
 
 ---
 
@@ -487,7 +427,6 @@ sudo crontab scripts/cine.cron
 | SQL Injection | ORM            |
 | Fuerza bruta  | UFW limit      |
 | Caída Apache  | Watchdog       |
-| Pérdida DB    | Backups        |
 | XSS           | Blade escaping |
 
 ---
@@ -515,7 +454,6 @@ sudo crontab scripts/cine.cron
 - Implementar DTOs
 - Validar todo input
 - Usar transacciones en compras
-- Configurar backups automáticos
 - Mantener logs rotativos
 
 ---

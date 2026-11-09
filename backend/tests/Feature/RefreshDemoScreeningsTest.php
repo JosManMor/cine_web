@@ -13,7 +13,7 @@ class RefreshDemoScreeningsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function createScreening(string $startTime): Screening
+    private function createScreening(string $startTime, ?Room $room = null, string $status = 'open'): Screening
     {
         $movie = Movie::create([
             'title' => 'Test Movie',
@@ -21,7 +21,7 @@ class RefreshDemoScreeningsTest extends TestCase
             'rating' => 'PG',
         ]);
 
-        $room = Room::create([
+        $room ??= Room::create([
             'name' => 'Sala 1',
             'rows' => 8,
             'seats_per_row' => 10,
@@ -32,33 +32,63 @@ class RefreshDemoScreeningsTest extends TestCase
             'room_id' => $room->id,
             'start_time' => $startTime,
             'base_price' => 8.50,
+            'status' => $status,
         ]);
     }
 
-    public function test_past_screenings_are_moved_to_tomorrow(): void
+    private function assertWithinNextDays(Carbon $date, int $days): void
     {
-        $yesterday = Carbon::yesterday()->setTime(18, 0);
-        $twoDaysAgo = Carbon::today()->subDays(2)->setTime(20, 30);
+        $this->assertTrue($date->gte(Carbon::tomorrow()), "{$date} es anterior a mañana");
+        $this->assertTrue($date->lt(Carbon::today()->addDays($days + 1)), "{$date} está fuera de la ventana de {$days} días");
+    }
 
-        $s1 = $this->createScreening($yesterday->toDateTimeString());
-        $s2 = $this->createScreening($twoDaysAgo->toDateTimeString());
+    public function test_past_screenings_are_moved_to_a_following_day_keeping_the_time(): void
+    {
+        $s1 = $this->createScreening(Carbon::yesterday()->setTime(18, 0)->toDateTimeString());
+        $s2 = $this->createScreening(Carbon::today()->subDays(2)->setTime(20, 30)->toDateTimeString());
 
         $this->artisan('screenings:refresh-demo')
             ->expectsOutputToContain('Funciones reagendadas: 2')
             ->assertSuccessful();
 
-        $tomorrow = Carbon::tomorrow();
-
         $s1->refresh();
         $s2->refresh();
 
-        $this->assertTrue($s1->start_time->isSameDay($tomorrow));
-        $this->assertEquals(18, $s1->start_time->hour);
-        $this->assertEquals(0, $s1->start_time->minute);
+        $this->assertWithinNextDays($s1->start_time, 7);
+        $this->assertSame('18:00', $s1->start_time->format('H:i'));
 
-        $this->assertTrue($s2->start_time->isSameDay($tomorrow));
-        $this->assertEquals(20, $s2->start_time->hour);
-        $this->assertEquals(30, $s2->start_time->minute);
+        $this->assertWithinNextDays($s2->start_time, 7);
+        $this->assertSame('20:30', $s2->start_time->format('H:i'));
+    }
+
+    public function test_days_option_limits_the_window(): void
+    {
+        $screening = $this->createScreening(Carbon::yesterday()->setTime(18, 0)->toDateTimeString());
+
+        $this->artisan('screenings:refresh-demo', ['--days' => 1])->assertSuccessful();
+
+        $this->assertTrue($screening->refresh()->start_time->isSameDay(Carbon::tomorrow()));
+    }
+
+    public function test_moved_screenings_avoid_overlapping_in_the_same_room(): void
+    {
+        $room = Room::create(['name' => 'Sala 1', 'rows' => 8, 'seats_per_row' => 10]);
+        $taken = $this->createScreening(Carbon::tomorrow()->setTime(18, 0)->toDateTimeString(), $room);
+        $past = $this->createScreening(Carbon::yesterday()->setTime(18, 0)->toDateTimeString(), $room);
+
+        $this->artisan('screenings:refresh-demo', ['--days' => 2])->assertSuccessful();
+
+        $this->assertTrue($taken->refresh()->start_time->isSameDay(Carbon::tomorrow()));
+        $this->assertTrue($past->refresh()->start_time->isSameDay(Carbon::today()->addDays(2)));
+    }
+
+    public function test_finished_screenings_are_reopened(): void
+    {
+        $screening = $this->createScreening(Carbon::yesterday()->setTime(18, 0)->toDateTimeString(), status: 'finished');
+
+        $this->artisan('screenings:refresh-demo')->assertSuccessful();
+
+        $this->assertSame('open', $screening->refresh()->status);
     }
 
     public function test_future_screenings_are_not_changed(): void
@@ -70,7 +100,6 @@ class RefreshDemoScreeningsTest extends TestCase
             ->expectsOutputToContain('Funciones reagendadas: 0')
             ->assertSuccessful();
 
-        $screening->refresh();
-        $this->assertTrue($screening->start_time->isSameDay($futureDate));
+        $this->assertTrue($screening->refresh()->start_time->eq($futureDate));
     }
 }

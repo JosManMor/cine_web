@@ -39,9 +39,7 @@ RUN mkdir -p /project/backend/public/build && npm run build
 FROM php:8.3.36-fpm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        cron \
         curl \
-        default-mysql-client \
         git \
         gosu \
         libonig-dev \
@@ -80,9 +78,7 @@ RUN mkdir -p storage/logs \
     && chmod -R 775 storage bootstrap/cache
 
 COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
-COPY docker/php/cron-entrypoint.sh /usr/local/bin/cron-entrypoint.sh
-COPY scripts/ /usr/local/scripts/
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/cron-entrypoint.sh /usr/local/scripts/*.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]
