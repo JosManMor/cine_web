@@ -69,6 +69,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Demo Mode
+    |--------------------------------------------------------------------------
+    |
+    | Activo solo en el entorno de simulación (pre). Habilita el reinicio
+    | diario de datos (`demo:reset`), que vacía compras y usuarios.
+    |
+    */
+
+    'demo_mode' => (bool) env('DEMO_MODE', false),
+
+    'demo_timezone' => env('DEMO_TIMEZONE', 'America/Mexico_City'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

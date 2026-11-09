@@ -166,4 +166,6 @@ Tests use in-memory SQLite regardless of the `.env` DB setting (configured in `p
 ## Bash Scripts (`scripts/`)
 
 `scripts/backup.sh` — `mysqldump` only if disk free > 15% (runs in the prod `cron` container at 02:00)  
-`scripts/cine.cron` — cron file: backup at 2 AM (`0 2 * * *`), demo screenings refresh at 00:05.
+`scripts/cine.cron` — cron file: backup at 2 AM (`0 2 * * *`).
+
+**Demo reset (pre):** the prod `scheduler` container runs `php artisan schedule:work`; when `DEMO_MODE=true`, `demo:reset` runs daily at 00:05 (`DEMO_TIMEZONE`). It truncates `purchase_seats`, `purchases`, `users` (plus tokens/sessions), re-seeds the admin and moves past screenings to a random day within the next 7 days.
