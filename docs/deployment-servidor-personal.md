@@ -189,7 +189,7 @@ CINE_IMAGE=<usuario>/cine-sendera:<sha-anterior> DEPLOY_DIR=/opt/cine-sendera sc
 | Qué | Dónde | Persistencia |
 | --- | --- | --- |
 | Laravel (app, queue, scheduler) | Volumen `cine_sendera_app_logs`, montado en `/var/www/storage/logs` | Sobrevive a los despliegues. Con `LOG_STACK=daily` se crea un archivo por día y se conservan `LOG_DAILY_DAYS` (14 por defecto) |
-| Accesos HTTP de nginx (IP del cliente, fecha, petición, estado, bytes, tiempo, referer, user agent) | Volumen `cine_sendera_nginx_logs`, montado en `/var/log/nginx/accesos` (`access-AAAA-MM-DD.log`) | Sobrevive a los despliegues. Un archivo por día (fecha UTC); se borran a los 30 días |
+| Accesos HTTP de nginx (IP del cliente, país, fecha, petición, estado, bytes, tiempo, referer, user agent) | Volumen `cine_sendera_nginx_logs`, montado en `/var/log/nginx/accesos` (`access-AAAA-MM-DD.log`) | Sobrevive a los despliegues. Un archivo por día (fecha UTC); se borran a los 30 días |
 | stdout/stderr de cada contenedor (php-fpm, nginx, mysql, queue, scheduler) | Driver `json-file` de Docker | Rotación a 3 archivos de 10 MB por contenedor. Se pierden al recrear el contenedor, es decir, en cada despliegue |
 
 `deploy.sh` borra el volumen `app_www` en cada despliegue, por eso `storage/logs` vive en un
@@ -219,14 +219,17 @@ docker compose -p cine_sendera -f docker-compose.prod.yml logs -f app queue sche
 Formato de cada línea del log de accesos:
 
 ```
-203.0.113.7 [2026-11-09T05:20:21+00:00] "GET /api/movies HTTP/1.1" 200 5120 0.042 "https://…/" "Mozilla/5.0 …"
+203.0.113.7 MX [2026-11-09T05:20:21+00:00] "GET /api/movies HTTP/1.1" 200 5120 0.042 "https://…/" "Mozilla/5.0 …"
 ```
 
-> nginx está publicado directamente en el puerto 80 y Docker conserva la IP de origen
-> del tráfico IPv4 externo. Las peticiones hechas desde el propio servidor (o por IPv6, si
-> Docker no tiene IPv6 activado) aparecen con la IP de la puerta de enlace de Docker
-> (`172.x.0.1`). Si en el futuro se pone un proxy delante (Cloudflare, otro nginx), hará
-> falta `set_real_ip_from` + `real_ip_header` para no registrar solo la IP del proxy.
+> El servidor está detrás del proxy de Cloudflare (nube naranja). nginx toma la IP del
+> usuario de la cabecera `CF-Connecting-IP`, pero **solo** si la conexión viene de los
+> rangos de Cloudflare (`set_real_ip_from` en `docker/nginx/prod.conf`); en un acceso
+> directo al servidor la cabecera se ignora y se registra la IP de la conexión. Laravel
+> recibe la misma IP real, así que el `throttle` por IP limita a cada usuario y no a todo
+> un nodo de Cloudflare. Cloudflare publica sus rangos en <https://www.cloudflare.com/ips/>:
+> si cambian, actualizar la lista. El país (`CF-IPCountry`) solo es fiable en peticiones
+> que pasaron por Cloudflare.
 
 > Las IP son datos personales: se conservan 30 días (bucle `find … -mtime +30 -delete` del
 > servicio `nginx` en `docker-compose.prod.yml`). Para cambiar el plazo, editar ese número.
