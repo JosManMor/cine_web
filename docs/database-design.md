@@ -1,5 +1,7 @@
 # Diseño de Base de Datos — Cine Sendera
 
+> Fuente de verdad del esquema. Las reglas de negocio están en [reglas-de-negocio.md](reglas-de-negocio.md).
+
 Sistema de simulación de cartelera y venta de entradas. Permite explorar películas, seleccionar asientos, comprar entradas y recibir tickets digitales. Incluye panel administrativo para gestión de películas, funciones y reportes básicos.
 
 **Stack:** React (SPA) + Laravel 13 (PHP 8.3) + MySQL 8 + REST API
@@ -12,19 +14,19 @@ Sistema de simulación de cartelera y venta de entradas. Permite explorar pelíc
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Sin tabla `seats`                       | Todas las salas comparten el mismo esquema de asientos (filas × columnas). El mapa se calcula desde `rooms.rows` y `rooms.seats_per_row`; no tiene sentido pre-poblar miles de registros.                                                |
 | Solo se almacenan asientos **ocupados** | `purchase_seats` actúa como tabla de ocupación. Un asiento libre es simplemente uno que no aparece en esta tabla para esa función.                                                                                                       |
-| `role` como ENUM en `users`             | Tres roles fijos (admin, cashier, client). Un sistema de permisos granular es sobre-ingeniería para una simulación.                                                                                                                      |
+| `role` como ENUM en `users`             | Tres roles fijos (admin, cashier, client). Un sistema de permisos granular es sobre-ingeniería para una simulación (ver [roles y permisos](reglas-de-negocio.md#roles-y-permisos)).                                                                                                                   |
 | `genre` como VARCHAR en `movies`        | Catálogo estático y sin relaciones cruzadas; no justifica tabla separada.                                                                                                                                                                |
 | Sin `promotions` ni `payment_methods`   | Fuera del alcance de la simulación.                                                                                                                                                                                                      |
 | Sin tabla `tickets`                     | Un asiento comprado y un ticket son lo mismo en el prototipo. `ticket_code` y el estado (used) se mueven directamente a `purchase_seats`. El QR se genera en tiempo real a partir del código; no hay nada que persistir.                 |
-| Sin soft delete                         | Para desactivar un usuario o película basta con el campo `status`. El borrado lógico complica las consultas sin aportar al prototipo.                                                                                                    |
+| Sin soft delete                         | Para desactivar una película basta con el campo `status`; en `users` el campo existe pero hoy no se aplica ([ver reglas](reglas-de-negocio.md#desactivación-sin-borrado)). El borrado lógico complica las consultas sin aportar al prototipo.                                                                                                    |
 | Sin `end_time` en `screenings`          | Dato calculable: `start_time + movies.duration_minutes`. Persistirlo obliga a mantenerlo sincronizado manualmente.                                                                                                                       |
-| `timestamps()` en entidades mutables    | `users`, `movies`, `rooms` y `screenings` incluyen `created_at` y `updated_at` para auditoría de cambios de estado (rol, cancelación, desactivación). `purchase_seats` no los tiene: es una tabla de ocupación inmutable una vez creada. |
+| `timestamps()` en entidades mutables    | `users`, `movies`, `rooms`, `screenings` y `purchases` incluyen `created_at` y `updated_at` para auditoría de cambios de estado (rol, cancelación, desactivación). `purchase_seats` no los tiene: es una tabla de ocupación inmutable una vez creada. |
 | `email_verified_at` en `users`          | Requerido por `MustVerifyEmail` de Laravel. Permite proteger rutas sensibles (ej. compras) con el middleware `verified`.                                                                                                                 |
 | Sin `remember_token`                    | La autenticación usa Sanctum Bearer Token; no se usan sesiones persistentes de browser.                                                                                                                                                  |
 
 ---
 
-## Esquema — 6 tablas de negocio + 1 de infraestructura
+## Esquema — 6 tablas de negocio y tablas de infraestructura
 
 ### users
 
@@ -43,9 +45,11 @@ Sistema de simulación de cartelera y venta de entradas. Permite explorar pelíc
 
 ---
 
-### password_reset_tokens
+### Tablas de infraestructura
 
-Tabla de infraestructura de Laravel para el flujo de recuperación de contraseña.
+Las gestiona Laravel y no forman parte del modelo de negocio: `password_reset_tokens` (creada, sin flujo de recuperación implementado), `personal_access_tokens` (tokens Bearer de Sanctum), `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs` y `sessions`.
+
+#### password_reset_tokens
 
 | Campo      | Tipo         | Restricciones |
 | ---------- | ------------ | ------------- |
@@ -126,7 +130,7 @@ El layout de asientos se define aquí. No hay tabla de asientos individuales.
 
 ### purchase_seats
 
-**Tabla de ocupación y tickets.** Solo contiene asientos reservados; los libres no existen como registros. El `ticket_code` se asigna al confirmar el pago; el QR se genera en tiempo real a partir de él.
+**Tabla de ocupación y tickets.** Solo contiene asientos reservados; los libres no existen como registros. El `ticket_code` se asigna al confirmar el pago ([regla](reglas-de-negocio.md#tickets)); el QR se genera en el cliente a partir de él.
 
 | Campo        | Tipo             | Restricciones                                     |
 | ------------ | ---------------- | ------------------------------------------------- |
@@ -140,148 +144,100 @@ El layout de asientos se define aquí. No hay tabla de asientos individuales.
 | status       | ENUM             | DEFAULT `active` → `active`, `cancelled`, `used`  |
 | **UNIQUE**   | —                | **(screening_id, row, seat_number)**              |
 
-> El constraint UNIQUE en `(screening_id, row, seat_number)` es **la garantía de nivel de BD contra doble reserva**. La lógica de reserva debe ejecutarse dentro de una transacción **intentando insertar** en `purchase_seats` y manejando una posible violación de UNIQUE si otra transacción reservó ese asiento primero. Como alternativa, puede bloquearse una fila padre existente (por ejemplo, en `screenings`) antes de insertar; no debe asumirse que `SELECT ... FOR UPDATE` sobre este par siempre serializa la inserción cuando el asiento aún no existe.
-
-`screening_id` está denormalizado aquí (ya existe en `purchases`) para poder aplicar el constraint UNIQUE directamente sin joins.
+> La restricción `UNIQUE (screening_id, row, seat_number)` es la garantía contra doble reserva. Cómo usarla dentro de la transacción se explica en [reglas-de-negocio.md](reglas-de-negocio.md#asientos-y-doble-reserva).
 
 ---
 
-## Relaciones
+## Diagrama entidad-relación
 
+```mermaid
+erDiagram
+    users ||--o{ purchases : realiza
+    movies ||--o{ screenings : "se proyecta en"
+    rooms ||--o{ screenings : aloja
+    screenings ||--o{ purchases : "se compra para"
+    purchases ||--|{ purchase_seats : contiene
+    screenings ||--o{ purchase_seats : ocupa
+
+    users {
+        bigint id PK
+        string name
+        string email UK
+        string password
+        enum role "admin, cashier, client"
+        string phone "nullable"
+        enum status "active, inactive"
+        timestamp email_verified_at "nullable"
+    }
+    movies {
+        bigint id PK
+        string title
+        string genre "nullable"
+        text synopsis "nullable"
+        smallint duration_minutes
+        string director "nullable"
+        string rating
+        string poster_url "nullable"
+        enum status "active, inactive, coming_soon"
+    }
+    rooms {
+        bigint id PK
+        string name
+        tinyint rows
+        tinyint seats_per_row
+        enum status "active, maintenance"
+    }
+    screenings {
+        bigint id PK
+        bigint movie_id FK
+        bigint room_id FK
+        datetime start_time
+        decimal base_price
+        enum format "2D, 3D, IMAX"
+        enum language_type "original, dubbed, subtitled"
+        enum status "scheduled, open, sold_out, cancelled, finished"
+    }
+    purchases {
+        bigint id PK
+        bigint user_id FK
+        bigint screening_id FK
+        decimal total_amount
+        enum payment_method "cash, card, online"
+        enum payment_status "pending, completed, failed, refunded"
+        enum purchase_status "active, cancelled"
+    }
+    purchase_seats {
+        bigint id PK
+        bigint purchase_id FK
+        bigint screening_id FK
+        char row
+        tinyint seat_number
+        decimal price_paid
+        string ticket_code UK "nullable"
+        enum status "active, cancelled, used"
+    }
 ```
-users         1 ──── * purchases
-movies        1 ──── * screenings
-rooms         1 ──── * screenings
-purchases     1 ──── * purchase_seats
-screenings    1 ──── * purchase_seats
-```
+
+Todas las claves foráneas son `NOT NULL` y sin borrado en cascada, salvo `purchase_seats.purchase_id`, que sí es `ON DELETE CASCADE`.
+
+`screening_id` está denormalizado en `purchase_seats` (ya existe en `purchases`) para poder aplicar la restricción `UNIQUE` directamente, sin joins.
 
 ---
 
-## Reglas de negocio críticas
+## Índices y restricciones únicas
 
-1. **No doble reserva:** UNIQUE `(screening_id, row, seat_number)` en `purchase_seats` + `DB::transaction()` + `lockForUpdate()`.
-2. **Asiento válido:** Antes de insertar en `purchase_seats`, verificar que `row` ∈ `[A .. chr(A + rooms.rows - 1)]` y `seat_number` ∈ `[1 .. rooms.seats_per_row]`.
-3. **Ticket post-pago:** Asignar `ticket_code` (UUID o código único) a cada `purchase_seat` cuando `purchases.payment_status = 'completed'`. Nunca inline en el request de compra.
-4. **Precio histórico:** `purchase_seats.price_paid` almacena el precio pagado; no recalcular desde `screenings.base_price`.
-5. **Desactivación sin borrado:** Usar `status = 'inactive'` en `users` y `movies` para preservar el historial de compras. No hay soft delete.
-6. **Cancelación:** Actualizar `purchase_status = 'cancelled'` en `purchases` y `status = 'cancelled'` en `purchase_seats` correspondientes.
-7. **Función sold_out:** Una función pasa a `sold_out` cuando el conteo de `purchase_seats` activos para ese `screening_id` alcanza `rooms.rows × rooms.seats_per_row`.
-
----
-
-## Índices recomendados
-
-```sql
--- Cartelera activa
-CREATE INDEX idx_movies_status ON movies (status);
-
--- Funciones por película y tiempo
-CREATE INDEX idx_screenings_movie_start ON screenings (movie_id, start_time, status);
-
--- Disponibilidad de asientos (consulta más frecuente en el flujo de compra)
-CREATE UNIQUE INDEX idx_purchase_seats_unique ON purchase_seats (screening_id, row, seat_number);
-CREATE INDEX idx_purchase_seats_screening ON purchase_seats (screening_id, status);
-
--- Historial de compras por usuario
-CREATE INDEX idx_purchases_user ON purchases (user_id, created_at DESC);
-
--- Validación de tickets en entrada
-CREATE UNIQUE INDEX idx_purchase_seats_ticket ON purchase_seats (ticket_code);
-```
+| Tabla            | Índice                             | Tipo   | Propósito                                                                                              |
+| ---------------- | ---------------------------------- | ------ | ------------------------------------------------------------------------------------------------------ |
+| `users`          | `email`                            | UNIQUE | Un correo por cuenta                                                                                   |
+| `movies`         | `status`                           | INDEX  | Cartelera activa                                                                                       |
+| `screenings`     | `(movie_id, start_time, status)`   | INDEX  | Funciones por película y fecha                                                                         |
+| `purchases`      | `(user_id, created_at)`            | INDEX  | Historial de compras por usuario                                                                       |
+| `purchase_seats` | `(screening_id, row, seat_number)` | UNIQUE | Garantía de nivel de BD contra doble reserva ([regla](reglas-de-negocio.md#asientos-y-doble-reserva)) |
+| `purchase_seats` | `(screening_id, status)`           | INDEX  | Disponibilidad de asientos, la consulta más frecuente en la compra                                     |
+| `purchase_seats` | `ticket_code`                      | UNIQUE | Búsqueda de tickets (admite varios `NULL`)                                                             |
 
 ---
 
-## DER (dbdiagram.io)
+## Reglas de negocio
 
-```sql
-Table users {
-  id bigint [pk, increment]
-  name varchar(255) [not null]
-  email varchar(255) [unique, not null]
-  password varchar(255) [not null]
-  role varchar(20) [not null, default: "client", note: "admin | cashier | client"]
-  phone varchar(20)
-  status varchar(20) [not null, default: "active", note: "active | inactive"]
-  email_verified_at timestamp
-  created_at timestamp
-  updated_at timestamp
-}
-
-Table password_reset_tokens {
-  email varchar(255) [pk]
-  token varchar(255) [not null]
-  created_at timestamp
-}
-
-Table movies {
-  id bigint [pk, increment]
-  title varchar(255) [not null]
-  genre varchar(100)
-  synopsis text
-  duration_minutes smallint [not null]
-  director varchar(255)
-  rating varchar(10) [not null, note: "G | PG | PG-13 | R"]
-  poster_url varchar(500)
-  status varchar(20) [not null, default: "active", note: "active | inactive | coming_soon"]
-  created_at timestamp
-  updated_at timestamp
-}
-
-Table rooms {
-  id bigint [pk, increment]
-  name varchar(100) [not null]
-  rows tinyint [not null]
-  seats_per_row tinyint [not null]
-  status varchar(20) [default: "active", note: "active | maintenance"]
-  created_at timestamp
-  updated_at timestamp
-}
-
-Table screenings {
-  id bigint [pk, increment]
-  movie_id bigint [not null]
-  room_id bigint [not null]
-  start_time datetime [not null]
-  base_price decimal(10,2) [not null]
-  format varchar(10) [default: "2D", note: "2D | 3D | IMAX"]
-  language_type varchar(20) [default: "subtitled", note: "original | dubbed | subtitled"]
-  status varchar(20) [default: "scheduled", note: "scheduled | open | sold_out | cancelled | finished"]
-  created_at timestamp
-  updated_at timestamp
-}
-
-Table purchases {
-  id bigint [pk, increment]
-  user_id bigint [not null]
-  screening_id bigint [not null]
-  total_amount decimal(10,2) [not null]
-  payment_method varchar(20) [note: "cash | card | online"]
-  payment_status varchar(20) [default: "pending", note: "pending | completed | failed | refunded"]
-  purchase_status varchar(20) [default: "active", note: "active | cancelled"]
-  created_at timestamp
-  updated_at timestamp
-}
-
-Table purchase_seats {
-  id bigint [pk, increment]
-  purchase_id bigint [not null]
-  screening_id bigint [not null]
-  row char(2) [not null]
-  seat_number tinyint [not null]
-  price_paid decimal(10,2) [not null]
-  ticket_code varchar(100) [unique]
-  status varchar(20) [default: "active", note: "active | cancelled | used"]
-
-  indexes {
-    (screening_id, row, seat_number) [unique, note: "garantiza no doble reserva"]
-  }
-}
-
-Ref: purchases.user_id > users.id
-Ref: purchases.screening_id > screenings.id
-Ref: screenings.movie_id > movies.id
-Ref: screenings.room_id > rooms.id
-Ref: purchase_seats.purchase_id > purchases.id [delete: cascade]
-Ref: purchase_seats.screening_id > screenings.id
-```
+Las reglas que dependen de estos datos (doble reserva, asiento válido, `ticket_code`, `price_paid`, desactivación, cancelación y estados) viven en un único documento: [reglas-de-negocio.md](reglas-de-negocio.md).
