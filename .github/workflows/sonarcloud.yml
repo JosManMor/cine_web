@@ -18,6 +18,9 @@ concurrency:
 jobs:
   sonarcloud:
     name: SonarCloud Code Analysis
+    # Las PR desde forks no reciben secretos, así que SONAR_TOKEN estaría vacío.
+    # Se omite el job: un check omitido cuenta como superado en la protección de ramas.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
