@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Banknote, Check, CreditCard, Globe } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Banknote, CircleCheck, Clock, CreditCard, Globe } from "lucide-react";
 import { createPurchase } from "../api/purchases";
 import PillButton from "../components/ui/PillButton";
 import Spinner from "../components/ui/Spinner";
@@ -8,6 +8,7 @@ import Poster from "../components/tickets/Poster";
 import { useBooking } from "../context/BookingContext";
 import { purchaseSchema } from "../schemas/purchase.schemas";
 import { fmtShowtime } from "../utils/images";
+import { bySeat, money, seatLabel, seatsWord } from "../components/tickets/tickets";
 
 const PAYMENT_METHODS = [
   { id: "cash",   label: "Efectivo", Icon: Banknote },
@@ -15,14 +16,15 @@ const PAYMENT_METHODS = [
   { id: "online", label: "En línea", Icon: Globe },
 ];
 
-const money = (n) => `$${n.toFixed(2)}`;
+// Pausa antes de abrir el comprobante; la barra de avance (animate-fill) dura lo mismo.
+const REDIRECT_DELAY_MS = 800;
 
 export default function CheckoutPage({ addToast }) {
   const { selectedMovie: movie, selectedSchedule: schedule, selectedSeats, setPurchaseResult } = useBooking();
   const navigate = useNavigate();
 
   const [loading, setLoading]             = useState(false);
-  const [done, setDone]                   = useState(false);
+  const [done, setDone]                   = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("cash");
 
   const goBack = () => navigate(schedule?.id ? `/asientos/${schedule.id}` : -1);
@@ -61,16 +63,17 @@ export default function CheckoutPage({ addToast }) {
     setLoading(true);
     try {
       const result = await createPurchase(payload);
-      setPurchaseResult({
+      const purchase = {
         purchase_id:    result.purchase_id,
         payment_status: result.payment_status,
         seats:          selectedSeats,
         total,
         payment_method: paymentMethod,
-      });
-      setDone(true);
+      };
+      setPurchaseResult(purchase);
+      setDone(purchase);
       addToast("Compra registrada con éxito", "success");
-      setTimeout(() => navigate("/ticket"), 800);
+      setTimeout(() => navigate("/ticket"), REDIRECT_DELAY_MS);
     } catch (err) {
       if (err.response?.status === 409) {
         addToast("Uno o más asientos ya fueron reservados. Elige otros.", "error");
@@ -84,16 +87,43 @@ export default function CheckoutPage({ addToast }) {
   };
 
   if (done) {
+    const paid  = done.payment_status ? done.payment_status === "completed" : true;
+    const seats = [...done.seats].sort(bySeat).map(seatLabel).join(", ");
+    const count = done.seats.length;
     return (
-      <main className="frame flex min-h-svh items-center justify-center bg-ground font-sans text-ink">
-        <div className="flex animate-rise flex-col items-center gap-4 text-center motion-reduce:animate-none">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent">
-            <Check size={32} />
+      <main className="frame flex min-h-svh items-center justify-center bg-ground pt-24 pb-16 font-sans text-ink">
+        <section aria-labelledby="done-title" className="w-full max-w-md animate-rise rounded-card bg-surface p-6 text-center motion-reduce:animate-none sm:p-10">
+          <span className="mx-auto flex size-16 items-center justify-center rounded-full bg-raised">
+            {paid
+              ? <CircleCheck size={32} className="text-ink" />
+              : <Clock size={32} className="text-warning" />}
           </span>
-          <h1 className="m-0 text-2xl! font-bold tracking-tight">¡Compra registrada!</h1>
-          <output className="text-base text-muted">Generando comprobante...</output>
-          <Spinner />
-        </div>
+          <h1 id="done-title" className="m-0 mt-6 text-[clamp(1.75rem,6vw,2rem)] leading-[1.05] font-extrabold tracking-tight text-ink">
+            Compra registrada
+          </h1>
+          <p className="mt-3 text-base font-semibold text-ink">
+            {paid ? `Pago confirmado de ${money(done.total)}` : `Pago pendiente de ${money(done.total)}`}{" "}
+            <span className="whitespace-nowrap">· Pedido <span className="tabular-nums">#{done.purchase_id}</span></span>
+          </p>
+
+          <dl className="m-0 mt-6 flex flex-col gap-1 rounded-tile bg-raised px-4 py-3 text-left">
+            <dt className="text-sm text-muted">{movie?.title ?? "Película"}</dt>
+            <dd className="m-0 text-base text-ink">
+              {count} {seatsWord(count)} <span className="tabular-nums">· {seats}</span>
+            </dd>
+          </dl>
+
+          <div className="mt-8">
+            <output className="block text-sm text-muted">Preparando tu comprobante</output>
+            <div className="mt-3 h-1 overflow-hidden rounded-full bg-raised" aria-hidden="true">
+              <div className="h-full origin-left animate-fill rounded-full bg-accent motion-reduce:animate-none" />
+            </div>
+          </div>
+
+          <Link to="/ticket" className="mt-6 inline-block rounded-full text-sm font-semibold text-ink underline underline-offset-4 hover:text-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
+            Ver comprobante ahora
+          </Link>
+        </section>
       </main>
     );
   }

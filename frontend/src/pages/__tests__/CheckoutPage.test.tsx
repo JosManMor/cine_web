@@ -127,6 +127,23 @@ describe('CheckoutPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/ticket');
   });
 
+  it('muestra la pantalla de compra registrada con el pedido antes de redirigir', async () => {
+    mockCreatePurchase.mockResolvedValue({
+      purchase_id: 99,
+      payment_status: 'completed',
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar compra' }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Compra registrada' })).toBeInTheDocument();
+    expect(screen.getByText(/Pago confirmado de \$300\.00/)).toBeInTheDocument();
+    expect(screen.getByText('#99')).toBeInTheDocument();
+    expect(screen.getByText(/B3, B4/)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Preparando tu comprobante');
+    expect(screen.getByRole('link', { name: 'Ver comprobante ahora' })).toHaveAttribute('href', '/ticket');
+  });
+
   it('muestra error de toast cuando la API devuelve 409 (asiento ya ocupado)', async () => {
     const conflict = Object.assign(new Error('Conflict'), {
       response: { status: 409, data: { message: 'Conflict' } },
