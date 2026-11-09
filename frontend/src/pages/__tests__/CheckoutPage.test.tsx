@@ -72,7 +72,8 @@ describe('CheckoutPage', () => {
 
     expect(screen.getByText('Dune')).toBeInTheDocument();
     // 2 seats × $150 = $300.00
-    expect(screen.getByText('$300.00')).toBeInTheDocument();
+    // El total aparece en el resumen y en la barra de compra del teléfono.
+    expect(screen.getAllByText('$300.00')).toHaveLength(2);
     // Seat labels B3, B4 displayed inline
     expect(screen.getByText(/B3, B4/)).toBeInTheDocument();
     // Quantity "×2"
@@ -95,7 +96,7 @@ describe('CheckoutPage', () => {
 
     renderPage();
 
-    fireEvent.click(screen.getByText('Confirmar compra'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar compra' }));
 
     await waitFor(() => {
       expect(mockCreatePurchase).toHaveBeenCalledWith({
@@ -118,7 +119,7 @@ describe('CheckoutPage', () => {
     // Use act + runAllTimersAsync so both the resolved promise AND the 800ms
     // setTimeout inside the component fire without real waiting.
     await act(async () => {
-      fireEvent.click(screen.getByText('Confirmar compra'));
+      fireEvent.click(screen.getByRole('button', { name: 'Confirmar compra' }));
       await vi.runAllTimersAsync();
     });
 
@@ -134,7 +135,7 @@ describe('CheckoutPage', () => {
 
     renderPage();
 
-    fireEvent.click(screen.getByText('Confirmar compra'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar compra' }));
 
     await waitFor(() => {
       expect(addToast).toHaveBeenCalledWith(
@@ -153,7 +154,7 @@ describe('CheckoutPage', () => {
 
     renderPage();
 
-    fireEvent.click(screen.getByText('Confirmar compra'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar compra' }));
 
     await waitFor(() => {
       expect(addToast).toHaveBeenCalledWith('Error interno del servidor', 'error');
@@ -170,7 +171,7 @@ describe('CheckoutPage', () => {
 
     // Switch to "Tarjeta"
     fireEvent.click(screen.getByText('Tarjeta'));
-    fireEvent.click(screen.getByText('Confirmar compra'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar compra' }));
 
     await waitFor(() => {
       expect(mockCreatePurchase).toHaveBeenCalledWith(
