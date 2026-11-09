@@ -8,7 +8,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Simulación: cada noche se vacían compras y usuarios y se reparten las
+// Simulación: cada noche se vacían compras y boletos y se reparten las
 // funciones pasadas en los días siguientes. Lo ejecuta el contenedor scheduler.
 if (config('app.demo_mode')) {
     Schedule::command('demo:reset')

@@ -73,7 +73,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Activo solo en el entorno de simulación (pre). Habilita el reinicio
-    | diario de datos (`demo:reset`), que vacía compras y usuarios.
+    | diario de datos (`demo:reset`), que vacía compras y boletos.
     |
     */
 

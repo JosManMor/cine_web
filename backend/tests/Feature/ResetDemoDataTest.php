@@ -67,7 +67,7 @@ class ResetDemoDataTest extends TestCase
         $this->assertDatabaseCount('users', 1);
     }
 
-    public function test_it_wipes_purchases_and_users_and_reschedules_screenings(): void
+    public function test_it_wipes_purchases_but_keeps_registered_users(): void
     {
         config(['app.demo_mode' => true]);
 
@@ -75,11 +75,10 @@ class ResetDemoDataTest extends TestCase
 
         $this->assertDatabaseCount('purchase_seats', 0);
         $this->assertDatabaseCount('purchases', 0);
-        $this->assertDatabaseCount('personal_access_tokens', 0);
-        $this->assertDatabaseMissing('users', ['email' => 'cliente@example.com']);
 
-        // El seeder recrea al administrador de la demo.
-        $this->assertDatabaseHas('users', ['email' => 'test@example.com', 'role' => 'admin']);
+        // Los usuarios registrados siguen pudiendo iniciar sesión.
+        $this->assertDatabaseHas('users', ['email' => 'cliente@example.com']);
+        $this->assertDatabaseCount('personal_access_tokens', 1);
 
         $this->screening->refresh();
         $this->assertSame('open', $this->screening->status);
