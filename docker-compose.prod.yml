@@ -80,6 +80,20 @@ services:
     volumes:
       - app_www:/var/www:ro
       - ./docker/nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_logs:/var/log/nginx/accesos
+    # Los workers de nginx escriben el log de accesos (la ruta lleva la fecha,
+    # así que lo abren ellos y no el master root): el directorio debe ser del
+    # usuario nginx. Un bucle borra a diario los archivos de más de 30 días.
+    command:
+      - sh
+      - -c
+      - |
+        install -d -o nginx -g nginx /var/log/nginx/accesos
+        (while true; do
+          find /var/log/nginx/accesos -name 'access-*.log' -mtime +30 -delete
+          sleep 86400
+        done) &
+        exec nginx -g 'daemon off;'
     depends_on:
       app:
         condition: service_healthy
@@ -219,6 +233,8 @@ volumes:
     # Datos de MySQL — persiste entre despliegues, NO eliminar en actualizaciones.
   app_logs:
     # Logs de Laravel (storage/logs) — persisten entre despliegues.
+  nginx_logs:
+    # Log de accesos de nginx (IP de cada cliente) — persiste entre despliegues.
 
 # ── Redes ─────────────────────────────────────────────────────────────────────
 networks:
