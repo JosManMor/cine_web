@@ -100,4 +100,31 @@ describe('AuthContext', () => {
     expect(localStorage.getItem('auth_token')).toBeNull();
     expect(localStorage.getItem('auth_user')).toBeNull();
   });
+
+  it('sincroniza el usuario cuando otra pestaña cambia la sesión', () => {
+    render(<AuthProvider><AuthConsumer /></AuthProvider>);
+
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'auth_user',
+        newValue: JSON.stringify({ id: 5, name: 'Pablo', role: 'client' }),
+      }));
+    });
+    expect(screen.getByTestId('user-name').textContent).toBe('Pablo');
+
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: 'auth_user', newValue: null }));
+    });
+    expect(screen.getByTestId('user-name').textContent).toBe('sin-usuario');
+  });
+
+  it('ignora otras claves y valores corruptos en el evento storage', () => {
+    render(<AuthProvider><AuthConsumer /></AuthProvider>);
+
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: 'otra', newValue: '{"name":"X"}' }));
+      window.dispatchEvent(new StorageEvent('storage', { key: 'auth_user', newValue: '{roto' }));
+    });
+    expect(screen.getByTestId('user-name').textContent).toBe('sin-usuario');
+  });
 });

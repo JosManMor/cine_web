@@ -19,8 +19,9 @@ vi.mock('react-router-dom', async () => {
 
 const updateUser = vi.fn();
 const clearAuth = vi.fn();
+let mockUser: { email: string; verified?: boolean } = { email: 'ana@cine.test' };
 vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({ user: { email: 'ana@cine.test' }, updateUser, clearAuth }),
+  useAuth: () => ({ user: mockUser, updateUser, clearAuth }),
 }));
 
 import { resendVerification, verifyEmail } from '../../api/auth';
@@ -31,7 +32,11 @@ const addToast = vi.fn();
 
 const EMOJI = /\p{Extended_Pictographic}/u;
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockUser = { email: 'ana@cine.test' };
+  localStorage.clear();
+});
 
 describe('EmailPendingPage', () => {
   it('pone la bandeja de demostración como título principal', () => {
@@ -53,6 +58,18 @@ describe('EmailPendingPage', () => {
   it('enlaza a la bandeja de la demostración', () => {
     render(<MemoryRouter><EmailPendingPage addToast={addToast} /></MemoryRouter>);
     expect(screen.getByRole('link', { name: /Abrir bandeja de correo/ })).toHaveAttribute('href', '/mailpit/');
+  });
+
+  it('retoma la compra si el correo ya quedó verificado en otra pestaña', () => {
+    mockUser = { email: 'ana@cine.test', verified: true };
+    localStorage.setItem('post_verify_return', '/asientos/7');
+    render(<MemoryRouter><EmailPendingPage addToast={addToast} /></MemoryRouter>);
+    expect(mockNavigate).toHaveBeenCalledWith('/asientos/7', { replace: true });
+  });
+
+  it('abre la bandeja en la misma pestaña', () => {
+    render(<MemoryRouter><EmailPendingPage addToast={addToast} /></MemoryRouter>);
+    expect(screen.getByRole('link', { name: /Abrir bandeja de correo/ })).not.toHaveAttribute('target');
   });
 });
 
@@ -76,6 +93,22 @@ describe('EmailVerifyPage', () => {
     expect(await screen.findByRole('heading', { name: 'Correo verificado' })).toBeInTheDocument();
     expect(mockVerify).toHaveBeenCalledWith('1', 'abc', { expires: '9', signature: 'sig' });
     expect(updateUser).toHaveBeenCalledWith({ verified: true });
+  });
+
+  it('vuelve a la compra guardada tras verificar', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    localStorage.setItem('post_verify_return', '/asientos/7');
+    mockVerify.mockResolvedValue({});
+    render(
+      <MemoryRouter initialEntries={['/email/verificar?id=1&hash=abc&expires=9&signature=sig']}>
+        <EmailVerifyPage addToast={addToast} />
+      </MemoryRouter>,
+    );
+    await screen.findByRole('heading', { name: 'Correo verificado' });
+    await vi.advanceTimersByTimeAsync(1600);
+    expect(mockNavigate).toHaveBeenCalledWith('/asientos/7', { replace: true });
+    expect(localStorage.getItem('post_verify_return')).toBeNull();
+    vi.useRealTimers();
   });
 
   it('muestra el mensaje del servidor cuando el enlace expiró', async () => {

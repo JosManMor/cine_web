@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import PillButton from "../components/ui/PillButton";
-import { CheckIcon, ClockIcon, ExternalIcon, InboxIcon, RefreshIcon, SpinnerIcon } from "../components/ui/icons";
+import { CheckIcon, ClockIcon, InboxIcon, RefreshIcon, SpinnerIcon } from "../components/ui/icons";
 import { resendVerification } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
+import { takeReturnTo } from "../utils/returnTo";
 
 export default function EmailPendingPage({ addToast }) {
   const { user, clearAuth } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // Si el correo se verificó en otra pestaña, retoma la compra aquí.
+  useEffect(() => {
+    if (user?.verified === true) navigate(takeReturnTo(), { replace: true });
+  }, [user?.verified, navigate]);
 
   const handleResend = async () => {
     setLoading(true);
@@ -50,13 +57,11 @@ export default function EmailPendingPage({ addToast }) {
           <PillButton
             as="a"
             href="/mailpit/"
-            target="_blank"
-            rel="noopener noreferrer"
             size="lg"
             className="mt-10 w-full sm:w-auto"
           >
             Abrir bandeja de correo
-            <ExternalIcon size={18} />
+            <ArrowRight size={18} />
           </PillButton>
 
           <p className="mt-6 flex items-center gap-2 text-base text-muted">
