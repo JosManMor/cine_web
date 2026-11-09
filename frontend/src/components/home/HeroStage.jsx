@@ -26,7 +26,7 @@ export default function HeroStage({ carousel, featuredIndex, setFeaturedIndex, t
   useEffect(() => {
     if (fetched.current || carousel.length === 0) return;
     fetched.current = true;
-    Promise.all(carousel.map(m => getMovie(m.id).catch(() => ({}))))
+    void Promise.all(carousel.map(m => getMovie(m.id).catch(() => ({}))))
       .then(results => {
         const map = {};
         carousel.forEach((m, i) => { map[m.id] = results[i]; });
