@@ -127,7 +127,11 @@ class PurchaseController extends Controller
             'purchase.user',
             'purchase.screening.movie',
             'purchase.screening.room',
-        ])->where('ticket_code', $ticketCode)->firstOrFail();
+        ])
+            ->where('ticket_code', $ticketCode)
+            ->where('status', 'active')
+            ->whereHas('purchase', fn ($q) => $q->where('purchase_status', 'active'))
+            ->firstOrFail();
 
         if ($seat->purchase->user_id !== $request->user()->id) {
             return response()->json(['message' => 'No tienes permiso para ver este ticket.'], 403);

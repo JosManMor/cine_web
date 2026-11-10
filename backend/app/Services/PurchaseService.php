@@ -88,9 +88,13 @@ class PurchaseService
             throw new PurchaseAlreadyCancelledException();
         }
 
-        $purchase->update(['purchase_status' => 'cancelled']);
+        return DB::transaction(function () use ($purchase) {
+            $purchase->update(['purchase_status' => 'cancelled']);
 
-        return $purchase->fresh();
+            $purchase->purchaseSeats()->delete();
+
+            return $purchase->fresh();
+        });
     }
 
     public function activeTicketsForUser(int $userId): Collection

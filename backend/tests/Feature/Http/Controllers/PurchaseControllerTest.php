@@ -324,6 +324,89 @@ class PurchaseControllerTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_cancel_deletes_purchase_seats(): void
+    {
+        $user      = $this->makeVerifiedUser();
+        $room      = $this->makeRoom();
+        $movie     = $this->makeMovie();
+        $screening = $this->makeScreening($room, $movie);
+        $purchase  = $this->makePurchase($user, $screening);
+        $purchase->purchaseSeats()->update(['ticket_code' => 'CODE-TO-REVOKE']);
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/purchases/{$purchase->id}")
+            ->assertStatus(200);
+
+        $this->assertDatabaseMissing('purchase_seats', [
+            'purchase_id' => $purchase->id,
+        ]);
+    }
+
+    public function test_cancelled_seats_can_be_repurchased(): void
+    {
+        $user      = $this->makeVerifiedUser();
+        $room      = $this->makeRoom();
+        $movie     = $this->makeMovie();
+        $screening = $this->makeScreening($room, $movie);
+
+        $response1 = $this->actingAs($user, 'sanctum')
+            ->postJson(self::PURCHASES_URI, [
+                'screening_id'   => $screening->id,
+                'seats'          => [['row' => 'A', 'seat_number' => 5]],
+                'payment_method' => 'card',
+            ]);
+        $response1->assertStatus(201);
+        $purchaseId = $response1->json('purchase_id');
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/purchases/{$purchaseId}")
+            ->assertStatus(200);
+
+        $response2 = $this->actingAs($user, 'sanctum')
+            ->postJson(self::PURCHASES_URI, [
+                'screening_id'   => $screening->id,
+                'seats'          => [['row' => 'A', 'seat_number' => 5]],
+                'payment_method' => 'card',
+            ]);
+        $response2->assertStatus(201);
+    }
+
+    // ── GET /api/tickets/{ticket_code} ───────────────────────────────────────
+
+    public function test_show_ticket_returns_404_for_cancelled_purchase(): void
+    {
+        $user      = $this->makeVerifiedUser();
+        $room      = $this->makeRoom();
+        $movie     = $this->makeMovie();
+        $screening = $this->makeScreening($room, $movie);
+        $purchase  = $this->makePurchase($user, $screening);
+        $purchase->purchaseSeats()->update(['ticket_code' => 'CANCEL-TEST']);
+
+        $purchase->update(['purchase_status' => 'cancelled']);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/tickets/CANCEL-TEST');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_show_ticket_returns_200_for_active_ticket(): void
+    {
+        $user      = $this->makeVerifiedUser();
+        $room      = $this->makeRoom();
+        $movie     = $this->makeMovie();
+        $screening = $this->makeScreening($room, $movie);
+        $purchase  = $this->makePurchase($user, $screening);
+        $purchase->purchaseSeats()->update(['ticket_code' => 'ACTIVE-TEST']);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/tickets/ACTIVE-TEST');
+
+        $response->assertStatus(200);
+    }
+
+    // ── GET /api/my-tickets ───────────────────────────────────────────────────
+
     public function test_my_tickets_includes_screening_and_poster(): void
     {
         $user      = $this->makeVerifiedUser();

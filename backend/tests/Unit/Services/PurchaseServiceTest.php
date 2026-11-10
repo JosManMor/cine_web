@@ -299,4 +299,66 @@ class PurchaseServiceTest extends TestCase
 
         $this->service()->cancelPurchase($purchase->id, $user->id);
     }
+
+    public function test_cancel_deletes_all_purchase_seats(): void
+    {
+        $user      = $this->makeUser();
+        $room      = $this->makeRoom();
+        $movie     = $this->makeMovie();
+        $screening = $this->makeScreening($room, $movie);
+        $dto       = $this->makeDto($screening, [
+            ['row' => 'A', 'seat_number' => 1],
+            ['row' => 'A', 'seat_number' => 2],
+        ]);
+
+        $purchase = $this->service()->createPurchase($dto, $user->id);
+        $this->assertEquals(2, PurchaseSeat::where('purchase_id', $purchase->id)->count());
+
+        $this->service()->cancelPurchase($purchase->id, $user->id);
+
+        $this->assertEquals(0, PurchaseSeat::where('purchase_id', $purchase->id)->count());
+    }
+
+    public function test_cancel_invalidates_ticket_codes(): void
+    {
+        $user      = $this->makeUser();
+        $room      = $this->makeRoom();
+        $movie     = $this->makeMovie();
+        $screening = $this->makeScreening($room, $movie);
+        $dto       = $this->makeDto($screening, [['row' => 'B', 'seat_number' => 1]]);
+
+        $purchase = $this->service()->createPurchase($dto, $user->id);
+
+        $ticketCode = PurchaseSeat::where('purchase_id', $purchase->id)->value('ticket_code');
+        $this->assertNotNull($ticketCode);
+
+        $this->service()->cancelPurchase($purchase->id, $user->id);
+
+        $this->assertDatabaseMissing('purchase_seats', ['ticket_code' => $ticketCode]);
+    }
+
+    public function test_cancelled_seats_can_be_repurchased(): void
+    {
+        $user1     = $this->makeUser();
+        $user2     = $this->makeUser();
+        $room      = $this->makeRoom();
+        $movie     = $this->makeMovie();
+        $screening = $this->makeScreening($room, $movie);
+
+        $dto1     = $this->makeDto($screening, [['row' => 'C', 'seat_number' => 1]]);
+        $purchase = $this->service()->createPurchase($dto1, $user1->id);
+        $this->service()->cancelPurchase($purchase->id, $user1->id);
+
+        $dto2       = $this->makeDto($screening, [['row' => 'C', 'seat_number' => 1]]);
+        $newPurchase = $this->service()->createPurchase($dto2, $user2->id);
+
+        $this->assertEquals('active', $newPurchase->purchase_status);
+        $this->assertDatabaseHas('purchase_seats', [
+            'purchase_id'  => $newPurchase->id,
+            'screening_id' => $screening->id,
+            'row'          => 'C',
+            'seat_number'  => 1,
+            'status'       => 'active',
+        ]);
+    }
 }

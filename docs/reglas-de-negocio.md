@@ -113,7 +113,7 @@ La garantía es la restricción `UNIQUE (screening_id, row, seat_number)` en `pu
 - No se hace una comprobación previa de existencia: dos transacciones concurrentes podrían pasarla y colisionar al insertar.
 - Se inserta directamente dentro de `DB::transaction()` y se captura la excepción de clave duplicada (`UniqueConstraintViolationException`), que se traduce en `SeatAlreadyTakenException` (`409`) y revierte toda la compra.
 - Un asiento libre es simplemente uno que no aparece en `purchase_seats` para esa función; no hay filas de asientos libres.
-- La restricción cubre filas con cualquier `status`: un asiento cuya fila queda `cancelled` sigue bloqueando la combinación (ver [cancelación](#cancelación-de-compras)).
+- Al cancelar una compra se eliminan sus filas en `purchase_seats`, liberando la combinación para una nueva compra.
 
 ## Precio histórico
 
@@ -187,7 +187,7 @@ flowchart TD
 ```
 
 - Solo el dueño puede cancelar; ni siquiera `admin` tiene una ruta para cancelar compras ajenas.
-- Hoy la cancelación solo cambia `purchases.purchase_status`. No marca `purchase_seats.status = 'cancelled'`, no libera los asientos y no revoca los tickets (ver [discrepancias](#discrepancias-conocidas-entre-reglas-y-código)).
+- La cancelación cambia `purchases.purchase_status` a `cancelled` y elimina las filas de `purchase_seats`, liberando la restricción UNIQUE y permitiendo la re-compra de esos asientos. Los `ticket_code` desaparecen con las filas.
 - No se valida un plazo ni que la función no haya empezado.
 
 ## Desactivación sin borrado
@@ -238,7 +238,6 @@ Reglas documentadas antes (en `CLAUDE.md`, `database-design.md` o la arquitectur
 
 | Regla anterior                                                                 | Estado real                                                                                                   |
 | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| Cancelar actualiza también `purchase_seats.status = 'cancelled'`               | No se cumple: solo cambia `purchase_status`. Los asientos siguen ocupados y los tickets activos                |
 | Función pasa a `sold_out` al llenarse la sala                                  | No implementado: ningún código la asigna; solo `demo:reset` la revierte                                       |
 | `lockForUpdate()` junto con la transacción                                     | Descartada: no se usa; basta el `INSERT` con captura de la violación `UNIQUE`                                 |
 | Autorización con Policies por modelo                                           | No existen Policies; hay middleware (`verified`, `role:admin`) y comprobaciones de propiedad en el servicio    |
@@ -246,5 +245,5 @@ Reglas documentadas antes (en `CLAUDE.md`, `database-design.md` o la arquitectur
 | Usuario `inactive` pierde acceso                                               | No se comprueba en login ni en middleware                                                                      |
 | Índice de historial de compras ordenado de forma descendente                   | La migración crea `(user_id, created_at)` ascendente                                                          |
 | `payment_status` `failed` y `refunded`                                         | Definidos en el ENUM pero sin flujo que los asigne; el panel solo lee `failed`                                 |
-| `GET /tickets/{code}` solo con compras vigentes                                | No se valida `purchase_status` ni `status` del asiento al consultar un ticket por código                       |
+| `GET /tickets/{code}` solo con compras vigentes                                | Corregido: `showTicket` filtra por `purchase_seats.status = 'active'` y `purchase_status = 'active'`           |
 | `ticket_code` con formato de código legible                                    | Es un UUID                                                                                                     |
