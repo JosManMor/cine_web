@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PillButton from "../components/ui/PillButton";
 import { AlertIcon, CheckIcon, RefreshIcon, SpinnerIcon } from "../components/ui/icons";
@@ -21,6 +21,10 @@ export default function EmailVerifyPage({ addToast }) {
   const [status, setStatus] = useState(linkComplete ? "loading" : "error");
   const [errorMsg, setErrorMsg] = useState(linkComplete ? "" : "Al enlace le faltan datos.");
 
+  // Captura la ruta de retorno UNA sola vez al verificar, antes de que la
+  // pestaña de /email/pendiente la consuma vía el evento storage.
+  const returnPath = useRef("/");
+
   // El enlace firmado se consume una sola vez, al montar la página.
   useEffect(() => {
     if (!linkComplete) return;
@@ -28,10 +32,11 @@ export default function EmailVerifyPage({ addToast }) {
     let timer;
     verifyEmail(id, hash, { expires, signature })
       .then(() => {
+        returnPath.current = takeReturnTo();
         updateUser({ verified: true });
         setStatus("success");
         addToast("Correo verificado", "success");
-        timer = setTimeout(() => navigate(takeReturnTo(), { replace: true }), 1500);
+        timer = setTimeout(() => navigate(returnPath.current, { replace: true }), 3000);
       })
       .catch(err => {
         setStatus("error");
@@ -60,7 +65,7 @@ export default function EmailVerifyPage({ addToast }) {
             </span>
             <h1 className={TITLE}>Correo verificado</h1>
             <p className={TEXT}>Tu cuenta ya está activa. Te llevamos de vuelta a tu compra en un momento.</p>
-            <PillButton size="lg" className="mt-10" onClick={() => navigate(takeReturnTo(), { replace: true })}>
+            <PillButton size="lg" className="mt-10" onClick={() => navigate(returnPath.current, { replace: true })}>
               Continuar con mi compra
             </PillButton>
           </>
