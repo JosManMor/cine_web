@@ -34,7 +34,7 @@ flowchart TD
 | `utils/` | `format.js`, `images.js` (URLs de imagen y hora de función), `simulationNotice.js` (términos y banner) |
 | `constants/` | `theme.js` y `mockData.js`, solo para vistas sin migrar |
 
-Código heredado: `Cine.jsx`, `components/AuthGuard.jsx` y `components/VerifiedGuard.jsx` pertenecen a la antigua navegación por estado (`setPage`) y no se usan desde `main.jsx` ni `App.jsx`. Los guards vigentes son los de `components/guards/`.
+Los guards vigentes son los de `components/guards/`.
 
 ## 2. Mapa de rutas y guards
 
