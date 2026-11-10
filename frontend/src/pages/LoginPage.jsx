@@ -43,7 +43,7 @@ export default function LoginPage({ addToast }) {
       titleId="login-title"
       title="Inicia sesión"
       intro="Entra a tu cuenta de Cine Sendera para comprar entradas y tener tus boletos a mano."
-      footer={<>¿No tienes cuenta? <Link to="/registro" className="font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4 transition hover:decoration-ink focus-visible:outline-2 focus-visible:outline-white">Regístrate gratis</Link></>}
+      footer={<>¿No tienes cuenta? <Link to="/registro" state={{ from }} className="font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4 transition hover:decoration-ink focus-visible:outline-2 focus-visible:outline-white">Regístrate gratis</Link></>}
     >
       <form onSubmit={handle} noValidate aria-labelledby="login-title" className="flex flex-col gap-6">
         <FormAlert message={errors._general?.[0]} />
