@@ -134,7 +134,7 @@ Decisiones de diseño que se mantienen:
 - El `ticket_code` lo asigna el `PurchaseObserver` al pasar `payment_status` a `completed`, nunca de forma directa en la petición.
 - El precio de cada asiento se guarda en `price_paid` (histórico).
 
-La cancelación (`DELETE /purchases/{purchaseId}`) pasa por `PurchaseService::cancelPurchase`, que comprueba existencia (404), propietario (403) y que no esté ya cancelada (409). Las reglas detalladas están en [reglas-de-negocio.md](reglas-de-negocio.md).
+La cancelación (`DELETE /purchases/{purchaseId}`) pasa por `PurchaseService::cancelPurchase`, que comprueba existencia (404), propietario (403) y que no esté ya cancelada (409). Dentro de una transacción, marca `purchase_status = 'cancelled'` y elimina las filas de `purchase_seats`, liberando la restricción UNIQUE para que los asientos puedan re-comprarse. Las reglas detalladas están en [reglas-de-negocio.md](reglas-de-negocio.md).
 
 ## 7. Manejo de errores
 
