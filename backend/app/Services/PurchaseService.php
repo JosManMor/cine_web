@@ -68,6 +68,8 @@ class PurchaseService
             // Confirma el pago y dispara el Observer que asigna ticket_code a cada asiento.
             $purchase->update(['payment_status' => 'completed']);
 
+            $this->markSoldOutIfFull($screening);
+
             return $purchase->fresh();
         });
     }
@@ -88,7 +90,20 @@ class PurchaseService
             throw new PurchaseAlreadyCancelledException();
         }
 
-        $purchase->update(['purchase_status' => 'cancelled']);
+        $wasCompleted = $purchase->payment_status === 'completed';
+
+        $updates = ['purchase_status' => 'cancelled'];
+        if ($wasCompleted) {
+            $updates['payment_status'] = 'refunded';
+        }
+        $purchase->update($updates);
+
+        if ($wasCompleted) {
+            $screening = $purchase->screening()->with('room')->first();
+            if ($screening && $screening->status === 'sold_out') {
+                $screening->update(['status' => 'open']);
+            }
+        }
 
         return $purchase->fresh();
     }
@@ -96,5 +111,19 @@ class PurchaseService
     public function activeTicketsForUser(int $userId): Collection
     {
         return $this->repository->userActiveTickets($userId);
+    }
+
+    private function markSoldOutIfFull(Screening $screening): void
+    {
+        $room = $screening->room;
+        $capacity = $room->rows * $room->seats_per_row;
+
+        $occupied = PurchaseSeat::where('screening_id', $screening->id)
+            ->where('status', 'active')
+            ->count();
+
+        if ($occupied >= $capacity) {
+            $screening->update(['status' => 'sold_out']);
+        }
     }
 }
