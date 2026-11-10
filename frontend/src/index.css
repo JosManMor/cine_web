@@ -72,9 +72,9 @@
 
   h1,
   h2 {
-    font-family: var(--heading);
+    font-family: var(--font-display);
     font-weight: 500;
-    color: var(--text-h);
+    color: var(--color-ink);
   }
 
   h1 {
@@ -94,17 +94,17 @@
 
   code,
   .counter {
-    font-family: var(--mono);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     display: inline-flex;
     border-radius: 4px;
-    color: var(--text-h);
+    color: var(--color-ink);
   }
 
   code {
     font-size: 15px;
     line-height: 135%;
     padding: 4px 8px;
-    background: var(--code-bg);
+    background: var(--color-raised);
   }
 
   /* Dentro de la capa base para que utilidades como text-2xl o m-0 ganen también por debajo de 1024px. */
