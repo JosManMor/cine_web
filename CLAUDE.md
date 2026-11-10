@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Cine Sendera is a cinema management system (ticketing, seat selection, admin dashboard). Stack: **React 18 SPA** (frontend) + **Laravel 13 / PHP 8.3** (backend API) + **MySQL 8** + **Apache**, containerized with Docker Compose.
+Cine Sendera is a cinema management system (ticketing, seat selection, admin dashboard). Stack: **React 19 SPA** (frontend) + **Laravel 13 / PHP 8.3** (backend API) + **MySQL 8** + **Apache**, containerized with Docker Compose.
 
 ## Language Standards
 
@@ -19,7 +19,7 @@ Cine Sendera is a cinema management system (ticketing, seat selection, admin das
 
 1. Branch from an up-to-date `dev`: `git fetch origin && git switch -c <type>/<short-description> origin/dev`.
 2. Branch prefixes match the change type: `feat/`, `fix/`, `refactor/`, `docs/`, `ci/`, `chore/`, `test/`.
-3. Commit with Conventional Commits (`fix(frontend): …`, `docs: …`); semantic-release derives versions from them. Commit messages are written in Spanish.
+3. Commit with Conventional Commits (`fix(frontend): …`, `docs: …`); semantic-release derives versions from them (configured in `.releaserc.json`, releases only from `pre`). Commit messages are written in Spanish.
 4. Push the branch and open a PR with base `dev`. Unrelated changes go in separate branches/PRs.
 5. If work was started on `dev` by mistake, move it to a new branch before committing (`git switch -c <type>/<name>` keeps the uncommitted changes).
 
@@ -47,7 +47,9 @@ Networks: `frontend_net` (frontend, apache, app) and `backend_net` (app, mysql, 
 
 `composer setup` (from `backend/`, outside Docker) runs: composer install → copy .env → migrate → db:seed. It does **not** run `key:generate`.
 
-## Commands (run from `backend/`)
+## Commands
+
+The following commands assume a **local (non-Docker) setup** where PHP, Composer, Node and MySQL are installed on the host. In Docker, run backend commands inside the container: `docker compose exec app <command>`. Frontend commands (`npm`) run on the host from `frontend/`.
 
 ```bash
 # Start dev servers concurrently (PHP server + queue + pail log watcher + Vite)
@@ -93,17 +95,18 @@ Repositories/
   Eloquent/         → Eloquent implementations
 DTOs/               → Data Transfer Objects between layers
 Models/             → Eloquent models (User, Movie, Room, Screening, Purchase, PurchaseSeat)
-Policies/           → Laravel Policies for authorization per model
 ```
 
-Current route registration uses `routes/web.php` and `routes/console.php`. If `api.php`, `auth.php`, or `admin.php` are added later, they must also be registered in `backend/bootstrap/app.php`.
+Authorization is handled via middleware (`verified`, `role:admin`) and ownership checks in Services — there are no Laravel Policies.
+
+Route registration in `backend/bootstrap/app.php` includes `routes/web.php`, `routes/api.php`, and `routes/console.php`.
 
 ## API
 
 - **Base URL**: `/api`
 - **Auth**: Laravel Sanctum (Bearer token for SPA)
 - **Roles**: `admin`, `cashier`, `client` — stored as ENUM in `users.role`
-- **Admin routes** require role `admin`; `purchases.cancel` is available to the owner
+- **Admin routes** require `role:admin` middleware; `purchases.cancel` checks ownership in the Service layer
 
 ## Database — Critical Rules
 
@@ -157,7 +160,7 @@ UI redesigns follow the Git Workflow above and are done **one view at a time**, 
 3. **Art direction:** follow the `design-taste-frontend` skill (`.agents/skills/design-taste-frontend/SKILL.md`). When the user supplies a reference image, it is the binding art direction; the skill's house rules still apply (no eyebrows, no monospace, no index numbering, no decorative gradients — a scrim over a photograph is allowed).
 4. **Styling:** Tailwind CSS v4 (`@tailwindcss/vite`). Design tokens (colors, fonts, radii) live once in `frontend/src/index.css` under `@theme`; reuse them and shared utility classes/components instead of inline `style={{}}` objects or per-component `<style>` blocks. `constants/theme.js` stays only for views not yet migrated.
 5. **Visual verification:** take screenshots with Playwright (Playwright MCP, or the skill's `scripts/inspect.mjs`, which drives a real Chrome at 1440 / 768 / 390 px) after each major step and compare them against the reference. Fix every `FAIL` from `inspect.mjs` and `lint.mjs`.
-6. **Done means:** `npm run lint`, `npm run test` and `npm run build` pass; screenshots at desktop and ≤ 480px reviewed; UI text in Spanish; then open a PR from `feat/redesign-<view>` to `dev`.
+6. **Done means:** `npm run lint`, `npm run test` and `npm run build` pass; screenshots at desktop and ≤ 480px reviewed; UI text in Spanish; then open a PR from `feat/redesign-<view>` to `dev`. Note: CI runs `build` and `test` but does not run `lint`, so run it locally before pushing.
 
 ## Testing
 
