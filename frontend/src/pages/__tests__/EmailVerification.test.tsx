@@ -95,8 +95,7 @@ describe('EmailVerifyPage', () => {
     expect(updateUser).toHaveBeenCalledWith({ verified: true });
   });
 
-  it('vuelve a la compra guardada tras verificar', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+  it('muestra botón de compra cuando hay ruta guardada y botón de inicio', async () => {
     localStorage.setItem('post_verify_return', '/asientos/7');
     mockVerify.mockResolvedValue({});
     render(
@@ -105,10 +104,26 @@ describe('EmailVerifyPage', () => {
       </MemoryRouter>,
     );
     await screen.findByRole('heading', { name: 'Correo verificado' });
-    await vi.advanceTimersByTimeAsync(4100);
+    const buyBtn = screen.getByRole('button', { name: 'Continuar con mi compra' });
+    const homeBtn = screen.getByRole('button', { name: 'Volver al inicio' });
+    expect(buyBtn).toBeInTheDocument();
+    expect(homeBtn).toBeInTheDocument();
+
+    await userEvent.click(buyBtn);
     expect(mockNavigate).toHaveBeenCalledWith('/asientos/7', { replace: true });
     expect(localStorage.getItem('post_verify_return')).toBeNull();
-    vi.useRealTimers();
+  });
+
+  it('solo muestra botón de inicio cuando no hay ruta guardada', async () => {
+    mockVerify.mockResolvedValue({});
+    render(
+      <MemoryRouter initialEntries={['/email/verificar?id=1&hash=abc&expires=9&signature=sig']}>
+        <EmailVerifyPage addToast={addToast} />
+      </MemoryRouter>,
+    );
+    await screen.findByRole('heading', { name: 'Correo verificado' });
+    expect(screen.queryByRole('button', { name: 'Continuar con mi compra' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Volver al inicio' })).toBeInTheDocument();
   });
 
   it('muestra el mensaje del servidor cuando el enlace expiró', async () => {
