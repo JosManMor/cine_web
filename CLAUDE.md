@@ -162,7 +162,16 @@ UI redesigns follow the Git Workflow above and are done **one view at a time**, 
 5. **Visual verification:** take screenshots with Playwright (Playwright MCP, or the skill's `scripts/inspect.mjs`, which drives a real Chrome at 1440 / 768 / 390 px) after each major step and compare them against the reference. Fix every `FAIL` from `inspect.mjs` and `lint.mjs`.
 6. **Done means:** `npm run lint`, `npm run test` and `npm run build` pass; screenshots at desktop and ≤ 480px reviewed; UI text in Spanish; then open a PR from `feat/redesign-<view>` to `dev`. Note: CI runs `build` and `test` but does not run `lint`, so run it locally before pushing.
 
-## Testing
+## Testing — Mandatory
+
+**Every PR that adds or changes backend logic must include tests.** Write or update tests before (or alongside) the implementation — a PR without them will be rejected.
+
+- **New controller endpoint** → Feature test covering: success path, authentication (401), authorization (403), validation errors (422), and not-found (404).
+- **New or modified Service method** → Unit test for the happy path and each error branch.
+- **New Artisan command** → Feature test invoking `$this->artisan(...)` and asserting side-effects.
+- **Bug fix** → A test that reproduces the bug (fails without the fix, passes with it).
+- **Frontend-only changes** (components, pages) → Vitest/RTL tests when the component has logic or conditional rendering; pure-visual tweaks are exempt.
+- **CI / docs / env-only changes** → Tests not required.
 
 Tests use in-memory SQLite regardless of the `.env` DB setting (configured in `phpunit.xml`). Test suites: `Unit` (`tests/Unit/`) and `Feature` (`tests/Feature/`).
 
