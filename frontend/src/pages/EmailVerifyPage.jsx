@@ -36,7 +36,7 @@ export default function EmailVerifyPage({ addToast }) {
         updateUser({ verified: true });
         setStatus("success");
         addToast("Correo verificado", "success");
-        timer = setTimeout(() => navigate(returnPath.current, { replace: true }), 3000);
+        timer = setTimeout(() => navigate(returnPath.current, { replace: true }), 4000);
       })
       .catch(err => {
         setStatus("error");

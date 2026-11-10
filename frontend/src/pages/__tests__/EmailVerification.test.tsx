@@ -105,7 +105,7 @@ describe('EmailVerifyPage', () => {
       </MemoryRouter>,
     );
     await screen.findByRole('heading', { name: 'Correo verificado' });
-    await vi.advanceTimersByTimeAsync(3100);
+    await vi.advanceTimersByTimeAsync(4100);
     expect(mockNavigate).toHaveBeenCalledWith('/asientos/7', { replace: true });
     expect(localStorage.getItem('post_verify_return')).toBeNull();
     vi.useRealTimers();

@@ -93,6 +93,15 @@ describe('LoginPage', () => {
     expect(screen.getByRole('link', { name: 'Regístrate gratis' })).toHaveAttribute('href', '/registro');
     expect(await screen.findByText(/Dune: Parte Dos/)).toBeInTheDocument();
   });
+
+  it('propaga la ruta de origen al enlace de registro', () => {
+    renderPage(
+      <LoginPage addToast={addToast} />,
+      { pathname: '/login', state: { from: { pathname: '/asientos/7', search: '' } } },
+    );
+    const link = screen.getByRole('link', { name: 'Regístrate gratis' });
+    expect(link).toHaveAttribute('href', '/registro');
+  });
 });
 
 describe('RegisterPage', () => {
@@ -134,5 +143,19 @@ describe('RegisterPage', () => {
 
     await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent('/email/pendiente'));
     expect(saveAuth).toHaveBeenCalledWith({ id: 2, verified: false }, 't2');
+  });
+
+  it('guarda la ruta de origen para retomar la compra tras verificar', async () => {
+    vi.mocked(register).mockResolvedValue({ data: { user: { id: 2 }, token: 't2' } } as never);
+    renderPage(
+      <RegisterPage addToast={addToast} />,
+      { pathname: '/registro', state: { from: { pathname: '/asientos/7', search: '?s=3' } } },
+    );
+
+    await fill();
+    await userEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+    await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent('/email/pendiente'));
+    expect(localStorage.getItem('post_verify_return')).toBe('/asientos/7?s=3');
   });
 });
