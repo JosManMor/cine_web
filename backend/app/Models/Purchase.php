@@ -11,6 +11,7 @@ class Purchase extends Model
 {
     use HasFactory;
 
+    // payment_status: pending → completed → refunded (on cancel). 'failed' reserved for future payment gateway integration.
     protected $fillable = [
         'user_id',
         'screening_id',
