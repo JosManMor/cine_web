@@ -27,7 +27,7 @@ Fuente única de las reglas de negocio del sistema. Cada regla fue verificada co
 
 | Nivel de acceso               | Middleware                       | Rutas                                                                                  |
 | ----------------------------- | -------------------------------- | -------------------------------------------------------------------------------------- |
-| Público                       | —                                | `POST /register`, `POST /login`, `GET /movies`, `GET /movies/{id}`, `GET /screenings/{id}` |
+| Público                       | —                                | `POST /register`, `POST /login`, `POST /forgot-password`, `POST /reset-password`, `GET /movies`, `GET /movies/{id}`, `GET /screenings/{id}` |
 | Autenticado                   | `auth:sanctum`                   | `POST /logout`, reenvío y verificación de correo                                       |
 | Autenticado y correo verificado | `auth:sanctum` + `verified`    | `POST /purchases`, `DELETE /purchases/{id}`, `GET /my-tickets`, `GET /tickets/{ticket_code}` |
 | Administrador                 | `auth:sanctum` + `role:admin`    | `GET /admin/metrics`, `/admin/activity`, `/admin/rooms`, `/admin/system`               |
@@ -60,11 +60,20 @@ sequenceDiagram
 - Validación de registro: nombre de 2 a 255 caracteres con algún carácter visible, correo único, contraseña de 8 a 72 caracteres con confirmación.
 - El administrador del seeder se crea con el correo ya verificado.
 
+### Recuperación de contraseña
+
+- `POST /forgot-password` acepta un correo y envía un enlace de restablecimiento al frontend (`{FRONTEND_URL}/reset-password?token={token}&email={email}`). Responde siempre con un mensaje genérico de éxito para no revelar si el correo existe.
+- `POST /reset-password` valida el token, el correo y la nueva contraseña (mismas reglas que el registro: 8–72 caracteres con confirmación). Si el token es válido, actualiza la contraseña e invalida el `remember_token`.
+- Ambas rutas están limitadas a 5 peticiones por minuto.
+- El enlace de restablecimiento expira según `auth.passwords.users.expire` (por defecto 60 minutos).
+
 ## Límite de peticiones
 
 | Ruta                                   | Límite                |
 | -------------------------------------- | --------------------- |
 | `POST /login`                          | 5 por minuto          |
+| `POST /forgot-password`               | 5 por minuto          |
+| `POST /reset-password`                | 5 por minuto          |
 | `POST /email/verification-notification` | 6 por minuto         |
 | `GET /email/verify/{id}/{hash}`        | 6 por minuto          |
 
@@ -242,7 +251,7 @@ Reglas documentadas antes (en `CLAUDE.md`, `database-design.md` o la arquitectur
 | Función pasa a `sold_out` al llenarse la sala                                  | No implementado: ningún código la asigna; solo `demo:reset` la revierte                                       |
 | `lockForUpdate()` junto con la transacción                                     | Descartada: no se usa; basta el `INSERT` con captura de la violación `UNIQUE`                                 |
 | Autorización con Policies por modelo                                           | No existen Policies; hay middleware (`verified`, `role:admin`) y comprobaciones de propiedad en el servicio    |
-| Roles diferenciados (`cashier`)                                                | Sin rutas ni lógica propias; el rol solo se almacena                                                           |
+| Roles diferenciados (`cashier`)                                                | Aplazado intencionalmente: no hay requisitos de negocio definidos. El valor permanece en el ENUM para no requerir una migración destructiva; se implementará cuando se definan sus permisos |
 | Usuario `inactive` pierde acceso                                               | No se comprueba en login ni en middleware                                                                      |
 | Índice de historial de compras ordenado de forma descendente                   | La migración crea `(user_id, created_at)` ascendente                                                          |
 | `payment_status` `failed` y `refunded`                                         | Definidos en el ENUM pero sin flujo que los asigne; el panel solo lee `failed`                                 |

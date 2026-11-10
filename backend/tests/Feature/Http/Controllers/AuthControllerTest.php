@@ -168,4 +168,53 @@ class AuthControllerTest extends TestCase
 
         $response->assertStatus(401);
     }
+
+    // ── UserResource — verified field ────────────────────────────────────────
+
+    public function test_login_response_includes_verified_field(): void
+    {
+        User::factory()->create([
+            'email'    => 'verified@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $response = $this->postJson(self::LOGIN_URI, [
+            'email'    => 'verified@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('user.verified', true);
+    }
+
+    public function test_login_response_verified_false_for_unverified_user(): void
+    {
+        User::factory()->unverified()->create([
+            'email'    => 'unverified@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $response = $this->postJson(self::LOGIN_URI, [
+            'email'    => 'unverified@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('user.verified', false);
+    }
+
+    public function test_register_response_includes_verified_false(): void
+    {
+        Notification::fake();
+
+        $response = $this->postJson(self::REGISTER_URI, [
+            'name'                  => 'Nuevo Usuario',
+            'email'                 => 'nuevo@example.com',
+            'password'              => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('user.verified', false);
+    }
 }
