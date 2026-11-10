@@ -67,9 +67,11 @@ describe('EmailPendingPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/asientos/7', { replace: true });
   });
 
-  it('abre la bandeja en la misma pestaña', () => {
+  it('abre la bandeja en nueva pestaña para mantener la sincronización cross-tab', () => {
     render(<MemoryRouter><EmailPendingPage addToast={addToast} /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: /Abrir bandeja de correo/ })).not.toHaveAttribute('target');
+    const link = screen.getByRole('link', { name: /Abrir bandeja de correo/ });
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
   });
 });
 
