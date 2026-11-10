@@ -1,90 +1,96 @@
 # API — Cine Sendera
 
-Referencia de alto nivel de los módulos de la API. Para especificación completa de cada endpoint (body, respuestas, ejemplos, lógica de backend y componentes de frontend) ver los documentos de módulo en [`docs/modulos/`](modulos/README.md).
+Referencia de las rutas de la API, verificada contra `backend/routes/api.php` y los controladores. El detalle de cada módulo (cuerpos, respuestas, lógica) está en [`docs/modulos/`](modulos/README.md); la arquitectura, en [backend-architecture.md](backend-architecture.md). La especificación interactiva (Swagger UI) se sirve en `/api/documentation`.
 
----
+## Convenciones
 
-## 0. Estándares
+| Atributo         | Valor                                                            |
+| ---------------- | ---------------------------------------------------------------- |
+| Base URL         | `/api`                                                           |
+| Formato          | JSON (`Accept: application/json`)                                |
+| Autenticación    | Laravel Sanctum, cabecera `Authorization: Bearer <token>`        |
+| Claves / valores | Claves en inglés; mensajes en español                            |
+| Respuestas       | Recursos sin envoltorio `data` (`JsonResource::withoutWrapping`) |
 
-| Atributo          | Valor                                                               |
-| ----------------- | ------------------------------------------------------------------- |
-| Base URL          | `/api`                                                              |
-| Formato           | JSON (`Content-Type: application/json`, `Accept: application/json`) |
-| Autenticación     | Laravel Sanctum — Bearer Token                                      |
-| Idioma de claves  | Inglés                                                              |
-| Idioma de valores | Español                                                             |
+## Niveles de protección
 
-### Niveles de protección
+```mermaid
+flowchart TD
+    P[Público] --> A[Autenticado: auth:sanctum]
+    A --> V[Verificado: + verified]
+    A --> AD[Admin: + role:admin]
+```
 
-| Nivel       | Header requerido                | Condición extra               |
-| ----------- | ------------------------------- | ----------------------------- |
-| Público     | —                               | —                             |
-| Autenticado | `Authorization: Bearer <token>` | Token Sanctum válido          |
-| Verificado  | `Authorization: Bearer <token>` | + `email_verified_at` no nulo |
-| Admin       | `Authorization: Bearer <token>` | + `role = admin`              |
+| Nivel       | Middleware aplicado          | Condición                          |
+| ----------- | ---------------------------- | ---------------------------------- |
+| Público     | ninguno                      | —                                  |
+| Autenticado | `auth:sanctum`               | Token válido                       |
+| Verificado  | `auth:sanctum`, `verified`   | Además `email_verified_at` no nulo |
+| Admin       | `auth:sanctum`, `role:admin` | Además `users.role = admin`        |
 
-### Respuestas de error comunes
+## Endpoints
 
-| Código | Causa                                                                        |
-| ------ | ---------------------------------------------------------------------------- |
-| 401    | Token ausente, inválido o revocado                                           |
-| 403    | Acción no permitida (firma inválida, correo no verificado, rol insuficiente) |
-| 422    | Validación fallida — `{ "message": "...", "errors": { "campo": ["..."] } }`  |
-| 429    | Rate limit superado                                                          |
+### Autenticación
 
----
+| Método | Ruta                               | Nivel       | Descripción                                                                                    |
+| ------ | ---------------------------------- | ----------- | ---------------------------------------------------------------------------------------------- |
+| POST   | `/register`                        | Público     | Crea la cuenta (rol `client`), envía el correo de verificación y devuelve `user` y `token` (201) |
+| POST   | `/login`                           | Público     | Valida credenciales y devuelve `user` y `token`; `throttle:5,1`                                |
+| POST   | `/logout`                          | Autenticado | Revoca el token actual                                                                         |
+| POST   | `/email/verification-notification` | Autenticado | Reenvía el enlace de verificación (204 si ya estaba verificado); `throttle:6,1`                |
+| GET    | `/email/verify/{id}/{hash}`        | Autenticado | Valida el enlace firmado (`signed`) y marca el correo como verificado; `throttle:6,1`          |
 
-## 1. Autenticación
+### Cartelera
 
-Gestiona el ciclo de vida de la sesión: registro, login, logout y verificación de correo. Es la base de la que dependen todos los demás módulos — define si el usuario está autenticado, si tiene el correo verificado y qué rol posee (`admin`, `cashier`, `client`). Sin este módulo no existe control de acceso.
+| Método | Ruta               | Nivel   | Descripción                                                                                           |
+| ------ | ------------------ | ------- | ----------------------------------------------------------------------------------------------------- |
+| GET    | `/movies`          | Público | Lista las películas activas                                                                           |
+| GET    | `/movies/{id}`     | Público | Detalle de la película con sus funciones abiertas, sala y asientos disponibles; 404 si no existe o está inactiva |
+| GET    | `/screenings/{id}` | Público | Datos de la función y mapa de asientos ocupados; 404 si no existe                                     |
 
-| Endpoint                                | Nivel       | Descripción                                              |
-| --------------------------------------- | ----------- | -------------------------------------------------------- |
-| `POST /register`                        | Público     | Crea cuenta, emite token y envía correo de verificación  |
-| `POST /login`                           | Público     | Autentica credenciales y devuelve token · `throttle:5,1` |
-| `POST /logout`                          | Autenticado | Revoca el token de la sesión actual                      |
-| `POST /email/verification-notification` | Autenticado | Reenvía el enlace de verificación · `throttle:6,1`       |
-| `GET /email/verify/{id}/{hash}`         | Autenticado | Valida la firma del enlace y marca el correo verificado  |
+### Compras y tickets
 
-**Documentación completa:** [docs/modulos/01-auth.md](modulos/01-auth.md)
+| Método | Ruta                      | Nivel      | Descripción                                                                                           |
+| ------ | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| POST   | `/purchases`              | Verificado | Reserva los asientos y confirma el pago en una transacción; devuelve `purchase_id` y `payment_status` (201) |
+| DELETE | `/purchases/{purchaseId}` | Verificado | Cancela una compra propia; devuelve `purchase_status`                                                 |
+| GET    | `/my-tickets`             | Verificado | Tickets activos del usuario autenticado                                                               |
+| GET    | `/tickets/{ticket_code}`  | Verificado | Detalle de un ticket; solo su dueño (403 en otro caso)                                                |
 
----
+Cuerpo de `POST /purchases`:
 
-## 2. Cartelera y Películas
+| Campo                 | Tipo    | Regla                                             |
+| --------------------- | ------- | ------------------------------------------------- |
+| `screening_id`        | entero  | Obligatorio; debe existir en `screenings`         |
+| `seats`               | arreglo | Obligatorio, mínimo un elemento                   |
+| `seats.*.row`         | texto   | Una letra A-Z                                     |
+| `seats.*.seat_number` | entero  | Entre 1 y 30 (y dentro de los límites de la sala) |
+| `payment_method`      | texto   | `cash`, `card` u `online`                         |
 
-Expone el catálogo de películas y sus funciones disponibles. Es el punto de entrada del flujo de compra: el usuario navega la cartelera, selecciona una película y elige una función antes de pasar al checkout. Los datos de disponibilidad de asientos se calculan en tiempo real; no se almacena `available_seats` en ninguna tabla.
+Las reglas de negocio de la compra (disponibilidad de la función, precio, cancelación, `ticket_code`) están en [reglas-de-negocio.md](reglas-de-negocio.md).
 
-| Endpoint           | Nivel   | Descripción                                                    |
-| ------------------ | ------- | -------------------------------------------------------------- |
-| `GET /movies`      | Público | Lista todas las películas activas                              |
-| `GET /movies/{id}` | Público | Detalle de película con funciones, sala y asientos disponibles |
+### Administración
 
-**Documentación completa:** [docs/modulos/02-cartelera.md](modulos/02-cartelera.md)
+| Método | Ruta              | Nivel | Descripción                                                                            |
+| ------ | ----------------- | ----- | -------------------------------------------------------------------------------------- |
+| GET    | `/admin/metrics`  | Admin | Tickets vendidos, ventas del día, usuarios, película más vendida y ventas semanales    |
+| GET    | `/admin/activity` | Admin | Eventos recientes de compras y pagos fallidos                                          |
+| GET    | `/admin/rooms`    | Admin | Estado de cada sala (`showing`, `upcoming` o `idle`) con su ocupación                  |
+| GET    | `/admin/system`   | Admin | Uso de CPU y RAM del servidor (`cpu_percent`, `cpu_label`, `ram_percent`, `ram_label`) |
 
----
+### Salud
 
-## 3. Compras y Tickets
+| Método | Ruta  | Nivel   | Descripción                                        |
+| ------ | ----- | ------- | -------------------------------------------------- |
+| GET    | `/up` | Público | Health check de Laravel (fuera del prefijo `/api`) |
 
-Maneja la reserva atómica de asientos y la generación del ticket digital. Es el módulo de mayor criticidad: una transacción fallida o un doble-booking implica pérdida económica o experiencia degradada. La garantía contra doble reserva descansa en el constraint `UNIQUE (screening_id, row, seat_number)` de `purchase_seats`; el `ticket_code` se asigna solo al confirmarse el pago, vía Observer.
+## Errores
 
-| Endpoint                     | Nivel      | Descripción                                                   |
-| ---------------------------- | ---------- | ------------------------------------------------------------- |
-| `POST /purchases`            | Verificado | Reserva asientos y confirma la compra en una sola transacción |
-| `GET /my-tickets`            | Verificado | Lista todos los tickets activos del usuario autenticado       |
-| `GET /tickets/{ticket_code}` | Verificado | Detalle de un ticket individual para mostrar en el QR digital |
-
-**Documentación completa:** [docs/modulos/03-compras.md](modulos/03-compras.md)
-
----
-
-## 4. Administración
-
-Dashboard exclusivo para el rol `admin`. Centraliza las métricas operativas del cine (ventas, ocupación, actividad) sin exponer datos sensibles a otros roles. Cualquier request con token válido pero sin `role = admin` recibe `403`.
-
-| Endpoint              | Nivel | Descripción                                                       |
-| --------------------- | ----- | ----------------------------------------------------------------- |
-| `GET /admin/metrics`  | Admin | Totales de tickets, ventas del día, usuarios y película más vista |
-| `GET /admin/activity` | Admin | Eventos recientes de compras exitosas y pagos fallidos            |
-| `GET /admin/rooms`    | Admin | Estado actual de cada sala: función en curso, ocupación y próxima |
-
-**Documentación completa:** [docs/modulos/04-admin.md](modulos/04-admin.md)
+| Código | Causa                                                                                                       |
+| ------ | ----------------------------------------------------------------------------------------------------------- |
+| 401    | Token ausente o inválido; credenciales incorrectas en `/login`                                              |
+| 403    | Correo no verificado, rol distinto de `admin`, enlace con firma inválida, ticket o compra ajenos            |
+| 404    | Recurso inexistente (película, función, ticket, compra)                                                     |
+| 409    | Asiento ya reservado (incluye `row` y `seat_number`) o compra ya cancelada                                  |
+| 422    | Validación fallida (`message` y `errors` por campo), asiento inexistente en la sala o función no disponible |
+| 429    | Límite de peticiones superado (`throttle`)                                                                  |

@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PillButton from "../components/ui/PillButton";
 import { AlertIcon, CheckIcon, RefreshIcon, SpinnerIcon } from "../components/ui/icons";
 import { verifyEmail } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
+import { peekReturnTo, takeReturnTo } from "../utils/returnTo";
 
 const TITLE = "m-0 mt-8 text-[clamp(2rem,5vw,3.5rem)] leading-[1.05] font-extrabold tracking-tight text-balance text-ink";
 const TEXT = "mx-auto mt-4 max-w-md text-lg leading-relaxed text-ink";
@@ -20,23 +21,25 @@ export default function EmailVerifyPage({ addToast }) {
   const [status, setStatus] = useState(linkComplete ? "loading" : "error");
   const [errorMsg, setErrorMsg] = useState(linkComplete ? "" : "Al enlace le faltan datos.");
 
+  // Captura la ruta de retorno UNA sola vez al verificar, antes de que la
+  // pestaña de /email/pendiente la consuma vía el evento storage.
+  const returnPath = useRef("/");
+
   // El enlace firmado se consume una sola vez, al montar la página.
   useEffect(() => {
     if (!linkComplete) return;
 
-    let timer;
     verifyEmail(id, hash, { expires, signature })
       .then(() => {
+        returnPath.current = takeReturnTo();
         updateUser({ verified: true });
         setStatus("success");
         addToast("Correo verificado", "success");
-        timer = setTimeout(() => navigate("/", { replace: true }), 2000);
       })
       .catch(err => {
         setStatus("error");
         setErrorMsg(err.response?.data?.message ?? "El enlace expiró o no es válido.");
       });
-    return () => clearTimeout(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -58,10 +61,17 @@ export default function EmailVerifyPage({ addToast }) {
               <CheckIcon size={36} />
             </span>
             <h1 className={TITLE}>Correo verificado</h1>
-            <p className={TEXT}>Tu cuenta ya está activa. Te llevamos a la cartelera en un momento.</p>
-            <PillButton size="lg" className="mt-10" onClick={() => navigate("/", { replace: true })}>
-              Ir a la cartelera
-            </PillButton>
+            <p className={TEXT}>Tu cuenta ya está activa.</p>
+            <div className="mt-10 flex flex-wrap justify-center gap-3">
+              {returnPath.current !== "/" && (
+                <PillButton size="lg" className="w-full sm:w-auto" onClick={() => navigate(returnPath.current, { replace: true })}>
+                  Continuar con mi compra
+                </PillButton>
+              )}
+              <PillButton size="lg" variant={returnPath.current !== "/" ? "ghost" : undefined} className="w-full sm:w-auto" onClick={() => navigate("/", { replace: true })}>
+                Volver al inicio
+              </PillButton>
+            </div>
           </>
         )}
 

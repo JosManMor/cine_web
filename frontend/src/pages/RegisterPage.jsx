@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout";
 import AuthField from "../components/auth/AuthField";
 import FormAlert from "../components/auth/FormAlert";
@@ -8,6 +8,7 @@ import { register } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 import { registerSchema } from "../schemas/auth.schemas";
 import { fieldErrors } from "../schemas/fieldErrors";
+import { saveReturnTo } from "../utils/returnTo";
 
 const FIELDS = [
   { key: "name", label: "Nombre completo", type: "text", placeholder: "Tu nombre", autoComplete: "name" },
@@ -19,6 +20,7 @@ const FIELDS = [
 export default function RegisterPage({ addToast }) {
   const { saveAuth } = useAuth();
   const navigate = useNavigate();
+  const from = useLocation().state?.from;
   const [form, setForm] = useState({ name: "", email: "", password: "", password_confirmation: "" });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -34,6 +36,7 @@ export default function RegisterPage({ addToast }) {
     try {
       const { data } = await register(form);
       saveAuth({ ...data.user, verified: false }, data.token);
+      if (from) saveReturnTo(from.pathname + (from.search ?? ""));
       addToast("Cuenta creada. Revisa tu correo", "info");
       navigate("/email/pendiente");
     } catch (err) {

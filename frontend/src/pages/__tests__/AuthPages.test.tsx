@@ -16,7 +16,7 @@ const saveAuth = vi.fn();
 const addToast = vi.fn();
 
 function Path() { return <div data-testid="path">{useLocation().pathname}</div>; }
-function renderPage(page: React.ReactNode, path: string) {
+function renderPage(page: React.ReactNode, path: string | { pathname: string; state?: unknown }) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <AuthContext.Provider value={{ saveAuth } as never}>{page}<Path /></AuthContext.Provider>
@@ -58,6 +58,19 @@ describe('LoginPage', () => {
     expect(saveAuth).toHaveBeenCalledWith({ id: 1 }, 't');
   });
 
+  it('vuelve a la ruta de origen tras iniciar sesión', async () => {
+    vi.mocked(login).mockResolvedValue({ data: { user: { id: 1 }, token: 't' } } as never);
+    renderPage(
+      <LoginPage addToast={addToast} />,
+      { pathname: '/login', state: { from: { pathname: '/asientos/7', search: '?x=1' } } },
+    );
+
+    await userEvent.type(screen.getByLabelText('Correo electrónico'), 'ana@correo.com');
+    await userEvent.type(screen.getByLabelText('Contraseña'), 'secreto123{Enter}');
+
+    await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent('/asientos/7'));
+  });
+
   it('muestra el error del servidor como alerta', async () => {
     vi.mocked(login).mockRejectedValue({ response: { data: { message: 'Credenciales incorrectas' } } });
     renderPage(<LoginPage addToast={addToast} />, '/login');
@@ -79,6 +92,15 @@ describe('LoginPage', () => {
 
     expect(screen.getByRole('link', { name: 'Regístrate gratis' })).toHaveAttribute('href', '/registro');
     expect(await screen.findByText(/Dune: Parte Dos/)).toBeInTheDocument();
+  });
+
+  it('propaga la ruta de origen al enlace de registro', () => {
+    renderPage(
+      <LoginPage addToast={addToast} />,
+      { pathname: '/login', state: { from: { pathname: '/asientos/7', search: '' } } },
+    );
+    const link = screen.getByRole('link', { name: 'Regístrate gratis' });
+    expect(link).toHaveAttribute('href', '/registro');
   });
 });
 
@@ -121,5 +143,19 @@ describe('RegisterPage', () => {
 
     await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent('/email/pendiente'));
     expect(saveAuth).toHaveBeenCalledWith({ id: 2, verified: false }, 't2');
+  });
+
+  it('guarda la ruta de origen para retomar la compra tras verificar', async () => {
+    vi.mocked(register).mockResolvedValue({ data: { user: { id: 2 }, token: 't2' } } as never);
+    renderPage(
+      <RegisterPage addToast={addToast} />,
+      { pathname: '/registro', state: { from: { pathname: '/asientos/7', search: '?s=3' } } },
+    );
+
+    await fill();
+    await userEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+    await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent('/email/pendiente'));
+    expect(localStorage.getItem('post_verify_return')).toBe('/asientos/7?s=3');
   });
 });

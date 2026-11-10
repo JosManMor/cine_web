@@ -1,6 +1,8 @@
 # Examen teórico y memoria de implementación
 ## Proyecto integrador: Cine Sendera
 
+> Documento académico: resume la teoría del parcial y la relaciona con la infraestructura del proyecto. Para el entorno vigente consulta [docker-entorno-desarrollo.md](docker-entorno-desarrollo.md) y [deployment-produccion.md](deployment-produccion.md); para la funcionalidad, el [índice de módulos](modulos/README.md).
+
 ### Datos del proyecto
 * Proyecto: Cine Sendera (Sistema web de gestión de cartelera y venta de boletos)
 * Tecnologías: React 18 con Vite, Laravel 13 con PHP 8.3, Apache 2.4, MySQL 8.0, Redis 7 y Mailpit
