@@ -57,6 +57,8 @@ export default function EmailPendingPage({ addToast }) {
           <PillButton
             as="a"
             href="/mailpit/"
+            target="_blank"
+            rel="noopener"
             size="lg"
             className="mt-10 w-full sm:w-auto"
           >
