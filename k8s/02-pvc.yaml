@@ -16,6 +16,10 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-data
+  namespace: cine-web
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/part-of: cine-sendera
 spec:
   # ADVERTENCIA: reclaimPolicy Delete. Borrar este PVC ELIMINA la base de datos.
   # Equivale a mysql_prod_data en Docker Compose, que nunca se borra en las
@@ -32,6 +36,10 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: app-storage
+  namespace: cine-web
+  labels:
+    app.kubernetes.io/name: app
+    app.kubernetes.io/part-of: cine-sendera
 spec:
   # ADVERTENCIA: montar SOLO en /var/www/storage, NUNCA en /var/www.
   # En Compose, Docker puebla el volumen desde la imagen; en Kubernetes un
