@@ -1,0 +1,98 @@
+name: Deploy to k3s
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: "Imagen completa, p. ej. usuario/cine-sendera:<sha>"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag de la imagen (SHA nuevo o anterior, para rollback)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-preprod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, cine-deploy]
+    environment: preprod
+    timeout-minutes: 20
+    env:
+      NAMESPACE: cine-web
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+      BASE_URL: ${{ vars.PREPROD_URL }}
+      INPUT_IMAGE: ${{ inputs.image }}
+      INPUT_TAG: ${{ inputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Resolver imagen
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_IMAGE" ]; then
+            IMAGE="$INPUT_IMAGE"
+          else
+            IMAGE="${DOCKERHUB_USER}/cine-sendera:${INPUT_TAG}"
+          fi
+          if ! [[ "$IMAGE" =~ ^[A-Za-z0-9._/-]+:[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::Formato de imagen no válido"
+            exit 1
+          fi
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Aplicar manifiestos (sin 01-secrets.yaml)
+        run: |
+          set -euo pipefail
+          RENDER_DIR="$(mktemp -d)"
+          for f in k8s/*.yaml; do
+            if [ "$(basename "$f")" = "01-secrets.yaml" ]; then
+              continue
+            fi
+            sed "s|USUARIO/cine-sendera:TAG|${IMAGE}|g" "$f" > "$RENDER_DIR/$(basename "$f")"
+          done
+          if grep -rq "USUARIO/cine-sendera" "$RENDER_DIR"; then
+            echo "::error::Quedó un placeholder de imagen sin reemplazar"
+            exit 1
+          fi
+          kubectl apply -f "$RENDER_DIR"
+          rm -rf "$RENDER_DIR"
+
+      - name: Actualizar imagen
+        run: |
+          set -euo pipefail
+          kubectl -n "$NAMESPACE" set image deployment/app init-storage="$IMAGE" app="$IMAGE"
+          kubectl -n "$NAMESPACE" set image deployment/queue queue="$IMAGE"
+          kubectl -n "$NAMESPACE" set image deployment/scheduler scheduler="$IMAGE"
+
+      - name: Esperar rollout
+        run: |
+          set -euo pipefail
+          kubectl -n "$NAMESPACE" rollout status deployment/app --timeout=300s
+          kubectl -n "$NAMESPACE" rollout status deployment/queue --timeout=120s
+          kubectl -n "$NAMESPACE" rollout status deployment/scheduler --timeout=120s
+
+      - name: Verificar por Traefik
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 5 --retry-delay 5 "$BASE_URL/nginx-health"
+          curl -fsS --retry 5 --retry-delay 5 "$BASE_URL/up"
+
+      - name: Rollback si falló
+        if: failure()
+        run: |
+          for d in app queue scheduler; do
+            kubectl -n "$NAMESPACE" rollout undo deployment/"$d" || true
+          done
+          echo "::error::Despliegue fallido: se ejecutó rollout undo. Las migraciones no se revierten."
