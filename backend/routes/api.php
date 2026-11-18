@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Movie\MovieController;
 use App\Http\Controllers\Purchase\PurchaseController;
 use App\Http\Controllers\Screening\ScreeningController;
@@ -11,6 +12,9 @@ use Illuminate\Support\Facades\Route;
 // ── Rutas públicas ────────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:5,1');
+
+Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword'])->middleware('throttle:5,1');
+Route::post('/reset-password',  [PasswordResetController::class, 'resetPassword'])->middleware('throttle:5,1');
 
 Route::get('/movies',          [MovieController::class, 'index']);
 Route::get('/movies/{id}',     [MovieController::class, 'show']);
