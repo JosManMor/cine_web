@@ -1,0 +1,166 @@
+name: Deploy to k3s
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: "Imagen completa, p. ej. usuario/cine-sendera:<sha>"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag de la imagen (SHA nuevo o anterior, para rollback)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-preprod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Solo se aplican a preproducción los manifiestos de la rama pre.
+    if: github.ref == 'refs/heads/pre'
+    runs-on: [self-hosted, linux, cine-deploy]
+    environment: preprod
+    timeout-minutes: 20
+    env:
+      NAMESPACE: cine-web
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+      BASE_URL: ${{ vars.PREPROD_URL }}
+      INPUT_IMAGE: ${{ inputs.image }}
+      INPUT_TAG: ${{ inputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Resolver imagen y validar entorno
+        run: |
+          set -euo pipefail
+          if ! [[ "$BASE_URL" =~ ^https?://[A-Za-z0-9.:-]+$ ]]; then
+            echo "::error::PREPROD_URL falta o no es válida (solo esquema y host, sin / al final)"
+            exit 1
+          fi
+          if [ -n "$INPUT_IMAGE" ]; then
+            IMAGE="$INPUT_IMAGE"
+          else
+            IMAGE="${DOCKERHUB_USER}/cine-sendera:${INPUT_TAG}"
+          fi
+          if ! [[ "$IMAGE" =~ ^[A-Za-z0-9._/-]+:[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::Formato de imagen no válido"
+            exit 1
+          fi
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      # El namespace y los secrets de la app los crea un administrador una vez
+      # (ver docs/deployment-k3s.md); el runner solo tiene permisos dentro de cine-web.
+      - name: Comprobar prerrequisitos del clúster
+        run: |
+          set -euo pipefail
+          for s in cine-app-secrets cine-mysql-secrets; do
+            if ! kubectl -n "$NAMESPACE" get secret "$s" >/dev/null; then
+              echo "::error::Falta secret/$s en $NAMESPACE (ver docs/deployment-k3s.md)"
+              exit 1
+            fi
+          done
+
+      - name: Crear o actualizar dockerhub-regcred
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # El token va por stdin, no como argumento visible en la lista de procesos.
+          AUTH="$(printf '%s:%s' "$DOCKERHUB_USER" "$DOCKERHUB_TOKEN" | base64 -w0)"
+          printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}' "$AUTH" \
+            | kubectl -n "$NAMESPACE" create secret generic dockerhub-regcred \
+                --type=kubernetes.io/dockerconfigjson \
+                --from-file=.dockerconfigjson=/dev/stdin \
+                --dry-run=client -o yaml \
+            | kubectl apply -f -
+
+      # Guarda las imágenes en marcha para restaurarlas si el despliegue falla.
+      - name: Guardar imágenes actuales
+        id: snapshot
+        run: |
+          set -euo pipefail
+          for d in app queue scheduler; do
+            img="$(kubectl -n "$NAMESPACE" get deployment "$d" \
+              -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || true)"
+            echo "$d=$img" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Aplicar manifiestos
+        id: apply
+        run: |
+          set -euo pipefail
+          RENDER_DIR="$(mktemp -d)"
+          trap 'rm -rf "$RENDER_DIR"' EXIT
+          for f in k8s/*.yaml; do
+            # 00-namespace.yaml es de ámbito de clúster: lo aplica el administrador.
+            if [ "$(basename "$f")" = "00-namespace.yaml" ]; then
+              continue
+            fi
+            sed -e "s|USUARIO/cine-sendera:TAG|${IMAGE}|g" \
+                -e "s|\"PREPROD_URL\"|\"${BASE_URL}\"|g" \
+                "$f" > "$RENDER_DIR/$(basename "$f")"
+          done
+          if grep -rqE 'USUARIO/cine-sendera|"PREPROD_URL"' "$RENDER_DIR"; then
+            echo "::error::Quedó un placeholder sin reemplazar"
+            exit 1
+          fi
+          kubectl apply -f "$RENDER_DIR"
+          # envFrom no recarga el ConfigMap: se reinicia aunque la imagen no cambie.
+          for d in app queue scheduler; do
+            kubectl -n "$NAMESPACE" rollout restart deployment/"$d"
+          done
+
+      - name: Esperar rollout
+        run: |
+          set -euo pipefail
+          kubectl -n "$NAMESPACE" rollout status statefulset/mysql --timeout=300s
+          kubectl -n "$NAMESPACE" rollout status deployment/mailpit --timeout=120s
+          kubectl -n "$NAMESPACE" rollout status deployment/app --timeout=300s
+          kubectl -n "$NAMESPACE" rollout status deployment/queue --timeout=120s
+          kubectl -n "$NAMESPACE" rollout status deployment/scheduler --timeout=120s
+
+      - name: Verificar por Traefik
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 5 --retry-delay 5 "$BASE_URL/nginx-health"
+          curl -fsS --retry 5 --retry-delay 5 "$BASE_URL/up"
+
+      # Solo revierte si se llegó a aplicar algo; un fallo previo (validación,
+      # secrets ausentes) deja intacto lo que está en marcha.
+      - name: Rollback si falló
+        if: failure() && (steps.apply.outcome == 'success' || steps.apply.outcome == 'failure')
+        env:
+          PREV_APP: ${{ steps.snapshot.outputs.app }}
+          PREV_QUEUE: ${{ steps.snapshot.outputs.queue }}
+          PREV_SCHEDULER: ${{ steps.snapshot.outputs.scheduler }}
+        run: |
+          if [ -z "$PREV_APP" ]; then
+            echo "::error::Falló el primer despliegue: no hay versión anterior a la que volver."
+            exit 0
+          fi
+          # Restaura todo contenedor (incluidos los init, como migrate) que use
+          # la imagen nueva, sin depender de sus nombres; nginx y busybox no se tocan.
+          restore() {
+            local deploy="$1" prev="$2" args
+            [ -n "$prev" ] || return 0
+            args="$(kubectl -n "$NAMESPACE" get deployment "$deploy" -o jsonpath='{range .spec.template.spec.initContainers[*]}{.name}{"\t"}{.image}{"\n"}{end}{range .spec.template.spec.containers[*]}{.name}{"\t"}{.image}{"\n"}{end}' \
+              | awk -F'\t' -v img="$IMAGE" -v prev="$prev" '$2 == img { print $1 "=" prev }')"
+            [ -n "$args" ] || return 0
+            # shellcheck disable=SC2086
+            kubectl -n "$NAMESPACE" set image deployment/"$deploy" $args || true
+          }
+          restore app "$PREV_APP"
+          restore queue "$PREV_QUEUE"
+          restore scheduler "$PREV_SCHEDULER"
+          kubectl -n "$NAMESPACE" rollout status deployment/app --timeout=300s || true
+          echo "::error::Despliegue fallido: se restauró $PREV_APP. Las migraciones y el ConfigMap no se revierten."
