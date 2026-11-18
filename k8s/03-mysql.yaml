@@ -14,6 +14,7 @@ spec:
       labels:
         app: mysql
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: mysql
           image: mysql:8.0
