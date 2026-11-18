@@ -148,12 +148,19 @@ jobs:
             echo "::error::Falló el primer despliegue: no hay versión anterior a la que volver."
             exit 0
           fi
-          kubectl -n "$NAMESPACE" set image deployment/app init-storage="$PREV_APP" app="$PREV_APP" || true
-          if [ -n "$PREV_QUEUE" ]; then
-            kubectl -n "$NAMESPACE" set image deployment/queue queue="$PREV_QUEUE" || true
-          fi
-          if [ -n "$PREV_SCHEDULER" ]; then
-            kubectl -n "$NAMESPACE" set image deployment/scheduler scheduler="$PREV_SCHEDULER" || true
-          fi
+          # Restaura todo contenedor (incluidos los init, como migrate) que use
+          # la imagen nueva, sin depender de sus nombres; nginx y busybox no se tocan.
+          restore() {
+            local deploy="$1" prev="$2" args
+            [ -n "$prev" ] || return 0
+            args="$(kubectl -n "$NAMESPACE" get deployment "$deploy" -o jsonpath='{range .spec.template.spec.initContainers[*]}{.name}{"\t"}{.image}{"\n"}{end}{range .spec.template.spec.containers[*]}{.name}{"\t"}{.image}{"\n"}{end}' \
+              | awk -F'\t' -v img="$IMAGE" -v prev="$prev" '$2 == img { print $1 "=" prev }')"
+            [ -n "$args" ] || return 0
+            # shellcheck disable=SC2086
+            kubectl -n "$NAMESPACE" set image deployment/"$deploy" $args || true
+          }
+          restore app "$PREV_APP"
+          restore queue "$PREV_QUEUE"
+          restore scheduler "$PREV_SCHEDULER"
           kubectl -n "$NAMESPACE" rollout status deployment/app --timeout=300s || true
           echo "::error::Despliegue fallido: se restauró $PREV_APP. Las migraciones y el ConfigMap no se revierten."
