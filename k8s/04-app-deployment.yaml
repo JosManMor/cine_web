@@ -7,9 +7,16 @@ metadata:
     app.kubernetes.io/name: app
     app.kubernetes.io/part-of: cine-sendera
 spec:
-  replicas: 1
+  # 2 réplicas en un solo nodo: app-storage es RWO y solo se comparte entre
+  # pods del mismo nodo (k3s de un nodo).
+  replicas: 2
+  # RollingUpdate sin pérdida de capacidad: crea un pod nuevo antes de quitar
+  # uno viejo. Las migraciones no se pisan gracias al initContainer migrate.
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: app
@@ -50,6 +57,42 @@ spec:
               mountPath: /var/www/storage
             - name: public
               mountPath: /public
+        # Migraciones y seeders serializados entre réplicas con un bloqueo de
+        # MySQL (GET_LOCK): el seeder usa firstOrCreate sin UNIQUE y dos pods
+        # sembrando a la vez una base vacía duplicarían datos. El bloqueo se
+        # libera al cerrar la conexión; el entrypoint después solo hace no-ops.
+        - name: migrate
+          image: USUARIO/cine-sendera:TAG
+          securityContext:
+            runAsUser: 33
+            runAsGroup: 33
+          command:
+            - php
+            - -r
+            - |
+              $pdo = new PDO(
+                  sprintf('mysql:host=%s;port=%s;dbname=%s', getenv('DB_HOST'), getenv('DB_PORT'), getenv('DB_DATABASE')),
+                  getenv('DB_USERNAME'),
+                  getenv('DB_PASSWORD'),
+              );
+              echo "[migrate] esperando el bloqueo cine_setup...\n";
+              if ((int) $pdo->query("SELECT GET_LOCK('cine_setup', 600)")->fetchColumn() !== 1) {
+                  fwrite(STDERR, "[migrate] no se obtuvo el bloqueo\n");
+                  exit(1);
+              }
+              passthru('php artisan migrate --force', $rc);
+              if ($rc === 0) {
+                  passthru('php artisan db:seed --force', $rc);
+              }
+              exit($rc);
+          envFrom:
+            - configMapRef:
+                name: cine-config
+            - secretRef:
+                name: cine-app-secrets
+          volumeMounts:
+            - name: app-storage
+              mountPath: /var/www/storage
       containers:
         - name: app
           image: USUARIO/cine-sendera:TAG
