@@ -1,0 +1,53 @@
+# PersistentVolumeClaims del stack de preproduccion en k3s (issue #160, epica #157).
+#
+# NOTAS GENERALES (provisioner local-path de k3s)
+#
+#   * WaitForFirstConsumer: los PVC se quedan en "Pending" hasta que un pod
+#     los usa. Es el comportamiento esperado, no un error.
+#
+#   * local-path esta ligado a un nodo y ReadWriteOnce obliga a que todos los
+#     pods que monten un mismo PVC corran en ese nodo. Es valido porque el
+#     k3s de preproduccion es de UN SOLO NODO.
+#
+#   * reclaimPolicy de local-path = Delete: al borrar un PVC se eliminan
+#     TODOS sus datos, sin posibilidad de recuperarlos.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-data
+spec:
+  # ADVERTENCIA: reclaimPolicy Delete. Borrar este PVC ELIMINA la base de datos.
+  # Equivale a mysql_prod_data en Docker Compose, que nunca se borra en las
+  # actualizaciones. NO incluir mysql-data en ningun procedimiento de limpieza
+  # (kubectl delete -f k8s/, delete pvc --all, borrado del namespace, etc.).
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-storage
+spec:
+  # ADVERTENCIA: montar SOLO en /var/www/storage, NUNCA en /var/www.
+  # En Compose, Docker puebla el volumen desde la imagen; en Kubernetes un
+  # volumen vacio tapa el contenido de la ruta donde se monta. Un PVC en
+  # /var/www ocultaria el codigo de la imagen.
+  #
+  # Un PVC vacio en storage/ tambien oculta los subdirectorios que crea el
+  # Dockerfile (logs, framework/cache, framework/sessions, framework/views).
+  # El initContainer de la tarea de despliegue de la app los recrea y asigna
+  # propietario www-data (UID/GID 33).
+  #
+  # Lo comparten app, queue y scheduler: deben ejecutarse en el mismo nodo
+  # (ver nota general sobre ReadWriteOnce).
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi
