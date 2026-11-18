@@ -18,6 +18,9 @@ spec:
         app.kubernetes.io/part-of: cine-sendera
     spec:
       automountServiceAccountToken: false
+      # Lo crea el workflow k3s-deploy con DOCKERHUB_USERNAME y DOCKERHUB_TOKEN.
+      imagePullSecrets:
+        - name: dockerhub-regcred
       terminationGracePeriodSeconds: 100
       securityContext:
         runAsUser: 33
@@ -45,7 +48,7 @@ spec:
             - configMapRef:
                 name: cine-config
             - secretRef:
-                name: cine-secrets
+                name: cine-app-secrets
           volumeMounts:
             - name: app-storage
               mountPath: /var/www/storage
