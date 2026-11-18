@@ -1,4 +1,3 @@
-# Deployment scheduler. Referencia: servicio scheduler de docker-compose.prod.yml.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8,7 +7,6 @@ metadata:
     app.kubernetes.io/name: scheduler
     app.kubernetes.io/part-of: cine-sendera
 spec:
-  # Una segunda replica ejecutaria demo:reset dos veces.
   replicas: 1
   strategy:
     type: Recreate
@@ -21,7 +19,7 @@ spec:
         app.kubernetes.io/name: scheduler
         app.kubernetes.io/part-of: cine-sendera
     spec:
-      # Equivale a user: www-data de Compose (UID/GID 33 en la imagen Debian).
+      automountServiceAccountToken: false
       securityContext:
         runAsUser: 33
         runAsGroup: 33
@@ -36,7 +34,6 @@ spec:
       containers:
         - name: scheduler
           image: USUARIO/cine-sendera:TAG
-          # args (no command) conserva el ENTRYPOINT de la imagen.
           args:
             - php
             - artisan
@@ -50,9 +47,14 @@ spec:
             - name: app-storage
               mountPath: /var/www/storage
           resources:
+            requests:
+              memory: 64Mi
+              cpu: 25m
+              ephemeral-storage: 64Mi
             limits:
               memory: 128Mi
               cpu: 250m
+              ephemeral-storage: 256Mi
       volumes:
         - name: app-storage
           persistentVolumeClaim:
