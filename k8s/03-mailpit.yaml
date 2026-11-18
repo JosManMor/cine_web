@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailpit
+  namespace: cine-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mailpit
+  template:
+    metadata:
+      labels:
+        app: mailpit
+    spec:
+      containers:
+        - name: mailpit
+          image: axllent/mailpit:v1.31.4
+          env:
+            - name: MP_WEBROOT
+              value: mailpit
+          ports:
+            - name: http
+              containerPort: 8025
+            - name: smtp
+              containerPort: 1025
+          readinessProbe:
+            tcpSocket:
+              port: 8025
+          livenessProbe:
+            tcpSocket:
+              port: 8025
+          resources:
+            limits:
+              memory: 64Mi
+              cpu: 100m
