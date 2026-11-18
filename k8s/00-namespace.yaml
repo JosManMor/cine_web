@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cine-web
+  labels:
+    app.kubernetes.io/name: cine-web
+    app.kubernetes.io/part-of: cine-sendera
