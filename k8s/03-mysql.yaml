@@ -20,11 +20,28 @@ spec:
           image: mysql:8.0
           ports:
             - containerPort: 3306
-          envFrom:
-            - configMapRef:
-                name: cine-config
-            - secretRef:
-                name: cine-secrets
+          # Solo las variables que necesita MySQL: no recibe APP_KEY ni ADMIN_PASSWORD.
+          env:
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: cine-config
+                  key: DB_DATABASE
+            - name: MYSQL_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: cine-config
+                  key: DB_USERNAME
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cine-app-secrets
+                  key: DB_PASSWORD
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cine-mysql-secrets
+                  key: MYSQL_ROOT_PASSWORD
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
@@ -33,7 +50,7 @@ spec:
               command:
                 - sh
                 - -c
-                - mysql -h localhost -u$MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE -e 'SELECT 1'
+                - MYSQL_PWD="$MYSQL_PASSWORD" mysql -h localhost -u"$MYSQL_USER" "$MYSQL_DATABASE" -e 'SELECT 1'
             initialDelaySeconds: 40
             periodSeconds: 10
             failureThreshold: 10
@@ -42,17 +59,21 @@ spec:
               command:
                 - sh
                 - -c
-                - mysql -h localhost -u$MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE -e 'SELECT 1'
+                - MYSQL_PWD="$MYSQL_PASSWORD" mysql -h localhost -u"$MYSQL_USER" "$MYSQL_DATABASE" -e 'SELECT 1'
             periodSeconds: 10
             timeoutSeconds: 5
+          # Liveness solo comprueba que mysqld responde: una consulta autenticada
+          # lenta bajo carga provocaría reinicios innecesarios de la base de datos.
           livenessProbe:
             exec:
               command:
-                - sh
-                - -c
-                - mysql -h localhost -u$MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE -e 'SELECT 1'
-            periodSeconds: 10
+                - mysqladmin
+                - ping
+                - -h
+                - localhost
+            periodSeconds: 20
             timeoutSeconds: 5
+            failureThreshold: 6
           resources:
             requests:
               cpu: 250m
