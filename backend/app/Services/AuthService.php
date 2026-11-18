@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\DTOs\Auth\LoginDTO;
 use App\DTOs\Auth\RegisterDTO;
+use App\Exceptions\InactiveUserException;
 use App\Exceptions\InvalidCredentialsException;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -34,6 +35,11 @@ class AuthService
 
         /** @var User $user */
         $user = Auth::user();
+
+        if ($user->status === 'inactive') {
+            Auth::guard('web')->logout();
+            throw new InactiveUserException();
+        }
 
         return [
             'user'  => $user,

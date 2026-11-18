@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\DTOs\Auth\LoginDTO;
 use App\DTOs\Auth\RegisterDTO;
+use App\Exceptions\InactiveUserException;
 use App\Exceptions\InvalidCredentialsException;
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
@@ -127,6 +128,37 @@ class AuthServiceTest extends TestCase
 
         $dto = new LoginDTO(email: 'nobody@example.com', password: 'anyPassword');
         $this->service()->login($dto);
+    }
+
+    public function test_login_with_inactive_user_throws_inactive_user_exception(): void
+    {
+        User::factory()->create([
+            'email'    => 'inactive@example.com',
+            'password' => bcrypt('password123'),
+            'status'   => 'inactive',
+        ]);
+
+        $this->expectException(InactiveUserException::class);
+
+        $dto = new LoginDTO(email: 'inactive@example.com', password: 'password123');
+        $this->service()->login($dto);
+    }
+
+    public function test_login_with_inactive_user_does_not_create_token(): void
+    {
+        $user = User::factory()->create([
+            'email'    => 'inactive2@example.com',
+            'password' => bcrypt('password123'),
+            'status'   => 'inactive',
+        ]);
+
+        try {
+            $dto = new LoginDTO(email: 'inactive2@example.com', password: 'password123');
+            $this->service()->login($dto);
+        } catch (InactiveUserException) {
+        }
+
+        $this->assertCount(0, $user->tokens);
     }
 
     // ── Tests: logout ─────────────────────────────────────────────────────────

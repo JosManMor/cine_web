@@ -146,6 +146,39 @@ class AuthControllerTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_login_with_inactive_user_returns_403(): void
+    {
+        User::factory()->create([
+            'email'    => 'inactive@example.com',
+            'password' => bcrypt('mypassword'),
+            'status'   => 'inactive',
+        ]);
+
+        $response = $this->postJson(self::LOGIN_URI, [
+            'email'    => 'inactive@example.com',
+            'password' => 'mypassword',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJson(['message' => 'Tu cuenta ha sido desactivada. Contacta al administrador.']);
+    }
+
+    public function test_login_with_inactive_user_does_not_return_token(): void
+    {
+        User::factory()->create([
+            'email'    => 'inactive2@example.com',
+            'password' => bcrypt('mypassword'),
+            'status'   => 'inactive',
+        ]);
+
+        $response = $this->postJson(self::LOGIN_URI, [
+            'email'    => 'inactive2@example.com',
+            'password' => 'mypassword',
+        ]);
+
+        $response->assertJsonMissing(['token']);
+    }
+
     // ── logout ────────────────────────────────────────────────────────────────
 
     public function test_logout_returns_200_and_revokes_token(): void
